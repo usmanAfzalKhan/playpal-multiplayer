@@ -177,7 +177,7 @@ function Profile() {
             friends.map(friend => (
               <div key={friend.uid} className="friend-item">
                 <span>@{friend.username}</span>
-                <button onClick={() => alert('📩 Messaging feature coming soon!')}>Message</button>
+                <button onClick={() => navigate(`/messages/${friend.uid}`)}>Message</button>
                 <button onClick={() => handleUnfriend(friend.uid)}>Unfriend</button>
                 <button onClick={() => handleBlock(friend.uid, friend.username)}>Block</button>
               </div>

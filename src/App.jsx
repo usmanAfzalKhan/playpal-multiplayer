@@ -1,7 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile'; // 🔥 Import the Profile page
+import Profile from './pages/Profile';
+import Messaging from './pages/Messaging';
+import FirestoreSeeder from './pages/FirestoreSeeder'; // 🔥 Import the Seeder page
 
 function App() {
   return (
@@ -9,7 +11,9 @@ function App() {
       <Routes>
         <Route path="/" element={<AuthPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/profile" element={<Profile />} /> {/* 🔥 Add this */}
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/messages/:friendId" element={<Messaging />} />
+        <Route path="/seed" element={<FirestoreSeeder />} /> {/* 🔥 Seeder route */}
       </Routes>
     </Router>
   );
