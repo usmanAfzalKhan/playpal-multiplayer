@@ -1,0 +1,112 @@
+.dashboard-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e293b;
+  color: white;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #0f172a;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.header-logo {
+  height: 50px;
+  transition: transform 0.2s, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.header-logo:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px 4px #38bdf8aa; /* glowing blue effect */
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-icon {
+  font-size: 1.3rem;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.profile-icon:hover {
+  transform: scale(1.2);
+}
+
+
+.search-icon {
+  font-size: 1.2rem;
+  color: #38bdf8;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.search-icon:hover {
+  transform: scale(1.2);
+}
+
+.search-box {
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: none;
+  font-size: 1rem;
+  width: 200px;
+  background-color: #ffffff;
+  color: black;
+}
+
+
+.dashboard-main {
+  flex: 1;
+  padding: 2rem;
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.game-card {
+  background-color: #0f172a;
+  padding: 1rem;
+  border-radius: 12px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.game-card img {
+  width: 100%;
+  border-radius: 8px;
+}
+
+.game-card:hover {
+  transform: scale(1.03);
+}
+
+.dashboard-footer {
+  padding: 1rem;
+  text-align: center;
+  background-color: #0f172a;
+  font-size: 0.9rem;
+}
+
+.footer-link {
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
+}
+

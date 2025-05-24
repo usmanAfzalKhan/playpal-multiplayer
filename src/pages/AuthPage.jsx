@@ -1,6 +1,7 @@
 import './AuthPage.css';
 import logo from '../assets/logo.png';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // ✅ only once!
 import { auth, db } from '../firebase-config';
 import {
   signInWithEmailAndPassword,
@@ -17,12 +18,14 @@ import {
   getDocs
 } from 'firebase/firestore';
 
+
 function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const navigate = useNavigate(); // ✅ navigation hook
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,6 +47,7 @@ function AuthPage() {
 
         await signInWithEmailAndPassword(auth, userEmail, password);
         alert(`✅ Welcome back, @${userData.username}!`);
+        navigate('/dashboard'); // ✅ redirect after login
       } else {
         // 🧾 Sign up and store user
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
@@ -53,6 +57,7 @@ function AuthPage() {
           createdAt: new Date().toISOString()
         });
         alert(`✅ Account created for @${username}`);
+        navigate('/dashboard'); // ✅ redirect after signup
       }
     } catch (err) {
       setError(err.message);
