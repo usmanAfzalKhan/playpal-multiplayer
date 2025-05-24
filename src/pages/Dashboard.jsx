@@ -2,9 +2,7 @@ import './Dashboard.css';
 import logo from '../assets/logo.png';
 import { useEffect, useState } from 'react';
 import { auth, db } from '../firebase-config';
-import {
-  doc, getDoc, collection, query, where, getDocs, setDoc, Timestamp
-} from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, setDoc, Timestamp } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { FaSearch } from 'react-icons/fa';
 
@@ -13,6 +11,8 @@ function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [friendsList, setFriendsList] = useState([]);
+  const [actionMessage, setActionMessage] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,6 +25,9 @@ function Dashboard() {
       if (userSnap.exists()) {
         setUsername(userSnap.data().username);
       }
+
+      const friendsSnap = await getDocs(collection(db, `users/${user.uid}/friends`));
+      setFriendsList(friendsSnap.docs.map(doc => doc.id));
     };
 
     fetchUsername();
@@ -34,6 +37,7 @@ function Dashboard() {
     const queryInput = e.target.value;
     setSearchQuery(queryInput);
     setSuggestions([]);
+    setActionMessage('');
 
     if (queryInput.trim() === '') return;
 
@@ -51,26 +55,34 @@ function Dashboard() {
     setSuggestions(results);
   };
 
-  const handleAddFriend = async (user) => {
+  const handleSendRequest = async (user) => {
     try {
       const currentUid = auth.currentUser.uid;
-      const friendUid = user.uid;
+      const targetUid = user.uid;
 
-      await setDoc(doc(db, `users/${currentUid}/friends/${friendUid}`), {
-        username: user.username,
-        addedAt: Timestamp.now()
+      await setDoc(doc(db, `users/${targetUid}/requests/${currentUid}`), {
+        username: username,
+        requestedAt: Timestamp.now(),
       });
+
+      await setDoc(doc(db, `users/${targetUid}/notifications/${currentUid}-request`), {
+        message: `📬 @${username} sent you a friend request!`,
+        createdAt: Timestamp.now(),
+      });
+
+      setActionMessage(`✅ Friend request sent to @${user.username}`);
+      setTimeout(() => setActionMessage(''), 3000);
 
       setSearchQuery('');
       setSuggestions([]);
     } catch (err) {
-      console.error('❌ Error adding friend:', err);
+      setActionMessage('❌ Error sending friend request.');
+      setTimeout(() => setActionMessage(''), 3000);
     }
   };
 
   return (
     <div className="dashboard-container">
-      {/* Header */}
       <header className="dashboard-header">
         <img
           src={logo}
@@ -97,12 +109,19 @@ function Dashboard() {
               />
               {suggestions.length > 0 && (
                 <div className="search-suggestions">
-                  {suggestions.map(user => (
-                    <div key={user.uid} className="suggestion-item">
-                      @{user.username}
-                      <button onClick={() => handleAddFriend(user)}>Add</button>
-                    </div>
-                  ))}
+                  {suggestions.map(user => {
+                    const isAlreadyFriend = friendsList.includes(user.uid);
+                    return (
+                      <div key={user.uid} className="suggestion-item">
+                        @{user.username}
+                        {!isAlreadyFriend ? (
+                          <button onClick={() => handleSendRequest(user)}>Add</button>
+                        ) : (
+                          <span>Already a friend</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -117,7 +136,8 @@ function Dashboard() {
         </div>
       </header>
 
-      {/* Game Gallery */}
+      {actionMessage && <p style={{ color: 'white', textAlign: 'center' }}>{actionMessage}</p>}
+
       <main className="dashboard-main">
         <h2 style={{ textAlign: 'center' }}>🎮 Games</h2>
         <div className="game-grid">
@@ -132,7 +152,6 @@ function Dashboard() {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="dashboard-footer">
         © {new Date().getFullYear()} PlayPal. Built with ❤️ by{' '}
         <a

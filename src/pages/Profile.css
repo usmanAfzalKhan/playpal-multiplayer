@@ -1,0 +1,217 @@
+.profile-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e293b;
+  color: white;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #0f172a;
+}
+
+.header-logo {
+  height: 50px;
+  transition: transform 0.2s, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.header-logo:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px 4px #38bdf8aa;
+}
+
+.dashboard-button {
+  background-color: #38bdf8;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: black;
+  font-weight: bold;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.dashboard-button:hover {
+  background-color: #0ea5e9;
+  transform: scale(1.05);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.notif-container {
+  position: relative;
+  cursor: pointer;
+}
+
+.notif-bell {
+  font-size: 1.5rem;
+  color: #facc15;
+  transition: transform 0.2s ease;
+}
+
+.notif-bell:hover {
+  transform: scale(1.2);
+}
+
+.notif-count {
+  position: absolute;
+  top: -5px;
+  right: -10px;
+  background-color: red;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.notif-dropdown {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  background-color: #0f172a;
+  padding: 1rem;
+  border-radius: 8px;
+  width: 250px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 100;
+}
+
+.notif-item {
+  margin-bottom: 0.5rem;
+  padding: 0.3rem;
+  border-bottom: 1px solid #38bdf8;
+}
+
+.notif-item:last-child {
+  border-bottom: none;
+}
+
+.notif-item button {
+  background-color: #38bdf8;
+  border: none;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: black;
+  font-weight: bold;
+}
+
+.profile-main {
+  flex: 1;
+  padding: 2rem;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.profile-icon {
+  font-size: 3rem;
+}
+
+.profile-info h2 {
+  margin-top: 0.5rem;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.profile-section {
+  background-color: #0f172a;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+/* Scope these button styles ONLY to .friend-item */
+.friend-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #1e293b;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.friend-item > span {
+  flex: 1;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friend-item button {
+  margin: 0 0.2rem;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.8rem;
+  background-color: #38bdf8;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  color: black;
+  transition: background-color 0.3s, transform 0.2s ease;
+}
+
+.friend-item button:hover {
+  background-color: #0ea5e9;
+  transform: scale(1.05);
+}
+
+.friend-item button:nth-child(2) { background-color: #4ade80; }
+.friend-item button:nth-child(2):hover { background-color: #22c55e; }
+
+.friend-item button:nth-child(3) { background-color: #f87171; }
+.friend-item button:nth-child(3):hover { background-color: #ef4444; }
+
+.friend-item button:nth-child(4) { background-color: #facc15; }
+.friend-item button:nth-child(4):hover { background-color: #fbbf24; }
+
+@media (max-width: 480px) {
+  .friend-item {
+    padding: 0.2rem 0.4rem;
+  }
+
+  .friend-item > span {
+    font-size: 0.8rem;
+  }
+
+  .friend-item button {
+    padding: 0.15rem 0.3rem;
+    font-size: 0.7rem;
+  }
+}
+
+.dashboard-footer {
+  padding: 1rem;
+  text-align: center;
+  background-color: #0f172a;
+  font-size: 0.9rem;
+}
+
+.footer-link {
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
+}
