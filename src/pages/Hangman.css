@@ -1,0 +1,54 @@
+.hangman-selection {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #1e293b;
+  color: white;
+  text-align: center;
+  padding: 2rem;
+}
+
+.hangman-selection h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.hangman-selection p {
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.hangman-selection button {
+  background-color: #38bdf8;
+  color: black;
+  font-weight: bold;
+  padding: 0.8rem 1.5rem;
+  margin: 0.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.hangman-selection button:hover {
+  background-color: #0ea5e9;
+  transform: scale(1.05);
+}
+
+@media (max-width: 480px) {
+  .hangman-selection h2 {
+    font-size: 1.5rem;
+  }
+
+  .hangman-selection p {
+    font-size: 1rem;
+  }
+
+  .hangman-selection button {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+}

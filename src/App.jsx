@@ -1,9 +1,13 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import AuthPage from './pages/AuthPage';
-import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
-import Messaging from './pages/Messaging';
-import FirestoreSeeder from './pages/FirestoreSeeder'; // 🔥 Import the Seeder page
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import AuthPage from "./pages/AuthPage";
+import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
+import Messaging from "./pages/Messaging";
+import FirestoreSeeder from "./pages/FirestoreSeeder"; // 🔥 Import the Seeder page
+import Hangman from "./pages/Hangman";
+import SinglePlayerHangman from "./pages/SinglePlayerHangman";
+import MultiplayerHangman from "./pages/MultiplayerHangman";
+import HangmanGame from "./pages/HangmanGame";
 
 function App() {
   return (
@@ -13,7 +17,17 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/messages/:friendId" element={<Messaging />} />
-        <Route path="/seed" element={<FirestoreSeeder />} /> {/* 🔥 Seeder route */}
+        <Route path="/seed" element={<FirestoreSeeder />} />{" "}
+        {/* 🔥 Seeder route */}
+        <Route path="/hangman" element={<Hangman />} />
+        <Route path="/hangman/game/:gameId" element={<HangmanGame />} />
+        <Route path="/hangman/single" element={<SinglePlayerHangman />} />{" "}
+        {/* Placeholder for now */}
+        <Route
+          path="/hangman/multiplayer"
+          element={<MultiplayerHangman />}
+        />{" "}
+        {/* Placeholder */}
       </Routes>
     </Router>
   );

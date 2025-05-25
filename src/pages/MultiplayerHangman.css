@@ -1,0 +1,29 @@
+.multiplayer-hangman {
+  min-height: 100vh;
+  background-color: #1e293b;
+  color: white;
+  text-align: center;
+  padding: 2rem;
+}
+
+.friend-challenge {
+  display: flex;
+  justify-content: space-between;
+  background-color: #0f172a;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.friend-challenge button {
+  background-color: #38bdf8;
+  border: none;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.friend-challenge button:hover {
+  background-color: #0ea5e9;
+}
