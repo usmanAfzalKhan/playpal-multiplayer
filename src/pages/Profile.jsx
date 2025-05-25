@@ -3,7 +3,7 @@ import logo from '../assets/logo.png';
 import { useEffect, useState } from 'react';
 import { auth, db } from '../firebase-config';
 import {
-  collection, doc, getDoc, getDocs, onSnapshot, setDoc, deleteDoc, Timestamp
+  collection, doc, getDoc, getDocs, onSnapshot, setDoc, deleteDoc, query, where, Timestamp
 } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { FaBell } from 'react-icons/fa';
@@ -15,6 +15,7 @@ function Profile() {
   const [notifications, setNotifications] = useState([]);
   const [requests, setRequests] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -137,8 +138,20 @@ function Profile() {
                 ) : (
                   notifications.map(notif => (
                     <div key={notif.id} className="notif-item">
-                      <p>{notif.message}</p>
-                      <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
+                      {notif.type === 'message' ? (
+                        <>
+                          <p><strong>@{notif.senderUsername}</strong> sent you a message</p>
+                          <button onClick={() => {
+                            navigate(`/messages/${notif.senderUid}`);
+                            markNotificationRead(notif.id);
+                          }}>View Message</button>
+                        </>
+                      ) : (
+                        <>
+                          <p>{notif.message}</p>
+                          <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
+                        </>
+                      )}
                     </div>
                   ))
                 )}

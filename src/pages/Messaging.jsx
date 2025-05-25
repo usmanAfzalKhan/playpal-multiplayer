@@ -37,19 +37,34 @@ function Messaging() {
     return () => unsubscribe();
   }, [friendId, chatId, user]);
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !chatId) return;
-    await addDoc(collection(db, `chats/${chatId}/messages`), {
-      senderId: user.uid,
-      receiverId: friendId,
-      content: newMessage,
-      timestamp: new Date().toISOString(),
-      isSeen: false,
-      isSavedBySender: false,
-      isSavedByReceiver: false,
-    });
-    setNewMessage('');
-  };
+const sendMessage = async () => {
+  if (!newMessage.trim() || !chatId) return;
+
+  // 🔥 Retrieve sender username from Firestore
+  const senderDoc = await getDoc(doc(db, 'users', user.uid));
+  const senderUsername = senderDoc.exists() ? senderDoc.data().username : 'Unknown';
+
+  await addDoc(collection(db, `chats/${chatId}/messages`), {
+    senderId: user.uid,
+    receiverId: friendId,
+    content: newMessage,
+    timestamp: new Date().toISOString(),
+    isSeen: false,
+    isSavedBySender: false,
+    isSavedByReceiver: false,
+  });
+
+  await addDoc(collection(db, `users/${friendId}/notifications`), {
+    message: `New message from @${senderUsername}`,
+    senderUsername: senderUsername, // 🔥 Use actual username
+    senderUid: user.uid,
+    type: 'message',
+    timestamp: new Date().toISOString(),
+  });
+
+  setNewMessage('');
+};
+
 
   const toggleSave = async (msg) => {
     const isSender = msg.senderId === user.uid;
@@ -75,42 +90,11 @@ function Messaging() {
 
   return (
     <div className="messaging-container">
-      {/* 🔥 Sleek header with back button and friend name */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0.5rem 1rem',
-        marginBottom: '1rem',
-        backgroundColor: '#2a2a3f',
-        borderRadius: '12px',
-        boxShadow: '0 1px 5px rgba(0,255,255,0.3)'
-      }}>
-        <button onClick={handleLeaveChat} style={{
-          background: 'none',
-          border: 'none',
-          fontSize: '1rem',
-          color: '#00ffff',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.3rem'
-        }}>
-          <span style={{ fontSize: '1.2rem' }}>←</span> Back to Profile
-        </button>
-        <span style={{
-          fontSize: '1.1rem',
-          fontWeight: 'bold',
-          color: '#00ffff'
-        }}>
-          @{friendUsername}
-        </span>
-      </div>
-
-      <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#00ffff', marginBottom: '1rem' }}>
-        Tip: Click on a message to save or unsave it. Unsaved messages disappear after being seen.
+      <h2>@{friendUsername}</h2>
+      <button onClick={handleLeaveChat}>← Back to Profile</button>
+      <p style={{ textAlign: 'center', fontSize: '0.8rem', margin: '0.5rem 0' }}>
+        Click on a message to save or unsave it. Unsaved messages disappear after being seen.
       </p>
-
       {user ? (
         <>
           <div className="messages-list">
