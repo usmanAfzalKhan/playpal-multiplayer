@@ -25,7 +25,6 @@ function MultiplayerHangman() {
     const currentUid = auth.currentUser.uid;
     const gameId = `${currentUid}_${friend.uid}_${Date.now()}`;
 
-    // Create a game room (ephemeral)
     await setDoc(doc(db, 'hangman_games', gameId), {
       player1: currentUid,
       player2: friend.uid,
@@ -38,31 +37,24 @@ function MultiplayerHangman() {
       createdAt: Timestamp.now(),
     });
 
-    // Notify the friend with gameId
-await setDoc(doc(db, `users/${friend.uid}/notifications/${gameId}`), {
-  type: 'hangman_invite',
-  message: `🎮 @${auth.currentUser.displayName || 'A user'} challenged you to Hangman!`,
-  gameId: gameId,
-  senderUid: currentUid,
-  timestamp: Timestamp.now(),
-});
-
+    await setDoc(doc(db, `users/${friend.uid}/notifications/${gameId}`), {
+      type: 'hangman_invite',
+      message: `🎮 @${auth.currentUser.displayName || 'A user'} challenged you to Hangman!`,
+      gameId,
+      senderUid: currentUid,
+      timestamp: Timestamp.now(),
+    });
 
     setWaitingGameId(gameId);
   };
 
   useEffect(() => {
     if (!waitingGameId) return;
-
     const unsub = onSnapshot(doc(db, 'hangman_games', waitingGameId), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.status === 'started') {
-          navigate(`/hangman/game/${waitingGameId}`);
-        }
+      if (docSnap.exists() && docSnap.data().status === 'started') {
+        navigate(`/hangman/game/${waitingGameId}`);
       }
     });
-
     return () => unsub();
   }, [waitingGameId, navigate]);
 
