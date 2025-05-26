@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase-config';
-import { doc, onSnapshot, updateDoc, arrayUnion, setDoc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, arrayUnion } from 'firebase/firestore';
 import './HangmanGame.css';
 
 function HangmanGame() {
@@ -14,41 +14,32 @@ function HangmanGame() {
   const [newMessage, setNewMessage] = useState('');
   const [incorrectGuesses, setIncorrectGuesses] = useState(0);
   const [guesses, setGuesses] = useState([]);
-  const [currentTurn, setCurrentTurn] = useState('');
-  const [userInfo, setUserInfo] = useState({ uid: '', username: '' });
 
-  const maxIncorrect = 6;
+  const user = auth.currentUser;
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) {
-      navigate('/');
-      return;
-    }
-    setUserInfo({ uid: user.uid, username: user.displayName || 'Player' });
-
-    const unsub = onSnapshot(doc(db, 'hangman_games', gameId), async (docSnap) => {
+    const unsub = onSnapshot(doc(db, 'hangman_games', gameId), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setGameData(data);
+        setChatMessages(data.chat || []);
         setGuesses(data.guesses || []);
         setIncorrectGuesses((data.guesses || []).filter(g => !data.word?.includes(g)).length);
-        setCurrentTurn(data.currentTurn);
-
-        if (data.chat) {
-          const enrichedChat = await Promise.all(
-            data.chat.map(async (msg) => {
-              const senderDoc = await getDoc(doc(db, 'users', msg.senderUid));
-              const senderUsername = senderDoc.exists() ? senderDoc.data().username : 'Unknown';
-              return { ...msg, senderUsername };
-            })
-          );
-          setChatMessages(enrichedChat);
-        }
+      } else {
+        alert('Game not found or was deleted.');
+        navigate('/dashboard');
       }
     });
     return () => unsub();
   }, [gameId, navigate]);
+
+  if (!gameData) return <p>Loading game...</p>;
+
+  const maxIncorrect = 6;
+  const gameLost = incorrectGuesses >= maxIncorrect;
+  const gameWon = gameData.word && gameData.word.split('').every(l => guesses.includes(l));
+  const isCurrentWordSetter = gameData.currentWordSetter === user.uid;
+  const isCurrentGuesser = gameData.currentGuesser === user.uid;
 
   const handleSetWord = async () => {
     if (wordInput.trim() === '') return;
@@ -57,29 +48,22 @@ function HangmanGame() {
       status: 'started',
       guesses: [],
       chat: [],
-      currentTurn: gameData.player1,
     });
     setWordInput('');
   };
 
   const handleGuess = async () => {
-    if (guessInput.trim() === '' || guesses.includes(guessInput.toLowerCase()) || gameData.currentTurn !== userInfo.uid) return;
-
-    const guess = guessInput.toLowerCase();
-    const isCorrect = gameData.word.includes(guess);
-
+    if (guessInput.trim() === '' || guesses.includes(guessInput.toLowerCase())) return;
     await updateDoc(doc(db, 'hangman_games', gameId), {
-      guesses: arrayUnion(guess),
-      currentTurn: isCorrect ? userInfo.uid : (userInfo.uid === gameData.player1 ? gameData.player2 : gameData.player1)
+      guesses: arrayUnion(guessInput.toLowerCase())
     });
-
     setGuessInput('');
   };
 
   const sendMessage = async () => {
     if (newMessage.trim() === '') return;
     await updateDoc(doc(db, 'hangman_games', gameId), {
-      chat: arrayUnion({ senderUid: userInfo.uid, message: newMessage, timestamp: Date.now() })
+      chat: arrayUnion({ senderUid: user.uid, message: newMessage, timestamp: Date.now() })
     });
     setNewMessage('');
   };
@@ -91,78 +75,60 @@ function HangmanGame() {
 
   const handleRestart = async () => {
     await updateDoc(doc(db, 'hangman_games', gameId), {
+      currentWordSetter: gameData.currentGuesser,
+      currentGuesser: gameData.currentWordSetter,
       word: '',
       guesses: [],
       chat: [],
-      status: 'pending',
-      currentTurn: gameData.player1,
+      status: 'pending'
     });
   };
-
-  if (!gameData) return <p>Loading game...</p>;
-
-  const gameLost = incorrectGuesses >= maxIncorrect;
-  const gameWon = gameData.word && gameData.word.split('').every(l => guesses.includes(l));
 
   return (
     <div className="hangman-room">
       <h2>Multiplayer Hangman</h2>
       <p>Game ID: {gameId}</p>
-      <p>Current Turn: {currentTurn === userInfo.uid ? 'Your Turn' : 'Opponent\'s Turn'}</p>
+      <p>Role: {isCurrentWordSetter ? 'Word Setter' : 'Guesser'}</p>
 
-      {gameData.status === 'pending' ? (
-        gameData.player1 === userInfo.uid ? (
-          <>
-            <p>You’re the word setter. Enter a word:</p>
-            <input type="text" value={wordInput} onChange={(e) => setWordInput(e.target.value)} />
-            <button onClick={handleSetWord}>Set Word</button>
-          </>
-        ) : (
-          <p>Waiting for word to be set...</p>
-        )
-      ) : (
+      {gameData.status === 'pending' && isCurrentWordSetter && (
+        <>
+          <p>Set your word for the game:</p>
+          <input value={wordInput} onChange={(e) => setWordInput(e.target.value)} />
+          <button onClick={handleSetWord}>Set Word</button>
+        </>
+      )}
+      {gameData.status === 'pending' && isCurrentGuesser && <p>Waiting for word to be set...</p>}
+
+      {gameData.status === 'started' && (
         <>
           <HangmanDrawing incorrectGuesses={incorrectGuesses} />
           <p>{renderWord()}</p>
           <p>Incorrect Guesses: {incorrectGuesses}/{maxIncorrect}</p>
-          {!gameLost && !gameWon && (
+          {!gameLost && !gameWon && isCurrentGuesser && (
             <>
-              <input
-                type="text"
-                maxLength="1"
-                value={guessInput}
-                onChange={(e) => setGuessInput(e.target.value)}
-                disabled={currentTurn !== userInfo.uid}
-              />
-              <button onClick={handleGuess} disabled={currentTurn !== userInfo.uid}>Guess</button>
+              <input maxLength="1" value={guessInput} onChange={(e) => setGuessInput(e.target.value)} />
+              <button onClick={handleGuess}>Guess</button>
             </>
           )}
-          {gameWon && <h3>🎉 Someone guessed it! Click Rematch to play again.</h3>}
-          {gameLost && <h3>💀 Too many wrong guesses! Click Rematch to try again.</h3>}
-          {(gameWon || gameLost) && (
-            <button onClick={handleRestart}>Rematch</button>
-          )}
+          {gameWon && <h3>🎉 Guesser Won! Rematch?</h3>}
+          {gameLost && <h3>💀 Guesser Lost! Rematch?</h3>}
+          {(gameWon || gameLost) && <button onClick={handleRestart}>Rematch (Switch Roles)</button>}
         </>
       )}
 
       <div className="game-chat">
         <div className="chat-messages">
           {chatMessages.map((msg, index) => (
-            <p key={index}><strong>{msg.senderUsername}</strong>: {msg.message}</p>
+            <p key={index}><strong>{msg.senderUid}</strong>: {msg.message}</p>
           ))}
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <input
-            type="text"
-            placeholder="Type your message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-          />
+          <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type message..." />
           <button onClick={sendMessage}>Send</button>
         </div>
       </div>
 
-      <button onClick={() => navigate('/dashboard')}>Quit to Dashboard</button>
+      <button onClick={() => navigate('/dashboard')}>Quit</button>
     </div>
   );
 }
