@@ -10,57 +10,42 @@ function FirestoreSeeder() {
         const user1 = { uid: 'user1', username: 'Alice', email: 'alice@example.com' };
         const user2 = { uid: 'user2', username: 'Bob', email: 'bob@example.com' };
 
-        console.log(`⚙️ Creating user: ${user1.uid}`);
+        // Create users
         await setDoc(doc(db, 'users', user1.uid), user1);
-        console.log(`✅ User ${user1.username} created`);
-
-        console.log(`⚙️ Creating user: ${user2.uid}`);
         await setDoc(doc(db, 'users', user2.uid), user2);
-        console.log(`✅ User ${user2.username} created`);
+        console.log('✅ Users created: Alice & Bob');
 
+        // Add each other as friends
+        await setDoc(doc(db, `users/${user1.uid}/friends/${user2.uid}`), { username: user2.username, addedAt: Timestamp.now() });
+        await setDoc(doc(db, `users/${user2.uid}/friends/${user1.uid}`), { username: user1.username, addedAt: Timestamp.now() });
+        console.log('✅ Friends list created');
+
+        // Sample chat messages
         const chatId = [user1.uid, user2.uid].sort().join('_');
         const messages = [
-          {
-            senderId: user1.uid,
-            receiverId: user2.uid,
-            content: 'Hello Bob!',
-            timestamp: Timestamp.now(),
-            isSeen: false,
-            isSavedBySender: false,
-            isSavedByReceiver: false,
-          },
-          {
-            senderId: user2.uid,
-            receiverId: user1.uid,
-            content: 'Hi Alice! How are you?',
-            timestamp: Timestamp.now(),
-            isSeen: false,
-            isSavedBySender: false,
-            isSavedByReceiver: false,
-          },
+          { senderId: user1.uid, receiverId: user2.uid, content: 'Hello Bob!', timestamp: Timestamp.now(), isSeen: false },
+          { senderId: user2.uid, receiverId: user1.uid, content: 'Hi Alice! How are you?', timestamp: Timestamp.now(), isSeen: false },
         ];
-
         for (const msg of messages) {
-          console.log(`⚙️ Adding message: ${msg.content}`);
           await addDoc(collection(db, `chats/${chatId}/messages`), msg);
-          console.log(`✅ Message added: ${msg.content}`);
         }
+        console.log('✅ Sample messages seeded');
 
-        // 🔥 Add initial Hangman game with roles
+        // Create a Hangman game with a word
         const gameId = `${user1.uid}_${user2.uid}_test`;
-        console.log(`⚙️ Creating Hangman game: ${gameId}`);
+        const word = 'react'; // Sample word
         await setDoc(doc(db, 'hangman_games', gameId), {
           player1: user1.uid,
           player2: user2.uid,
-          word: '',
-          status: 'pending',
+          word: word,
           guesses: [],
           chat: [],
           createdAt: Timestamp.now(),
-          currentWordSetter: user1.uid,
-          currentGuesser: user2.uid,
+          currentTurn: user1.uid,
+          status: 'active',
+          winner: ''
         });
-        console.log(`✅ Hangman game created: ${gameId}`);
+        console.log(`✅ Hangman game created: ${gameId} with word "${word}"`);
 
         console.log('🔥 Firestore seeder completed!');
       } catch (error) {
@@ -74,7 +59,7 @@ function FirestoreSeeder() {
   return (
     <div style={{ padding: '2rem', textAlign: 'center' }}>
       <h2>Firestore Seeder Running...</h2>
-      <p>Check Firestore for users and messages!</p>
+      <p>Check Firestore for users, friends, messages, and Hangman game!</p>
     </div>
   );
 }

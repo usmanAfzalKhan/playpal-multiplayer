@@ -17,7 +17,7 @@ function App() {
         <Route path="/messages/:friendId" element={<Messaging />} />
         <Route path="/seed" element={<FirestoreSeeder />} />
         <Route path="/hangman/single" element={<SingleHangman />} />
-        <Route path="/hangman/multiplayer" element={<MultiplayerHangman />} />
+        <Route path="/hangman/multiplayer/:gameId?" element={<MultiplayerHangman />} /> {/* 🔥 Single clean route */}
       </Routes>
     </Router>
   );
