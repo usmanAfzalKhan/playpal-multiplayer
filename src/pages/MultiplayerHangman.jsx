@@ -20,7 +20,6 @@ function MultiplayerHangman() {
   const [userUsername, setUserUsername] = useState('');
   const [winner, setWinner] = useState('');
   const [gameOver, setGameOver] = useState(false);
-  const [challengeDisabled, setChallengeDisabled] = useState(false);
 
   useEffect(() => {
     if (!user) return navigate('/');
@@ -71,21 +70,19 @@ function MultiplayerHangman() {
     });
 
     setWaitingGameId(newGameId);
-    setChallengeDisabled(true); // Disable button after challenge
   };
 
   useEffect(() => {
-    if (waitingGameId) {
-      const unsub = onSnapshot(doc(db, 'hangman_games', waitingGameId), (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.status === 'active') {
-            navigate(`/hangman/multiplayer/${waitingGameId}`);
-          }
+    if (!waitingGameId) return;
+    const unsub = onSnapshot(doc(db, 'hangman_games', waitingGameId), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.status === 'active') {
+          navigate(`/hangman/multiplayer/${waitingGameId}`);
         }
-      });
-      return () => unsub();
-    }
+      }
+    });
+    return () => unsub();
   }, [waitingGameId, navigate]);
 
   useEffect(() => {
@@ -209,7 +206,7 @@ function MultiplayerHangman() {
         friends.map(friend => (
           <div key={friend.uid}>
             @{friend.username}
-            <button onClick={() => handleChallenge(friend)} disabled={challengeDisabled}>Challenge</button>
+            <button onClick={() => handleChallenge(friend)} disabled={waitingGameId !== null}>Challenge</button>
           </div>
         ))
       )}

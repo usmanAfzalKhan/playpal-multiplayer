@@ -2,7 +2,7 @@ import './Dashboard.css';
 import logo from '../assets/logo.png';
 import { useEffect, useState } from 'react';
 import { auth, db } from '../firebase-config';
-import { doc, getDoc, collection, query, where, getDocs, onSnapshot, deleteDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, onSnapshot, deleteDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { FaSearch, FaBell } from 'react-icons/fa';
 
@@ -94,6 +94,14 @@ function Dashboard() {
     await deleteDoc(doc(db, `users/${currentUid}/notifications/${notifId}`));
   };
 
+  const acceptHangmanInvite = async (notif) => {
+    await updateDoc(doc(db, `hangman_games/${notif.gameId}`), {
+      status: 'active'
+    });
+    markNotificationRead(notif.id);
+    navigate(`/hangman/multiplayer/${notif.gameId}`);
+  };
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
@@ -157,10 +165,7 @@ function Dashboard() {
                     <div key={notif.id} className="notif-item">
                       <p>{notif.message}</p>
                       {notif.type === 'hangman_invite' && (
-                        <button onClick={() => {
-                          navigate(`/hangman/multiplayer/${notif.gameId}`);
-                          markNotificationRead(notif.id);
-                        }}>Join Game</button>
+                        <button onClick={() => acceptHangmanInvite(notif)}>Join Game</button>
                       )}
                       <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
                     </div>
