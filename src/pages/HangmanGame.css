@@ -1,79 +1,34 @@
 .hangman-room {
-  min-height: 100vh;
+  padding: 1rem;
   background-color: #1e293b;
   color: white;
-  padding: 2rem;
-  text-align: center;
-}
-
-.hangman-room input {
-  padding: 0.5rem;
-  font-size: 1rem;
-  margin-right: 0.5rem;
-  border-radius: 6px;
-  border: none;
-}
-
-.hangman-room button {
-  padding: 0.5rem 1rem;
-  margin: 0.3rem;
-  background-color: #38bdf8;
-  border: none;
-  border-radius: 6px;
-  color: black;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.hangman-room button:hover {
-  background-color: #0ea5e9;
-}
-
-.game-chat {
-  margin-top: 2rem;
-  background-color: #0f172a;
-  padding: 1rem;
-  border-radius: 8px;
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.chat-messages {
-  max-height: 200px;
-  overflow-y: auto;
-  margin-bottom: 0.5rem;
-  text-align: left;
-  padding: 0.5rem;
-  background-color: #1e1e2e;
-  border-radius: 8px;
-}
-
-.chat-message {
-  margin-bottom: 0.3rem;
-}
-
-.chat-message strong {
-  color: #38bdf8;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .hangman-drawing {
-  display: block;
-  margin: 1rem auto;
-  max-width: 100%;
+  margin: 1rem 0;
 }
 
-@media (max-width: 480px) {
-  .hangman-room input {
-    width: 80px;
-  }
+.chatbox {
+  width: 100%;
+  max-width: 400px;
+  background: #0f172a;
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin-top: 1rem;
+}
 
-  .game-chat {
-    width: 90%;
-    padding: 0.5rem;
-  }
+.chatbox input {
+  width: 70%;
+  padding: 0.3rem;
+}
 
-  .chat-messages {
-    max-height: 150px;
-  }
+.chatbox button {
+  padding: 0.3rem 1rem;
+  background-color: #38bdf8;
+  border: none;
+  border-radius: 6px;
 }
