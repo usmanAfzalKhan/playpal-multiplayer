@@ -1,33 +1,32 @@
-// src/pages/MultiplayerHangman.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase-config';
-import { collection, getDocs, doc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
-import './MultiplayerHangman.css';
+import { collection, getDocs, doc, setDoc, onSnapshot, Timestamp } from 'firebase/firestore';
+import './HangmanGame.css';
 
 function MultiplayerHangman() {
   const [friends, setFriends] = useState([]);
   const [waitingGameId, setWaitingGameId] = useState(null);
   const navigate = useNavigate();
+  const user = auth.currentUser;
 
   useEffect(() => {
     const fetchFriends = async () => {
-      const user = auth.currentUser;
       if (!user) return navigate('/');
-
       const friendsSnap = await getDocs(collection(db, `users/${user.uid}/friends`));
       setFriends(friendsSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() })));
     };
-
     fetchFriends();
-  }, [navigate]);
+  }, [navigate, user]);
 
   const handleChallenge = async (friend) => {
-    const currentUid = auth.currentUser.uid;
-    const gameId = `${currentUid}_${friend.uid}_${Date.now()}`;
-
+    const gameId = `${user.uid}_${friend.uid}_${Date.now()}`;
     await setDoc(doc(db, 'hangman_games', gameId), {
-      currentWordSetter: currentUid,
+      player1: user.uid,
+      player2: friend.uid,
+      player1Name: user.displayName || 'Player1',
+      player2Name: friend.username || 'Player2',
+      currentWordSetter: user.uid,
       currentGuesser: friend.uid,
       word: '',
       guesses: [],
@@ -35,35 +34,28 @@ function MultiplayerHangman() {
       status: 'pending',
       createdAt: Timestamp.now(),
     });
-
     await setDoc(doc(db, `users/${friend.uid}/notifications/${gameId}`), {
       type: 'hangman_challenge',
-      message: `🎮 @${auth.currentUser.displayName || 'A user'} challenged you to Hangman!`,
+      message: `🎮 @${user.displayName || 'User'} challenged you to Hangman!`,
       gameId,
-      senderUid: currentUid,
+      senderUid: user.uid,
       timestamp: Timestamp.now(),
     });
-
     setWaitingGameId(gameId);
   };
 
   useEffect(() => {
     if (!waitingGameId) return;
-
     const unsub = onSnapshot(doc(db, 'hangman_games', waitingGameId), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.status === 'started' || data.word) {
-          navigate(`/hangman/game/${waitingGameId}`);
-        }
+      if (docSnap.exists() && docSnap.data().status === 'started') {
+        navigate(`/hangman/game/${waitingGameId}`);
       }
     });
-
     return () => unsub();
   }, [waitingGameId, navigate]);
 
   return (
-    <div className="multiplayer-hangman">
+    <div className="hangman-room">
       <h2>Challenge a Friend to Hangman</h2>
       {friends.length === 0 ? (
         <p>No friends to challenge. Add friends first!</p>
@@ -75,7 +67,7 @@ function MultiplayerHangman() {
           </div>
         ))
       )}
-      {waitingGameId && <p>Waiting for your friend to accept...</p>}
+      {waitingGameId && <p>Waiting for friend to accept...</p>}
     </div>
   );
 }
