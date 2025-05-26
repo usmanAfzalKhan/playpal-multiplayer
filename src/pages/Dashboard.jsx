@@ -2,7 +2,19 @@ import './Dashboard.css';
 import logo from '../assets/logo.png';
 import { useEffect, useState } from 'react';
 import { auth, db } from '../firebase-config';
-import { doc, getDoc, collection, query, where, getDocs, onSnapshot, deleteDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  onSnapshot,
+  deleteDoc,
+  setDoc,
+  updateDoc,
+  Timestamp
+} from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { FaSearch, FaBell } from 'react-icons/fa';
 
@@ -22,82 +34,75 @@ function Dashboard() {
     const user = auth.currentUser;
     if (!user) return navigate('/');
 
-    const fetchUserData = async () => {
-      const docRef = doc(db, 'users', user.uid);
-      const userSnap = await getDoc(docRef);
-      if (userSnap.exists()) {
-        setUsername(userSnap.data().username);
-      }
+    // Fetch username & friends list
+    (async () => {
+      const uSnap = await getDoc(doc(db, 'users', user.uid));
+      if (uSnap.exists()) setUsername(uSnap.data().username);
 
-      const friendsSnap = await getDocs(collection(db, `users/${user.uid}/friends`));
-      setFriendsList(friendsSnap.docs.map(doc => doc.id));
-    };
+      const fSnap = await getDocs(collection(db, `users/${user.uid}/friends`));
+      setFriendsList(fSnap.docs.map(d => d.id));
+    })();
 
-    fetchUserData();
-
-    const unsub = onSnapshot(collection(db, `users/${user.uid}/notifications`), snapshot => {
-      setNotifications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-
+    // Listen for notifications
+    const unsub = onSnapshot(
+      collection(db, `users/${auth.currentUser.uid}/notifications`),
+      snap => setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    );
     return () => unsub();
   }, [navigate]);
 
-  const handleSearchChange = async (e) => {
-    const queryInput = e.target.value;
-    setSearchQuery(queryInput);
+  const handleSearchChange = async e => {
+    const q = e.target.value;
+    setSearchQuery(q);
     setSuggestions([]);
     setActionMessage('');
+    if (!q.trim()) return;
 
-    if (queryInput.trim() === '') return;
-
-    const q = query(collection(db, 'users'), where('username', '>=', queryInput), where('username', '<=', queryInput + '\uf8ff'));
-    const snapshot = await getDocs(q);
-
-    const results = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      if (doc.id !== auth.currentUser.uid) {
-        results.push({ ...data, uid: doc.id });
-      }
+    const usersQ = query(
+      collection(db, 'users'),
+      where('username', '>=', q),
+      where('username', '<=', q + '\uf8ff')
+    );
+    const snap = await getDocs(usersQ);
+    const res = [];
+    snap.forEach(d => {
+      if (d.id !== auth.currentUser.uid) res.push({ uid: d.id, ...d.data() });
     });
-
-    setSuggestions(results);
+    setSuggestions(res);
   };
 
-  const handleSendRequest = async (user) => {
+  const handleSendRequest = async u => {
     try {
-      const currentUid = auth.currentUser.uid;
-      const targetUid = user.uid;
-
-      await setDoc(doc(db, `users/${targetUid}/requests/${currentUid}`), {
+      const me = auth.currentUser.uid;
+      await setDoc(doc(db, `users/${u.uid}/requests/${me}`), {
         username,
-        requestedAt: Timestamp.now(),
+        requestedAt: Timestamp.now()
       });
-
-      await setDoc(doc(db, `users/${targetUid}/notifications/${currentUid}-request`), {
-        message: `📬 @${username} sent you a friend request!`,
-        createdAt: Timestamp.now(),
-      });
-
-      setActionMessage(`✅ Friend request sent to @${user.username}`);
+      await setDoc(
+        doc(db, `users/${u.uid}/notifications/${me}-request`),
+        {
+          type: 'friend_request',
+          message: `📬 @${username} sent you a friend request!`,
+          timestamp: Timestamp.now()
+        }
+      );
+      setActionMessage(`✅ Friend request sent to @${u.username}`);
       setTimeout(() => setActionMessage(''), 3000);
       setSearchQuery('');
       setSuggestions([]);
-    } catch (err) {
+    } catch {
       setActionMessage('❌ Error sending friend request.');
       setTimeout(() => setActionMessage(''), 3000);
     }
   };
 
-  const markNotificationRead = async (notifId) => {
-    const currentUid = auth.currentUser.uid;
-    await deleteDoc(doc(db, `users/${currentUid}/notifications/${notifId}`));
+  const markNotificationRead = async id => {
+    await deleteDoc(doc(db, `users/${auth.currentUser.uid}/notifications/${id}`));
   };
 
-  const acceptHangmanInvite = async (notif) => {
-    await updateDoc(doc(db, `hangman_games/${notif.gameId}`), {
-      status: 'active'
-    });
+  const acceptHangmanInvite = async notif => {
+    // Activate the game (invite OR rematch)
+    await updateDoc(doc(db, `hangman_games/${notif.gameId}`), { status: 'active' });
     markNotificationRead(notif.id);
     navigate(`/hangman/multiplayer/${notif.gameId}`);
   };
@@ -109,15 +114,13 @@ function Dashboard() {
           src={logo}
           alt="PlayPal Logo"
           className="header-logo"
-          title="Logout"
-          onClick={() => { auth.signOut(); navigate('/'); }}
+          onClick={() => (auth.signOut(), navigate('/'))}
           style={{ cursor: 'pointer' }}
         />
         <div className="header-controls">
           <FaSearch
             className="search-icon"
             onClick={() => setShowSearch(!showSearch)}
-            title="Search users"
           />
           {showSearch && (
             <div className="search-container">
@@ -130,13 +133,13 @@ function Dashboard() {
               />
               {suggestions.length > 0 && (
                 <div className="search-suggestions">
-                  {suggestions.map(user => {
-                    const isAlreadyFriend = friendsList.includes(user.uid);
+                  {suggestions.map(u => {
+                    const isFriend = friendsList.includes(u.uid);
                     return (
-                      <div key={user.uid} className="suggestion-item">
-                        @{user.username}
-                        {!isAlreadyFriend ? (
-                          <button onClick={() => handleSendRequest(user)}>Add</button>
+                      <div key={u.uid} className="suggestion-item">
+                        @{u.username}
+                        {!isFriend ? (
+                          <button onClick={() => handleSendRequest(u)}>Add</button>
                         ) : (
                           <span>Already a friend</span>
                         )}
@@ -151,7 +154,6 @@ function Dashboard() {
             <FaBell
               className="notif-bell"
               onClick={() => setShowNotifications(!showNotifications)}
-              title="Notifications"
             />
             {notifications.length > 0 && (
               <span className="notif-count">{notifications.length}</span>
@@ -164,51 +166,71 @@ function Dashboard() {
                   notifications.map(notif => (
                     <div key={notif.id} className="notif-item">
                       <p>{notif.message}</p>
-                      {notif.type === 'hangman_invite' && (
-                        <button onClick={() => acceptHangmanInvite(notif)}>Join Game</button>
+                      {(notif.type === 'hangman_invite' ||
+                        notif.type === 'hangman_rematch') && (
+                        <button onClick={() => acceptHangmanInvite(notif)}>
+                          {notif.type === 'hangman_invite'
+                            ? 'Join Game'
+                            : 'Join Rematch'}
+                        </button>
                       )}
-                      <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
+                      <button onClick={() => markNotificationRead(notif.id)}>
+                        Mark as Read
+                      </button>
                     </div>
                   ))
                 )}
               </div>
             )}
           </div>
-          <span
-            className="profile-icon"
-            title={`Logged in as @${username}`}
-            onClick={() => navigate('/profile')}
-          >
+          <span className="profile-icon" onClick={() => navigate('/profile')}>
             👤
           </span>
         </div>
       </header>
 
-      {actionMessage && <p style={{ color: 'white', textAlign: 'center' }}>{actionMessage}</p>}
+      {actionMessage && (
+        <p style={{ color: 'white', textAlign: 'center' }}>
+          {actionMessage}
+        </p>
+      )}
 
       <main className="dashboard-main">
         <h2 style={{ textAlign: 'center' }}>🎮 Games</h2>
         <div className="game-grid">
-          <div className="game-card" onClick={() => navigate('/hangman/single')}>
-            <img src="https://via.placeholder.com/150" alt="Single Player Hangman" />
+          <div
+            className="game-card"
+            onClick={() => navigate('/hangman/single')}
+          >
+            <img
+              src="https://via.placeholder.com/150"
+              alt="Single Player Hangman"
+            />
             <p>Single Player Hangman</p>
           </div>
-          <div className="game-card" onClick={() => navigate('/hangman/multiplayer')}>
-            <img src="https://via.placeholder.com/150" alt="Multiplayer Hangman" />
+          <div
+            className="game-card"
+            onClick={() => navigate('/hangman/multiplayer')}
+          >
+            <img
+              src="https://via.placeholder.com/150"
+              alt="Multiplayer Hangman"
+            />
             <p>Multiplayer Hangman</p>
-          </div>
-          <div className="game-card">
-            <img src="https://via.placeholder.com/150" alt="Coming Soon" />
-            <p>More Games Coming</p>
           </div>
         </div>
       </main>
 
       <footer className="dashboard-footer">
         © {new Date().getFullYear()} PlayPal. Built with ❤️ by{' '}
-        <a href="https://github.com/usmanAfzalKhan" target="_blank" rel="noopener noreferrer" className="footer-link">
+        <a
+          href="https://github.com/usmanAfzalKhan"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="footer-link"
+        >
           Usman Khan
-        </a>.
+        </a>
       </footer>
     </div>
   );
