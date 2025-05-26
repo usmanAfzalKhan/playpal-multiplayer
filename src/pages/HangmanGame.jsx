@@ -1,35 +1,43 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase-config';
-import { doc, onSnapshot, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, arrayUnion } from 'firebase/firestore';
 import './HangmanGame.css';
 
 function HangmanGame() {
   const { gameId } = useParams();
   const navigate = useNavigate();
   const [gameData, setGameData] = useState(null);
-  const [input, setInput] = useState('');
-  const [chatInput, setChatInput] = useState('');
+  const [wordInput, setWordInput] = useState('');
+  const [guessInput, setGuessInput] = useState('');
+  const [chatMessages, setChatMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
   const [incorrectGuesses, setIncorrectGuesses] = useState(0);
   const [guesses, setGuesses] = useState([]);
-  const [username, setUsername] = useState('');
+
   const user = auth.currentUser;
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'hangman_games', gameId), (docSnap) => {
+    if (!user) {
+      navigate('/'); // Redirect if not authenticated
+      return;
+    }
+
+    const gameRef = doc(db, 'hangman_games', gameId);
+    const unsub = onSnapshot(gameRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setGameData(data);
+        setChatMessages(data.chat || []);
         setGuesses(data.guesses || []);
         setIncorrectGuesses((data.guesses || []).filter(g => !data.word?.includes(g)).length);
+      } else {
+        navigate('/dashboard'); // Handle non-existing game
       }
     });
-    return () => unsub();
-  }, [gameId]);
 
-  useEffect(() => {
-    if (user) setUsername(user.displayName || 'Player');
-  }, [user]);
+    return () => unsub();
+  }, [gameId, navigate, user]);
 
   if (!gameData) return <p>Loading game...</p>;
 
@@ -37,71 +45,86 @@ function HangmanGame() {
   const gameLost = incorrectGuesses >= maxIncorrect;
   const gameWon = gameData.word && gameData.word.split('').every(l => guesses.includes(l));
 
-  const isMyTurn = gameData.turn === user.uid;
+  const isCurrentGuesser = user.uid === gameData.currentGuesser;
+  const isCurrentWordSetter = user.uid === gameData.currentWordSetter;
+
+  const handleSetWord = async () => {
+    if (wordInput.trim() === '') return;
+    await updateDoc(doc(db, 'hangman_games', gameId), {
+      word: wordInput.toLowerCase(),
+      status: 'started',
+      guesses: [],
+      chat: [],
+    });
+    setWordInput('');
+  };
 
   const handleGuess = async () => {
-    if (!input || guesses.includes(input.toLowerCase()) || !isMyTurn) return;
-    const updatedGuesses = [...guesses, input.toLowerCase()];
-    const correctGuess = gameData.word.includes(input.toLowerCase());
-
+    if (guessInput.trim() === '' || guesses.includes(guessInput.toLowerCase())) return;
     await updateDoc(doc(db, 'hangman_games', gameId), {
-      guesses: arrayUnion(input.toLowerCase()),
-      turn: correctGuess ? user.uid : (user.uid === gameData.player1 ? gameData.player2 : gameData.player1),
+      guesses: arrayUnion(guessInput.toLowerCase())
     });
-
-    setInput('');
+    setGuessInput('');
   };
 
   const sendMessage = async () => {
-    if (!chatInput.trim()) return;
+    if (newMessage.trim() === '') return;
     await updateDoc(doc(db, 'hangman_games', gameId), {
-      chat: arrayUnion({ senderUid: user.uid, senderName: username, message: chatInput, timestamp: Timestamp.now() }),
+      chat: arrayUnion({ senderUid: user.uid, message: newMessage, timestamp: Date.now() })
     });
-    setChatInput('');
+    setNewMessage('');
   };
 
-  const restartGame = async () => {
+  const handleRestart = async () => {
     await updateDoc(doc(db, 'hangman_games', gameId), {
+      currentWordSetter: gameData.currentGuesser,
+      currentGuesser: gameData.currentWordSetter,
       word: '',
       guesses: [],
       chat: [],
-      status: 'pending',
-      turn: gameData.player1,
+      status: 'pending'
     });
-  };
-
-  const renderWord = () => {
-    if (!gameData.word) return '_ '.repeat(5);
-    return gameData.word.split('').map(letter => (guesses.includes(letter) ? letter : '_')).join(' ');
   };
 
   return (
     <div className="hangman-room">
-      <h2>Multiplayer Hangman</h2>
-      <p>Role: {gameData.player1 === user.uid ? 'Player 1' : 'Player 2'} - {isMyTurn ? "Your Turn" : "Waiting..."}</p>
-      <p>Word: {renderWord()}</p>
-      <p>Incorrect Guesses: {incorrectGuesses}/{maxIncorrect}</p>
-      {isMyTurn && !gameLost && !gameWon && (
+      <h2>Hangman Game</h2>
+      <p>Role: {isCurrentWordSetter ? 'Word Setter' : 'Guesser'}</p>
+
+      {gameData.status === 'pending' && isCurrentWordSetter && (
         <>
-          <input type="text" maxLength="1" value={input} onChange={(e) => setInput(e.target.value)} />
-          <button onClick={handleGuess}>Guess</button>
+          <input value={wordInput} onChange={(e) => setWordInput(e.target.value)} placeholder="Set a word" />
+          <button onClick={handleSetWord}>Set Word</button>
         </>
       )}
-      {gameWon && <h3>🎉 Winner!</h3>}
-      {gameLost && <h3>💀 Lost! Word was: {gameData.word}</h3>}
-      {(gameWon || gameLost) && <button onClick={restartGame}>Rematch</button>}
+
+      {gameData.status === 'pending' && isCurrentGuesser && <p>Waiting for word setter...</p>}
+
+      {gameData.status === 'started' && (
+        <>
+          <p>{gameData.word?.split('').map(l => guesses.includes(l) ? l : '_').join(' ')}</p>
+          <p>Incorrect guesses: {incorrectGuesses}/{maxIncorrect}</p>
+          {!gameWon && !gameLost && isCurrentGuesser && (
+            <>
+              <input maxLength="1" value={guessInput} onChange={(e) => setGuessInput(e.target.value)} placeholder="Your guess" />
+              <button onClick={handleGuess}>Guess</button>
+            </>
+          )}
+          {gameWon && <h3>🎉 Guesser Won!</h3>}
+          {gameLost && <h3>💀 Guesser Lost!</h3>}
+          {(gameWon || gameLost) && <button onClick={handleRestart}>Rematch (Swap Roles)</button>}
+        </>
+      )}
 
       <div className="chatbox">
         <div className="chat-messages">
-          {(gameData.chat || []).map((msg, index) => (
-            <div key={index}><strong>{msg.senderName}</strong>: {msg.message}</div>
+          {chatMessages.map((msg, i) => (
+            <p key={i}><strong>{msg.senderUid || 'Unknown'}:</strong> {msg.message}</p>
           ))}
         </div>
-        <input placeholder="Type a message..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} />
+        <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type message" />
         <button onClick={sendMessage}>Send</button>
       </div>
-
-      <button onClick={() => navigate('/dashboard')}>Quit</button>
     </div>
   );
 }
