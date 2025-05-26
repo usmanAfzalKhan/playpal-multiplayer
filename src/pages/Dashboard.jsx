@@ -35,7 +35,6 @@ function Dashboard() {
 
     fetchUserData();
 
-    // Notifications real-time listener
     const unsub = onSnapshot(collection(db, `users/${user.uid}/notifications`), snapshot => {
       setNotifications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
@@ -140,8 +139,6 @@ function Dashboard() {
               )}
             </div>
           )}
-
-          {/* 🔔 Add Notification Bell */}
           <div className="notif-container">
             <FaBell
               className="notif-bell"
@@ -161,7 +158,7 @@ function Dashboard() {
                       <p>{notif.message}</p>
                       {notif.type === 'hangman_invite' && (
                         <button onClick={() => {
-                          navigate(`/hangman/game/${notif.gameId}`);
+                          navigate(`/hangman/multiplayer/${notif.gameId}`);
                           markNotificationRead(notif.id);
                         }}>Join Game</button>
                       )}
@@ -172,7 +169,6 @@ function Dashboard() {
               </div>
             )}
           </div>
-
           <span
             className="profile-icon"
             title={`Logged in as @${username}`}
@@ -188,7 +184,7 @@ function Dashboard() {
       <main className="dashboard-main">
         <h2 style={{ textAlign: 'center' }}>🎮 Games</h2>
         <div className="game-grid">
-          <div className="game-card" onClick={() => navigate('/hangman')}>
+          <div className="game-card" onClick={() => navigate('/hangman/multiplayer')}>
             <img src="https://via.placeholder.com/150" alt="Hangman" />
             <p>Hangman</p>
           </div>
