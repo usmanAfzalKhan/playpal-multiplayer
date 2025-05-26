@@ -39,13 +39,14 @@ function MultiplayerHangman() {
     });
 
     // Notify the friend with gameId
-    await setDoc(doc(db, `users/${friend.uid}/notifications/${gameId}`), {
-      type: 'hangman_invite',
-      message: `🎮 @${auth.currentUser.displayName || 'A user'} challenged you to Hangman!`,
-      gameId: gameId,
-      senderUid: currentUid,
-      timestamp: Timestamp.now(),
-    });
+await setDoc(doc(db, `users/${friend.uid}/notifications/${gameId}`), {
+  type: 'hangman_invite',
+  message: `🎮 @${auth.currentUser.displayName || 'A user'} challenged you to Hangman!`,
+  gameId: gameId,
+  senderUid: currentUid,
+  timestamp: Timestamp.now(),
+});
+
 
     setWaitingGameId(gameId);
   };
