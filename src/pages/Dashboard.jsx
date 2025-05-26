@@ -184,13 +184,13 @@ function Dashboard() {
       <main className="dashboard-main">
         <h2 style={{ textAlign: 'center' }}>🎮 Games</h2>
         <div className="game-grid">
-          <div className="game-card" onClick={() => navigate('/hangman/multiplayer')}>
-            <img src="https://via.placeholder.com/150" alt="Hangman Multiplayer" />
-            <p>Multiplayer Hangman</p>
-          </div>
           <div className="game-card" onClick={() => navigate('/hangman/single')}>
-            <img src="https://via.placeholder.com/150" alt="Hangman Single Player" />
+            <img src="https://via.placeholder.com/150" alt="Single Player Hangman" />
             <p>Single Player Hangman</p>
+          </div>
+          <div className="game-card" onClick={() => navigate('/hangman/multiplayer')}>
+            <img src="https://via.placeholder.com/150" alt="Multiplayer Hangman" />
+            <p>Multiplayer Hangman</p>
           </div>
           <div className="game-card">
             <img src="https://via.placeholder.com/150" alt="Coming Soon" />
