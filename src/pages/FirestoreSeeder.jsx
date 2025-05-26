@@ -10,7 +10,6 @@ function FirestoreSeeder() {
         const user1 = { uid: 'user1', username: 'Alice', email: 'alice@example.com' };
         const user2 = { uid: 'user2', username: 'Bob', email: 'bob@example.com' };
 
-        // Explicitly log steps
         console.log(`⚙️ Creating user: ${user1.uid}`);
         await setDoc(doc(db, 'users', user1.uid), user1);
         console.log(`✅ User ${user1.username} created`);
@@ -46,6 +45,22 @@ function FirestoreSeeder() {
           await addDoc(collection(db, `chats/${chatId}/messages`), msg);
           console.log(`✅ Message added: ${msg.content}`);
         }
+
+        // 🔥 Add initial Hangman game with roles
+        const gameId = `${user1.uid}_${user2.uid}_test`;
+        console.log(`⚙️ Creating Hangman game: ${gameId}`);
+        await setDoc(doc(db, 'hangman_games', gameId), {
+          player1: user1.uid,
+          player2: user2.uid,
+          word: '',
+          status: 'pending',
+          guesses: [],
+          chat: [],
+          createdAt: Timestamp.now(),
+          currentWordSetter: user1.uid,
+          currentGuesser: user2.uid,
+        });
+        console.log(`✅ Hangman game created: ${gameId}`);
 
         console.log('🔥 Firestore seeder completed!');
       } catch (error) {

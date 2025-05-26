@@ -1,167 +1,151 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase-config';
-import { doc, getDoc, collection, addDoc, onSnapshot, Timestamp, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, arrayUnion, setDoc } from 'firebase/firestore';
 import './HangmanGame.css';
 
 function HangmanGame() {
   const { gameId } = useParams();
+  const navigate = useNavigate();
   const [gameData, setGameData] = useState(null);
-  const [guesses, setGuesses] = useState([]);
-  const [incorrectGuesses, setIncorrectGuesses] = useState(0);
-  const [input, setInput] = useState('');
+  const [wordInput, setWordInput] = useState('');
+  const [guessInput, setGuessInput] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [newWord, setNewWord] = useState('');
-  const [win, setWin] = useState(false);
-  const [gameOver, setGameOver] = useState(false);
-  const navigate = useNavigate();
+  const [incorrectGuesses, setIncorrectGuesses] = useState(0);
+  const [guesses, setGuesses] = useState([]);
+
+  const user = auth.currentUser;
 
   useEffect(() => {
-    const unsubGame = onSnapshot(doc(db, 'hangman_games', gameId), (docSnap) => {
+    const unsub = onSnapshot(doc(db, 'hangman_games', gameId), (docSnap) => {
       if (docSnap.exists()) {
-        setGameData(docSnap.data());
-      } else {
-        console.error('Game not found!');
+        const data = docSnap.data();
+        setGameData(data);
+        setChatMessages(data.chat || []);
+        setGuesses(data.guesses || []);
+        setIncorrectGuesses((data.guesses || []).filter(g => !data.word?.includes(g)).length);
       }
     });
-
-    const unsubChat = onSnapshot(
-      collection(db, `hangman_games/${gameId}/chat`),
-      (snapshot) => {
-        const messages = snapshot.docs.map(doc => doc.data());
-        setChatMessages(messages);
-      }
-    );
-
-    return () => {
-      unsubGame();
-      unsubChat();
-    };
+    return () => unsub();
   }, [gameId]);
 
+  if (!gameData) return <p>Loading game...</p>;
+
+  const maxIncorrect = 6;
+  const gameLost = incorrectGuesses >= maxIncorrect;
+  const gameWon = gameData.word && gameData.word.split('').every(l => guesses.includes(l));
+
+  // Determine current roles
+  const isCurrentWordSetter = gameData.currentWordSetter === user.uid;
+  const isCurrentGuesser = gameData.currentGuesser === user.uid;
+
   const handleSetWord = async () => {
-    if (!newWord.trim()) return;
+    if (wordInput.trim() === '') return;
     await updateDoc(doc(db, 'hangman_games', gameId), {
-      word: newWord.toLowerCase(),
+      word: wordInput.toLowerCase(),
+      status: 'started',
+      guesses: [],
+      chat: [],
     });
-    setNewWord('');
+    setWordInput('');
   };
 
-  const handleGuess = () => {
-    if (!input || !gameData || guesses.includes(input.toLowerCase()) || gameOver) return;
-
-    const guess = input.toLowerCase();
-    setGuesses([...guesses, guess]);
-    if (!gameData.word.includes(guess)) {
-      setIncorrectGuesses(incorrectGuesses + 1);
-    }
-    setInput('');
+  const handleGuess = async () => {
+    if (guessInput.trim() === '' || guesses.includes(guessInput.toLowerCase())) return;
+    await updateDoc(doc(db, 'hangman_games', gameId), {
+      guesses: arrayUnion(guessInput.toLowerCase())
+    });
+    setGuessInput('');
   };
-
-  useEffect(() => {
-    if (!gameData?.word) return;
-
-    const allLettersGuessed = gameData.word.split('').every(letter => guesses.includes(letter));
-    if (allLettersGuessed) {
-      setWin(true);
-      setGameOver(true);
-    } else if (incorrectGuesses >= 6) {
-      setWin(false);
-      setGameOver(true);
-    }
-  }, [guesses, incorrectGuesses, gameData]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
-    await addDoc(collection(db, `hangman_games/${gameId}/chat`), {
-      senderUid: auth.currentUser.uid,
-      message: newMessage,
-      timestamp: Timestamp.now(),
+    if (newMessage.trim() === '') return;
+    await updateDoc(doc(db, 'hangman_games', gameId), {
+      chat: arrayUnion({ senderUid: user.uid, message: newMessage, timestamp: Date.now() })
     });
     setNewMessage('');
   };
 
-  const handleRematch = async () => {
-    const nextTurn = gameData.currentTurn === gameData.player1 ? gameData.player2 : gameData.player1;
+  const renderWord = () => {
+    if (!gameData.word) return '_ '.repeat(5); // Placeholder if word not set yet
+    return gameData.word.split('').map(letter => (guesses.includes(letter) ? letter : '_')).join(' ');
+  };
+
+  const handleRestart = async () => {
+    // Swap roles for the next round
     await updateDoc(doc(db, 'hangman_games', gameId), {
+      currentWordSetter: gameData.currentGuesser,
+      currentGuesser: gameData.currentWordSetter,
       word: '',
-      currentTurn: nextTurn,
+      guesses: [],
+      chat: [],
+      status: 'pending'
     });
-    setGuesses([]);
-    setIncorrectGuesses(0);
-    setWin(false);
-    setGameOver(false);
   };
-
-  const handleQuit = () => {
-    navigate('/dashboard');
-  };
-
-  if (!gameData) {
-    return <p>Loading game...</p>;
-  }
-
-  const isSetter = gameData.currentTurn === auth.currentUser.uid;
-  const isGuesser = !isSetter && gameData.word;
 
   return (
-    <div className="hangman-game">
-      <h2>Hangman Game</h2>
+    <div className="hangman-room">
+      <h2>Multiplayer Hangman</h2>
+      <p>Game ID: {gameId}</p>
+      <p>Role: {isCurrentWordSetter ? 'Word Setter' : 'Guesser'}</p>
 
-      {isSetter && !gameData.word ? (
+      {gameData.status === 'pending' && isCurrentWordSetter && (
         <>
-          <h3>It's your turn to set the word!</h3>
+          <p>Set your word for the game:</p>
           <input
             type="text"
-            placeholder="Enter secret word"
-            value={newWord}
-            onChange={(e) => setNewWord(e.target.value)}
+            value={wordInput}
+            onChange={(e) => setWordInput(e.target.value)}
           />
           <button onClick={handleSetWord}>Set Word</button>
         </>
-      ) : isGuesser ? (
+      )}
+
+      {gameData.status === 'pending' && isCurrentGuesser && <p>Waiting for the word setter to choose a word...</p>}
+
+      {gameData.status === 'started' && (
         <>
           <HangmanDrawing incorrectGuesses={incorrectGuesses} />
-          <p>Word: {gameData.word.split('').map(letter => (guesses.includes(letter) ? letter : '_')).join(' ')}</p>
-          <p>Incorrect Guesses: {incorrectGuesses} / 6</p>
-          {!gameOver ? (
+          <p>{renderWord()}</p>
+          <p>Incorrect Guesses: {incorrectGuesses}/{maxIncorrect}</p>
+          {!gameLost && !gameWon && isCurrentGuesser && (
             <>
               <input
                 type="text"
                 maxLength="1"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
+                value={guessInput}
+                onChange={(e) => setGuessInput(e.target.value)}
               />
               <button onClick={handleGuess}>Guess</button>
             </>
-          ) : (
-            <>
-              <h3>{win ? '🎉 You Win!' : `💀 You Lose! The word was ${gameData.word}`}</h3>
-              <button onClick={handleRematch}>Rematch</button>
-              <button onClick={handleQuit}>Quit</button>
-            </>
+          )}
+          {gameWon && <h3>🎉 Guesser Won! Click Rematch to play again.</h3>}
+          {gameLost && <h3>💀 Guesser Lost! Click Rematch to try again.</h3>}
+          {(gameWon || gameLost) && (
+            <button onClick={handleRestart}>Rematch (Switch Roles)</button>
           )}
         </>
-      ) : (
-        <p>Waiting for {gameData.currentTurn === gameData.player1 ? 'Player 1' : 'Player 2'} to set the word...</p>
       )}
 
       <div className="game-chat">
-        <h3>Game Chat</h3>
-        <div className="chat-messages" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+        <div className="chat-messages">
           {chatMessages.map((msg, index) => (
             <p key={index}><strong>{msg.senderUid}</strong>: {msg.message}</p>
           ))}
         </div>
-        <input
-          type="text"
-          placeholder="Type your message..."
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-        />
-        <button onClick={sendMessage}>Send</button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <input
+            type="text"
+            placeholder="Type your message..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+          />
+          <button onClick={sendMessage}>Send</button>
+        </div>
       </div>
+
+      <button onClick={() => navigate('/dashboard')}>Quit to Dashboard</button>
     </div>
   );
 }
