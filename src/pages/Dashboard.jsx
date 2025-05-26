@@ -185,12 +185,12 @@ function Dashboard() {
         <h2 style={{ textAlign: 'center' }}>🎮 Games</h2>
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/hangman/multiplayer')}>
-            <img src="https://via.placeholder.com/150" alt="Hangman" />
-            <p>Hangman</p>
+            <img src="https://via.placeholder.com/150" alt="Hangman Multiplayer" />
+            <p>Multiplayer Hangman</p>
           </div>
-          <div className="game-card">
-            <img src="https://via.placeholder.com/150" alt="Tic Tac Toe" />
-            <p>Tic Tac Toe</p>
+          <div className="game-card" onClick={() => navigate('/hangman/single')}>
+            <img src="https://via.placeholder.com/150" alt="Hangman Single Player" />
+            <p>Single Player Hangman</p>
           </div>
           <div className="game-card">
             <img src="https://via.placeholder.com/150" alt="Coming Soon" />
