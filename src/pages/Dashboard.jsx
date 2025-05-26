@@ -141,6 +141,10 @@ function Dashboard() {
       <main className="dashboard-main">
         <h2 style={{ textAlign: 'center' }}>🎮 Games</h2>
         <div className="game-grid">
+          <div className="game-card" onClick={() => navigate('/hangman')}>
+            <img src="https://via.placeholder.com/150" alt="Hangman" />
+            <p>Hangman</p>
+          </div>
           <div className="game-card">
             <img src="https://via.placeholder.com/150" alt="Tic Tac Toe" />
             <p>Tic Tac Toe</p>
