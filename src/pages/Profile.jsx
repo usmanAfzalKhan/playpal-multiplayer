@@ -3,7 +3,7 @@ import logo from '../assets/logo.png';
 import { useEffect, useState } from 'react';
 import { auth, db } from '../firebase-config';
 import {
-  collection, doc, getDoc, getDocs, onSnapshot, setDoc, deleteDoc, query, Timestamp
+  collection, doc, getDoc, getDocs, onSnapshot, setDoc, deleteDoc, Timestamp
 } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { FaBell } from 'react-icons/fa';
@@ -50,15 +50,19 @@ function Profile() {
 
   const handleAcceptRequest = async (requestUid, requestUsername) => {
     const currentUid = auth.currentUser.uid;
+
     await setDoc(doc(db, `users/${currentUid}/friends/${requestUid}`), {
       username: requestUsername,
       addedAt: Timestamp.now(),
     });
+
     await setDoc(doc(db, `users/${requestUid}/friends/${currentUid}`), {
       username: username,
       addedAt: Timestamp.now(),
     });
+
     await deleteDoc(doc(db, `users/${currentUid}/requests/${requestUid}`));
+
     setFriends([...friends, { uid: requestUid, username: requestUsername }]);
     setRequests(requests.filter(req => req.uid !== requestUid));
   };
@@ -99,38 +103,6 @@ function Profile() {
     await deleteDoc(doc(db, `users/${currentUid}/notifications/${notifId}`));
   };
 
-const handleAcceptChallenge = async (notif) => {
-  if (notif.gameId) {
-    await updateDoc(doc(db, 'hangman_games', notif.gameId), { status: 'started' });
-    await deleteDoc(doc(db, `users/${auth.currentUser.uid}/notifications/${notif.id}`));
-    navigate(`/hangman/game/${notif.gameId}`);
-  } else {
-    alert('Invalid challenge notification.');
-  }
-};
-
-// In your notifications list (inside your map for notifications):
-{notifications.map(notif => (
-  <div key={notif.id} className="notif-item">
-    {notif.type === 'hangman_invite' ? (
-      <>
-        <p>{notif.message}</p>
-        <button onClick={() => {
-          navigate(`/hangman/game/${notif.gameId}`);
-          markNotificationRead(notif.id);
-        }}>Join Game</button>
-      </>
-    ) : (
-      <>
-        <p>{notif.message}</p>
-        <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
-      </>
-    )}
-  </div>
-))}
-
-
-
   return (
     <div className="profile-container">
       <header className="dashboard-header">
@@ -138,14 +110,27 @@ const handleAcceptChallenge = async (notif) => {
           src={logo}
           alt="PlayPal Logo"
           className="header-logo"
+          title="Logout"
           onClick={() => { auth.signOut(); navigate('/'); }}
           style={{ cursor: 'pointer' }}
         />
         <div className="header-actions">
-          <button className="dashboard-button" onClick={() => navigate('/dashboard')}>Dashboard</button>
+          <button
+            className="dashboard-button"
+            onClick={() => navigate('/dashboard')}
+            title="Back to Dashboard"
+          >
+            Dashboard
+          </button>
           <div className="notif-container">
-            <FaBell className="notif-bell" onClick={() => setShowNotifications(!showNotifications)} />
-            {notifications.length > 0 && <span className="notif-count">{notifications.length}</span>}
+            <FaBell
+              className="notif-bell"
+              onClick={() => setShowNotifications(!showNotifications)}
+              title="Notifications"
+            />
+            {notifications.length > 0 && (
+              <span className="notif-count">{notifications.length}</span>
+            )}
             {showNotifications && (
               <div className="notif-dropdown">
                 {notifications.length === 0 ? (
@@ -153,11 +138,23 @@ const handleAcceptChallenge = async (notif) => {
                 ) : (
                   notifications.map(notif => (
                     <div key={notif.id} className="notif-item">
-                      <p>{notif.message}</p>
-                      {notif.type === 'hangman_challenge' && (
-                        <button onClick={() => handleAcceptChallenge(notif)}>Accept Challenge</button>
+                      <p>
+                        {notif.type === 'hangman_invite'
+                          ? `🎮 ${notif.senderUsername || 'A user'} challenged you to Hangman!`
+                          : notif.message}
+                      </p>
+                      {notif.type === 'hangman_invite' ? (
+                        <button
+                          onClick={() => {
+                            navigate(`/hangman/game/${notif.gameId}`);
+                            markNotificationRead(notif.id);
+                          }}
+                        >
+                          Join Game
+                        </button>
+                      ) : (
+                        <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
                       )}
-                      <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
                     </div>
                   ))
                 )}
@@ -175,12 +172,14 @@ const handleAcceptChallenge = async (notif) => {
 
         <section className="profile-section">
           <h3>📬 Friend Requests</h3>
-          {requests.length === 0 ? <p>No pending requests.</p> : (
-            requests.map(req => (
-              <div key={req.uid} className="friend-item">
-                <span>@{req.username}</span>
-                <button onClick={() => handleAcceptRequest(req.uid, req.username)}>Accept</button>
-                <button onClick={() => handleDeclineRequest(req.uid)}>Decline</button>
+          {requests.length === 0 ? (
+            <p>No pending requests.</p>
+          ) : (
+            requests.map(request => (
+              <div key={request.uid} className="friend-item">
+                <span>@{request.username}</span>
+                <button onClick={() => handleAcceptRequest(request.uid, request.username)}>Accept</button>
+                <button onClick={() => handleDeclineRequest(request.uid)}>Decline</button>
               </div>
             ))
           )}
@@ -188,7 +187,9 @@ const handleAcceptChallenge = async (notif) => {
 
         <section className="profile-section">
           <h3>👥 Friends</h3>
-          {friends.length === 0 ? <p>No friends yet.</p> : (
+          {friends.length === 0 ? (
+            <p>No friends yet.</p>
+          ) : (
             friends.map(friend => (
               <div key={friend.uid} className="friend-item">
                 <span>@{friend.username}</span>
@@ -202,7 +203,9 @@ const handleAcceptChallenge = async (notif) => {
 
         <section className="profile-section">
           <h3>🔒 Blocked Users</h3>
-          {blocked.length === 0 ? <p>No blocked users.</p> : (
+          {blocked.length === 0 ? (
+            <p>No blocked users.</p>
+          ) : (
             blocked.map(user => (
               <div key={user.uid} className="friend-item">
                 <span>@{user.username}</span>
@@ -215,9 +218,15 @@ const handleAcceptChallenge = async (notif) => {
 
       <footer className="dashboard-footer">
         © {new Date().getFullYear()} PlayPal. Built with ❤️ by{' '}
-        <a href="https://github.com/usmanAfzalKhan" target="_blank" rel="noopener noreferrer" className="footer-link">
+        <a
+          href="https://github.com/usmanAfzalKhan"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="footer-link"
+        >
           Usman Khan
-        </a>.
+        </a>
+        .
       </footer>
     </div>
   );

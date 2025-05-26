@@ -1,20 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase-config';
-import { doc, onSnapshot, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
 import './HangmanGame.css';
 
 function HangmanGame() {
   const { gameId } = useParams();
   const navigate = useNavigate();
   const [gameData, setGameData] = useState(null);
-  const [wordInput, setWordInput] = useState('');
-  const [guessInput, setGuessInput] = useState('');
-  const [chatMessages, setChatMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [input, setInput] = useState('');
+  const [chatInput, setChatInput] = useState('');
   const [incorrectGuesses, setIncorrectGuesses] = useState(0);
   const [guesses, setGuesses] = useState([]);
-
+  const [username, setUsername] = useState('');
   const user = auth.currentUser;
 
   useEffect(() => {
@@ -22,50 +20,54 @@ function HangmanGame() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setGameData(data);
-        setChatMessages(data.chat || []);
         setGuesses(data.guesses || []);
         setIncorrectGuesses((data.guesses || []).filter(g => !data.word?.includes(g)).length);
-      } else {
-        alert('Game not found or was deleted.');
-        navigate('/dashboard');
       }
     });
     return () => unsub();
-  }, [gameId, navigate]);
+  }, [gameId]);
+
+  useEffect(() => {
+    if (user) setUsername(user.displayName || 'Player');
+  }, [user]);
 
   if (!gameData) return <p>Loading game...</p>;
 
   const maxIncorrect = 6;
   const gameLost = incorrectGuesses >= maxIncorrect;
   const gameWon = gameData.word && gameData.word.split('').every(l => guesses.includes(l));
-  const isCurrentWordSetter = gameData.currentWordSetter === user.uid;
-  const isCurrentGuesser = gameData.currentGuesser === user.uid;
 
-  const handleSetWord = async () => {
-    if (wordInput.trim() === '') return;
-    await updateDoc(doc(db, 'hangman_games', gameId), {
-      word: wordInput.toLowerCase(),
-      status: 'started',
-      guesses: [],
-      chat: [],
-    });
-    setWordInput('');
-  };
+  const isMyTurn = gameData.turn === user.uid;
 
   const handleGuess = async () => {
-    if (guessInput.trim() === '' || guesses.includes(guessInput.toLowerCase())) return;
+    if (!input || guesses.includes(input.toLowerCase()) || !isMyTurn) return;
+    const updatedGuesses = [...guesses, input.toLowerCase()];
+    const correctGuess = gameData.word.includes(input.toLowerCase());
+
     await updateDoc(doc(db, 'hangman_games', gameId), {
-      guesses: arrayUnion(guessInput.toLowerCase())
+      guesses: arrayUnion(input.toLowerCase()),
+      turn: correctGuess ? user.uid : (user.uid === gameData.player1 ? gameData.player2 : gameData.player1),
     });
-    setGuessInput('');
+
+    setInput('');
   };
 
   const sendMessage = async () => {
-    if (newMessage.trim() === '') return;
+    if (!chatInput.trim()) return;
     await updateDoc(doc(db, 'hangman_games', gameId), {
-      chat: arrayUnion({ senderUid: user.uid, message: newMessage, timestamp: Date.now() })
+      chat: arrayUnion({ senderUid: user.uid, senderName: username, message: chatInput, timestamp: Timestamp.now() }),
     });
-    setNewMessage('');
+    setChatInput('');
+  };
+
+  const restartGame = async () => {
+    await updateDoc(doc(db, 'hangman_games', gameId), {
+      word: '',
+      guesses: [],
+      chat: [],
+      status: 'pending',
+      turn: gameData.player1,
+    });
   };
 
   const renderWord = () => {
@@ -73,80 +75,34 @@ function HangmanGame() {
     return gameData.word.split('').map(letter => (guesses.includes(letter) ? letter : '_')).join(' ');
   };
 
-  const handleRestart = async () => {
-    await updateDoc(doc(db, 'hangman_games', gameId), {
-      currentWordSetter: gameData.currentGuesser,
-      currentGuesser: gameData.currentWordSetter,
-      word: '',
-      guesses: [],
-      chat: [],
-      status: 'pending'
-    });
-  };
-
   return (
     <div className="hangman-room">
       <h2>Multiplayer Hangman</h2>
-      <p>Game ID: {gameId}</p>
-      <p>Role: {isCurrentWordSetter ? 'Word Setter' : 'Guesser'}</p>
-
-      {gameData.status === 'pending' && isCurrentWordSetter && (
+      <p>Role: {gameData.player1 === user.uid ? 'Player 1' : 'Player 2'} - {isMyTurn ? "Your Turn" : "Waiting..."}</p>
+      <p>Word: {renderWord()}</p>
+      <p>Incorrect Guesses: {incorrectGuesses}/{maxIncorrect}</p>
+      {isMyTurn && !gameLost && !gameWon && (
         <>
-          <p>Set your word for the game:</p>
-          <input value={wordInput} onChange={(e) => setWordInput(e.target.value)} />
-          <button onClick={handleSetWord}>Set Word</button>
+          <input type="text" maxLength="1" value={input} onChange={(e) => setInput(e.target.value)} />
+          <button onClick={handleGuess}>Guess</button>
         </>
       )}
-      {gameData.status === 'pending' && isCurrentGuesser && <p>Waiting for word to be set...</p>}
+      {gameWon && <h3>🎉 Winner!</h3>}
+      {gameLost && <h3>💀 Lost! Word was: {gameData.word}</h3>}
+      {(gameWon || gameLost) && <button onClick={restartGame}>Rematch</button>}
 
-      {gameData.status === 'started' && (
-        <>
-          <HangmanDrawing incorrectGuesses={incorrectGuesses} />
-          <p>{renderWord()}</p>
-          <p>Incorrect Guesses: {incorrectGuesses}/{maxIncorrect}</p>
-          {!gameLost && !gameWon && isCurrentGuesser && (
-            <>
-              <input maxLength="1" value={guessInput} onChange={(e) => setGuessInput(e.target.value)} />
-              <button onClick={handleGuess}>Guess</button>
-            </>
-          )}
-          {gameWon && <h3>🎉 Guesser Won! Rematch?</h3>}
-          {gameLost && <h3>💀 Guesser Lost! Rematch?</h3>}
-          {(gameWon || gameLost) && <button onClick={handleRestart}>Rematch (Switch Roles)</button>}
-        </>
-      )}
-
-      <div className="game-chat">
+      <div className="chatbox">
         <div className="chat-messages">
-          {chatMessages.map((msg, index) => (
-            <p key={index}><strong>{msg.senderUid}</strong>: {msg.message}</p>
+          {(gameData.chat || []).map((msg, index) => (
+            <div key={index}><strong>{msg.senderName}</strong>: {msg.message}</div>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type message..." />
-          <button onClick={sendMessage}>Send</button>
-        </div>
+        <input placeholder="Type a message..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} />
+        <button onClick={sendMessage}>Send</button>
       </div>
 
       <button onClick={() => navigate('/dashboard')}>Quit</button>
     </div>
-  );
-}
-
-function HangmanDrawing({ incorrectGuesses }) {
-  return (
-    <svg height="250" width="200" className="hangman-drawing">
-      <line x1="10" y1="240" x2="190" y2="240" stroke="black" strokeWidth="4" />
-      <line x1="50" y1="240" x2="50" y2="20" stroke="black" strokeWidth="4" />
-      <line x1="50" y1="20" x2="150" y2="20" stroke="black" strokeWidth="4" />
-      <line x1="150" y1="20" x2="150" y2="50" stroke="black" strokeWidth="4" />
-      {incorrectGuesses > 0 && <circle cx="150" cy="70" r="20" stroke="black" strokeWidth="4" fill="none" />}
-      {incorrectGuesses > 1 && <line x1="150" y1="90" x2="150" y2="150" stroke="black" strokeWidth="4" />}
-      {incorrectGuesses > 2 && <line x1="150" y1="110" x2="120" y2="90" stroke="black" strokeWidth="4" />}
-      {incorrectGuesses > 3 && <line x1="150" y1="110" x2="180" y2="90" stroke="black" strokeWidth="4" />}
-      {incorrectGuesses > 4 && <line x1="150" y1="150" x2="120" y2="180" stroke="black" strokeWidth="4" />}
-      {incorrectGuesses > 5 && <line x1="150" y1="150" x2="180" y2="180" stroke="black" strokeWidth="4" />}
-    </svg>
   );
 }
 

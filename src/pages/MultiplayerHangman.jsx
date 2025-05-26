@@ -13,18 +13,15 @@ function MultiplayerHangman() {
     const fetchFriends = async () => {
       const user = auth.currentUser;
       if (!user) return navigate('/');
-
       const friendsSnap = await getDocs(collection(db, `users/${user.uid}/friends`));
       setFriends(friendsSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() })));
     };
-
     fetchFriends();
   }, [navigate]);
 
   const handleChallenge = async (friend) => {
     const currentUid = auth.currentUser.uid;
     const gameId = `${currentUid}_${friend.uid}_${Date.now()}`;
-
     await setDoc(doc(db, 'hangman_games', gameId), {
       player1: currentUid,
       player2: friend.uid,
@@ -39,7 +36,7 @@ function MultiplayerHangman() {
 
     await setDoc(doc(db, `users/${friend.uid}/notifications/${gameId}`), {
       type: 'hangman_invite',
-      message: `🎮 @${auth.currentUser.displayName || 'A user'} challenged you to Hangman!`,
+      message: `🎮 ${auth.currentUser.displayName || 'A user'} challenged you to Hangman!`,
       gameId,
       senderUid: currentUid,
       timestamp: Timestamp.now(),
