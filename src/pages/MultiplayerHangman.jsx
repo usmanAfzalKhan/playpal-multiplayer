@@ -33,7 +33,7 @@ export default function MultiplayerHangman() {
   const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState('');
 
-  // fetch current user's username
+  // load my username
   useEffect(() => {
     if (!user) return navigate('/');
     getDoc(doc(db, 'users', user.uid)).then(snap => {
@@ -41,71 +41,84 @@ export default function MultiplayerHangman() {
     });
   }, [user, navigate]);
 
-  // fetch friend list for challenges
+  // fetch friends for challenge
   useEffect(() => {
     if (!user) return;
-    getDocs(collection(db, `users/${user.uid}/friends`))
-      .then(snap => setFriends(snap.docs.map(d => ({ uid: d.id, ...d.data() }))));
+    getDocs(collection(db, `users/${user.uid}/friends`)).then(snap =>
+      setFriends(snap.docs.map(d => ({ uid: d.id, ...d.data() })))
+    );
   }, [user]);
 
-  // challenge a friend → create pending game & notification
+  // send a challenge
   const handleChallenge = async friend => {
-    const id = `${user.uid}_${friend.uid}_${Date.now()}`;
-    const word = words[Math.floor(Math.random()*words.length)];
-    await setDoc(doc(db,'hangman_games',id), {
-      player1: user.uid,
-      player2: friend.uid,
+    const id   = `${user.uid}_${friend.uid}_${Date.now()}`;
+    const word = words[Math.floor(Math.random() * words.length)];
+
+    await setDoc(doc(db, 'hangman_games', id), {
+      player1:     user.uid,
+      player2:     friend.uid,
       currentTurn: user.uid,
       word,
-      guesses: [],
-      chat: [],
-      status: 'pending',
-      winner: '',
-      createdAt: Timestamp.now()
+      guesses:     [],
+      chat:        [],
+      status:      'pending',
+      winner:      '',
+      createdAt:   Timestamp.now()
     });
-    await setDoc(doc(db, `users/${friend.uid}/notifications/${id}`), {
-      type: 'hangman_invite',
-      gameId: id,
-      senderUid: user.uid,
-      senderUsername: username,
-      message: `🎮 @${username} challenged you to Hangman!`,
-      timestamp: Timestamp.now()
-    });
+
+    // notify friend
+    await setDoc(
+      doc(db, `users/${friend.uid}/notifications/${id}`),
+      {
+        type:           'hangman_invite',
+        gameId:         id,
+        senderUid:      user.uid,
+        senderUsername: username,
+        message:        `🎮 @${username} challenged you to Hangman!`,
+        timestamp:      Timestamp.now()
+      }
+    );
+
     setWaitingGameId(id);
   };
 
-  // watch for pending → active when accepted
+  // wait for friend to accept (status → "active")
   useEffect(() => {
     if (!waitingGameId) return;
-    const unsub = onSnapshot(doc(db,'hangman_games',waitingGameId), snap => {
-      if (!snap.exists()) return;
-      const data = snap.data();
-      if (data.status === 'active') {
-        navigate(`/hangman/multiplayer/${waitingGameId}`);
+    const unsub = onSnapshot(
+      doc(db, 'hangman_games', waitingGameId),
+      snap => {
+        const data = snap.data();
+        if (data?.status === 'active') {
+          navigate(`/hangman/multiplayer/${waitingGameId}`);
+        }
       }
-    });
+    );
     return unsub;
   }, [waitingGameId, navigate]);
 
-  // subscribe to game updates
+  // subscribe to the live game
   useEffect(() => {
     if (!gameId) return;
-    const unsub = onSnapshot(doc(db,'hangman_games',gameId), snap => {
-      if (!snap.exists()) {
-        setGameData(null);
-        return;
+    const unsub = onSnapshot(
+      doc(db, 'hangman_games', gameId),
+      snap => {
+        if (!snap.exists()) {
+          setGameData(null);
+          return;
+        }
+        const data = snap.data();
+        setGameData(data);
+        if (data.status === 'finished') {
+          setWinner(data.winner);
+          setGameOver(true);
+        }
       }
-      const data = snap.data();
-      setGameData(data);
-      if (data.status === 'finished') {
-        setWinner(data.winner);
-        setGameOver(true);
-      }
-    });
+    );
     return unsub;
   }, [gameId]);
 
-  // make a guess
+  // make a letter guess
   const makeGuess = async () => {
     if (!input || gameOver || user.uid !== gameData.currentTurn) return;
     const letter = input.toLowerCase();
@@ -114,82 +127,85 @@ export default function MultiplayerHangman() {
       return;
     }
     const newGuesses = [...gameData.guesses, letter];
-    // count only incorrect guesses
-    const incorrectCount = newGuesses.filter(g => !gameData.word.includes(g)).length;
-    let newStatus = 'active';
+    const badCount   = newGuesses.filter(g => !gameData.word.includes(g)).length;
+
+    let status    = 'active';
     let newWinner = '';
-    let nextTurn = gameData.currentTurn === gameData.player1
+    let nextTurn  = gameData.currentTurn === gameData.player1
       ? gameData.player2
       : gameData.player1;
 
-    // win condition
+    // win
     if (gameData.word.split('').every(l => newGuesses.includes(l))) {
-      newStatus = 'finished';
+      status    = 'finished';
       newWinner = user.uid;
     }
-    // loss condition (draw)
-    else if (incorrectCount >= 6) {
-      newStatus = 'finished';
+    // draw
+    else if (badCount >= 6) {
+      status    = 'finished';
       newWinner = 'draw';
     }
-    // correct guess → same player gets another turn
+    // correct guess keeps turn
     else if (gameData.word.includes(letter)) {
       nextTurn = user.uid;
     }
 
-    await updateDoc(doc(db,'hangman_games',gameId), {
-      guesses: newGuesses,
+    await updateDoc(doc(db, 'hangman_games', gameId), {
+      guesses:     newGuesses,
       currentTurn: nextTurn,
-      status: newStatus,
-      winner: newWinner
+      status,
+      winner:      newWinner
     });
+
     setInput('');
   };
 
   // send a chat message
   const sendChat = async () => {
     if (!chatInput.trim()) return;
-    await updateDoc(doc(db,'hangman_games',gameId), {
+    await updateDoc(doc(db, 'hangman_games', gameId), {
       chat: arrayUnion({
-        sender: username,
-        message: chatInput,
+        sender:    username,
+        message:   chatInput,
         timestamp: Date.now()
       })
     });
     setChatInput('');
   };
 
-  // in‐place rematch
+  // rematch in-place
   const handleRematch = async () => {
-    const newWord = words[Math.floor(Math.random()*words.length)];
-    await updateDoc(doc(db,'hangman_games',gameId), {
-      word: newWord,
-      guesses: [],
-      chat: [],
-      status: 'active',
-      winner: '',
+    const newWord = words[Math.floor(Math.random() * words.length)];
+    await updateDoc(doc(db, 'hangman_games', gameId), {
+      word:        newWord,
+      guesses:     [],
+      chat:        [],
+      status:      'active',
+      winner:      '',
       currentTurn: gameData.player1
     });
     setGameOver(false);
     setWinner('');
   };
 
-  // quit and delete game
+  // quit and delete the game
   const handleQuit = async () => {
-    await deleteDoc(doc(db,'hangman_games',gameId));
+    await deleteDoc(doc(db, 'hangman_games', gameId));
     navigate('/dashboard');
   };
 
-  // accept invite from dashboard
+  // accept invite from Dashboard notifications
   const acceptInvite = async notif => {
-    await updateDoc(doc(db,'hangman_games',notif.gameId), { status: 'active' });
+    await updateDoc(doc(db, `hangman_games/${notif.gameId}`), { status: 'active' });
     navigate(`/hangman/multiplayer/${notif.gameId}`);
   };
 
   // --- RENDER ---
-  // 1) game screen
+
+  // If in a live game
   if (gameData) {
-    const incorrectCount = gameData.guesses.filter(g => !gameData.word.includes(g)).length;
+    const badCount = gameData.guesses.filter(g => !gameData.word.includes(g)).length;
+
     return (
       <div className="hangman-room">
         <h2>Multiplayer Hangman</h2>
@@ -198,13 +214,15 @@ export default function MultiplayerHangman() {
           {gameData.currentTurn === user.uid ? 'Your Turn' : "Opponent's Turn"}
         </p>
 
-        <HangmanDrawing incorrectGuesses={incorrectCount} />
+        <HangmanDrawing incorrectGuesses={badCount} />
+
         <p>
-          {gameData.word.split('').map(l =>
-            gameData.guesses.includes(l) ? l : '_'
-          ).join(' ')}
+          {gameData.word
+            .split('')
+            .map(l => (gameData.guesses.includes(l) ? l : '_'))
+            .join(' ')}
         </p>
-        <p>Incorrect Guesses: {incorrectCount} / 6</p>
+        <p>Incorrect Guesses: {badCount} / 6</p>
 
         {!gameOver ? (
           gameData.currentTurn === user.uid ? (
@@ -236,7 +254,7 @@ export default function MultiplayerHangman() {
         <div className="chatbox">
           <h4>Game Chat</h4>
           <div className="chat-messages">
-            {gameData.chat.map((m,i) => (
+            {gameData.chat.map((m, i) => (
               <p key={i}>
                 <strong>{m.sender}</strong>: {m.message}
               </p>
@@ -253,7 +271,7 @@ export default function MultiplayerHangman() {
     );
   }
 
-  // 2) challenge screen
+  // Otherwise, show challenge screen
   return (
     <div className="multiplayer-container">
       <h2>Challenge a Friend to Hangman</h2>
@@ -270,9 +288,7 @@ export default function MultiplayerHangman() {
       {waitingGameId && (
         <>
           <p>Waiting for friend to accept…</p>
-          <button onClick={() => navigate('/dashboard')}>
-            Cancel &amp; Back
-          </button>
+          <button onClick={() => navigate('/dashboard')}>Cancel & Back</button>
         </>
       )}
     </div>
