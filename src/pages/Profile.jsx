@@ -110,17 +110,25 @@ const handleAcceptChallenge = async (notif) => {
 };
 
 // In your notifications list (inside your map for notifications):
-{
-  notifications.map(notif => (
-    <div key={notif.id} className="notif-item">
-      <p>{notif.message}</p>
-      {notif.type === 'hangman_invite' && (
-        <button onClick={() => handleAcceptChallenge(notif)}>Accept Challenge</button>
-      )}
-      <button onClick={() => markNotificationRead(notif.id)}>Dismiss</button>
-    </div>
-  ))
-}
+{notifications.map(notif => (
+  <div key={notif.id} className="notif-item">
+    {notif.type === 'hangman_invite' ? (
+      <>
+        <p>{notif.message}</p>
+        <button onClick={() => {
+          navigate(`/hangman/game/${notif.gameId}`);
+          markNotificationRead(notif.id);
+        }}>Join Game</button>
+      </>
+    ) : (
+      <>
+        <p>{notif.message}</p>
+        <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
+      </>
+    )}
+  </div>
+))}
+
 
 
   return (
