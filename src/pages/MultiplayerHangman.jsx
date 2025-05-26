@@ -7,16 +7,14 @@ import {
   getDocs,
   doc,
   setDoc,
-  deleteDoc,
   updateDoc,
   onSnapshot,
   arrayUnion,
-  Timestamp,
+  getDoc,
+  Timestamp
 } from 'firebase/firestore';
+import { HangmanDrawing } from './SingleHangman';
 import './MultiplayerHangman.css';
-
-// Word list shared with SingleHangman
-const WORDS = ['javascript', 'firebase', 'netlify', 'react', 'playpal'];
 
 export default function MultiplayerHangman() {
   const navigate = useNavigate();
@@ -24,15 +22,15 @@ export default function MultiplayerHangman() {
   const user = auth.currentUser;
 
   const [friends, setFriends] = useState([]);
-  const [waiting, setWaiting] = useState(false);
+  const [waitingGameId, setWaitingGameId] = useState(null);
   const [gameData, setGameData] = useState(null);
   const [input, setInput] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [username, setUsername] = useState('');
   const [gameOver, setGameOver] = useState(false);
-  const [rematchRequested, setRematchRequested] = useState(false);
+  const [winner, setWinner] = useState('');
 
-  // Fetch friends for challenge screen
+  // 1) Load friend list for challenge screen
   useEffect(() => {
     if (!user) return navigate('/');
     const fetchFriends = async () => {
@@ -40,170 +38,165 @@ export default function MultiplayerHangman() {
       setFriends(snap.docs.map(d => ({ uid: d.id, ...d.data() })));
     };
     fetchFriends();
-  }, [navigate, user]);
+  }, [user, navigate]);
 
-  // Load own username
+  // 2) Fetch my username
   useEffect(() => {
     if (!user) return;
-    getDocs(collection(db, 'users')).then(() => {}); // no-op, messaging works
-    // you can fetch if needed
+    const loadMe = async () => {
+      const meDoc = await getDoc(doc(db, 'users', user.uid));
+      if (meDoc.exists()) setUsername(meDoc.data().username);
+    };
+    loadMe();
   }, [user]);
 
-  // Create a new game
+  // 3) Send a challenge
   const handleChallenge = async friend => {
-    const newId = `${user.uid}_${friend.uid}_${Date.now()}`;
-    const word = WORDS[Math.floor(Math.random() * WORDS.length)];
-    await setDoc(doc(db, 'hangman_games', newId), {
-      player1: user.uid,
-      player2: friend.uid,
+    const id    = `${user.uid}_${friend.uid}_${Date.now()}`;
+    const words = ['javascript','firebase','netlify','react','playpal'];
+    const word  = words[Math.floor(Math.random()*words.length)];
+
+    await setDoc(doc(db,'hangman_games',id), {
+      player1:     user.uid,
+      player2:     friend.uid,
       currentTurn: user.uid,
       word,
-      guesses: [],
-      chat: [],
-      status: 'pending',
-      rematchVotes: [],
+      guesses:     [],
+      chat:        [],
+      status:      'pending',
+      winner:      '',
+      createdAt:   Timestamp.now()
     });
-    // notify friend...
-    setWaiting(true);
+
+    // notify friend
+    await setDoc(doc(db,`users/${friend.uid}/notifications/${id}`), {
+      type:           'hangman_invite',
+      message:        `🎮 @${username} challenged you!`,
+      gameId:         id,
+      senderUid:      user.uid,
+      senderUsername: username,
+      timestamp:      Timestamp.now()
+    });
+
+    setWaitingGameId(id);
   };
 
-  // Listen for pending→active to navigate challenger in
+  // 4) Watch for friend accepting (status → 'active')
   useEffect(() => {
-    if (!waiting) return;
-    const unsub = onSnapshot(doc(db, 'hangman_games', gameId), snap => {
-      if (snap.exists() && snap.data().status === 'active') {
-        navigate(`/hangman/multiplayer/${gameId}`);
+    if (!waitingGameId) return;
+    const unsub = onSnapshot(
+      doc(db,'hangman_games',waitingGameId),
+      snap => {
+        if (snap.exists() && snap.data().status === 'active') {
+          navigate(`/hangman/multiplayer/${waitingGameId}`);
+        }
       }
-    });
+    );
     return () => unsub();
-  }, [waiting, gameId, navigate]);
+  }, [waitingGameId, navigate]);
 
-  // Listen for game updates when joined
+  // 5) Subscribe to the live game if gameId in URL
   useEffect(() => {
     if (!gameId) return;
-    const unsub = onSnapshot(doc(db, 'hangman_games', gameId), snap => {
-      if (!snap.exists()) return setGameData(null);
-      const data = snap.data();
-      setGameData(data);
-      if (data.status === 'finished') {
-        setGameOver(true);
+    const unsub = onSnapshot(
+      doc(db,'hangman_games',gameId),
+      snap => {
+        if (!snap.exists()) return setGameData(null);
+        const data = snap.data();
+        setGameData(data);
+        if (data.status === 'finished') {
+          setWinner(data.winner);
+          setGameOver(true);
+        }
       }
-    });
+    );
     return () => unsub();
   }, [gameId]);
 
-  // Handle letter guess
+  // 6) Make a letter guess
   const makeGuess = async () => {
     if (!input || gameOver || user.uid !== gameData.currentTurn) return;
-    const letter = input.toLowerCase();
-    const guesses = gameData.guesses.includes(letter)
+    const letter      = input.toLowerCase();
+    const newGuesses  = gameData.guesses.includes(letter)
       ? gameData.guesses
       : [...gameData.guesses, letter];
-    // count total incorrect 
-    const incorrectCount = guesses.filter(l => !gameData.word.includes(l)).length;
+    const badCount    = gameData.word.split('').filter(l=>!newGuesses.includes(l)).length;
+    const isWin       = gameData.word.split('').every(l=>newGuesses.includes(l));
+    let   nextTurn    = gameData.currentTurn === gameData.player1
+      ? gameData.player2
+      : gameData.player1;
+    let   newStatus   = 'active';
+    let   newWinner   = '';
 
-    let status = 'active';
-    let nextTurn =
-      letter && gameData.word.includes(letter) ? user.uid : 
-      gameData.currentTurn === gameData.player1
-        ? gameData.player2
-        : gameData.player1;
-    // win?
-    if (gameData.word.split('').every(l => guesses.includes(l))) {
-      status = 'finished';
-    }
-    // loss?
-    if (incorrectCount >= 6) {
-      status = 'finished';
+    if (isWin) {
+      newStatus = 'finished';
+      newWinner = user.uid;
+    } else if (!gameData.word.includes(letter) && badCount >= 6) {
+      newStatus = 'finished';
+      newWinner = 'draw';
+    } else if (gameData.word.includes(letter)) {
+      nextTurn = user.uid;
     }
 
-    await updateDoc(doc(db, 'hangman_games', gameId), { guesses, currentTurn: nextTurn, status });
+    await updateDoc(doc(db,'hangman_games',gameId), {
+      guesses:     newGuesses,
+      currentTurn: nextTurn,
+      status:      newStatus,
+      winner:      newWinner
+    });
+
     setInput('');
   };
 
-  // Send a chat message
-  const sendChat = async () => {
+  // 7) Send a chat message
+  const sendMessage = async () => {
     if (!chatInput) return;
-    await updateDoc(doc(db, 'hangman_games', gameId), {
+    await updateDoc(doc(db,'hangman_games',gameId), {
       chat: arrayUnion({
-        sender: user.displayName || user.uid,
-        message: chatInput,
-        timestamp: Date.now(),
-      }),
+        sender:    username,
+        message:   chatInput,
+        timestamp: Date.now()
+      })
     });
     setChatInput('');
   };
 
-  // Player clicks Rematch
-  const requestRematch = async () => {
-    setRematchRequested(true);
-    await updateDoc(doc(db, 'hangman_games', gameId), {
-      rematchVotes: arrayUnion(user.uid),
+  // 8) Rematch inside the game
+  const handleRematch = async () => {
+    const rematchId = `${gameId}_rematch`;
+    await setDoc(doc(db,'hangman_games',rematchId), {
+      player1:     gameData.player1,
+      player2:     gameData.player2,
+      currentTurn: gameData.player1,
+      word:        gameData.word,
+      guesses:     [],
+      chat:        [],
+      status:      'active',
+      winner:      '',
+      createdAt:   Timestamp.now()
     });
+    navigate(`/hangman/multiplayer/${rematchId}`);
   };
 
-  // When both have voted & gameOver, reset in-place
-  useEffect(() => {
-    if (
-      gameOver &&
-      gameData?.rematchVotes?.length === 2 &&
-      gameData.status === 'finished'
-    ) {
-      const newWord = WORDS[Math.floor(Math.random() * WORDS.length)];
-      updateDoc(doc(db, 'hangman_games', gameId), {
-        word: newWord,
-        guesses: [],
-        chat: [],
-        status: 'active',
-        currentTurn: gameData.player1,
-        rematchVotes: [],
-      });
-      setGameOver(false);
-      setRematchRequested(false);
-    }
-  }, [gameData, gameOver, gameId]);
-
-  // Quit game entirely
-  const quitGame = async () => {
-    await deleteDoc(doc(db, 'hangman_games', gameId));
-    navigate('/dashboard');
-  };
-
-  // Render: joined vs challenge screen
+  // ——— RENDER ———
+  // A) live game view
   if (gameId && gameData) {
-    // determine incorrect for display
-    const incorrectCount =
-      gameData.guesses.filter(l => !gameData.word.includes(l)).length;
+    const badCount = gameData.guesses.filter(g=>!gameData.word.includes(g)).length;
 
     return (
       <div className="hangman-room">
         <h2>Multiplayer Hangman</h2>
+        <p>Current Turn: { gameData.currentTurn === user.uid ? 'Your Turn' : "Opponent's Turn" }</p>
+
+        <HangmanDrawing incorrectGuesses={badCount} />
+
         <p>
-          Current Turn:{' '}
-          {gameData.currentTurn === user.uid ? 'Your Turn' : "Opponent's Turn"}
-        </p>
-
-        <svg height="250" width="200" className="hangman-drawing">
-          {/* ... same <HangmanDrawing> shape code ... */}
-          <line x1="10" y1="240" x2="190" y2="240" stroke="black" strokeWidth="4" />
-          <line x1="50" y1="240" x2="50" y2="20" stroke="black" strokeWidth="4" />
-          <line x1="50" y1="20" x2="150" y2="20" stroke="black" strokeWidth="4" />
-          <line x1="150" y1="20" x2="150" y2="50" stroke="black" strokeWidth="4" />
-          {incorrectCount > 0 && <circle cx="150" cy="70" r="20" stroke="black" strokeWidth="4" fill="none" />}
-          {incorrectCount > 1 && <line x1="150" y1="90" x2="150" y2="150" stroke="black" strokeWidth="4" />}
-          {incorrectCount > 2 && <line x1="150" y1="110" x2="120" y2="90" stroke="black" strokeWidth="4" />}
-          {incorrectCount > 3 && <line x1="150" y1="110" x2="180" y2="90" stroke="black" strokeWidth="4" />}
-          {incorrectCount > 4 && <line x1="150" y1="150" x2="120" y2="180" stroke="black" strokeWidth="4" />}
-          {incorrectCount > 5 && <line x1="150" y1="150" x2="180" y2="180" stroke="black" strokeWidth="4" />}
-        </svg>
-
-        <p className="word-display">
           {gameData.word
             .split('')
             .map(l => (gameData.guesses.includes(l) ? l : '_'))
             .join(' ')}
         </p>
-        <p>Incorrect Guesses: {incorrectCount} / 6</p>
+        <p>Incorrect Guesses: {badCount} / 6</p>
 
         {!gameOver ? (
           gameData.currentTurn === user.uid ? (
@@ -211,8 +204,7 @@ export default function MultiplayerHangman() {
               <input
                 value={input}
                 maxLength="1"
-                onChange={e => setInput(e.target.value)}
-                placeholder="Letter"
+                onChange={e=>setInput(e.target.value)}
               />
               <button onClick={makeGuess}>Guess</button>
             </>
@@ -220,45 +212,37 @@ export default function MultiplayerHangman() {
             <p>Waiting for opponent...</p>
           )
         ) : (
-          <div className="end-controls">
+          <>
             <h3>
-              {gameData.word
-                .split('')
-                .every(l => gameData.guesses.includes(l))
-                ? '🎉 Both guessed!' 
-                : '💀 Game Over'}
+              {winner === 'draw'
+                ? '💀 Game Draw!'
+                : winner === user.uid
+                ? '🎉 You Win!'
+                : '😢 You Lose!'}
             </h3>
-            <button
-              onClick={requestRematch}
-              disabled={rematchRequested}
-            >
-              {rematchRequested ? 'Waiting...' : 'Rematch'}
-            </button>
-            <button onClick={quitGame}>Quit</button>
-          </div>
+            <button onClick={handleRematch}>Rematch</button>
+            <button onClick={()=>navigate('/dashboard')}>Quit</button>
+          </>
         )}
 
         <div className="chatbox">
           <h4>Game Chat</h4>
-          <div className="chat-log">
-            {gameData.chat.map((m, i) => (
-              <p key={i}>
-                <strong>{m.sender}</strong>: {m.message}
-              </p>
+          <div className="chat-messages">
+            {gameData.chat.map((m,i)=>(
+              <p key={i}><strong>{m.sender}:</strong> {m.message}</p>
             ))}
           </div>
           <input
             value={chatInput}
-            onChange={e => setChatInput(e.target.value)}
-            placeholder="Type a message..."
+            onChange={e=>setChatInput(e.target.value)}
           />
-          <button onClick={sendChat}>Send</button>
+          <button onClick={sendMessage}>Send</button>
         </div>
       </div>
     );
   }
 
-  // Challenge screen
+  // B) challenge-your-friend view
   return (
     <div className="multiplayer-container">
       <h2>Challenge a Friend to Hangman</h2>
@@ -266,15 +250,20 @@ export default function MultiplayerHangman() {
         <p>No friends to challenge.</p>
       ) : (
         friends.map(f => (
-          <div key={f.uid}>
-            @{f.username}{' '}
-            <button onClick={() => handleChallenge(f)}>Challenge</button>
+          <div key={f.uid} className="friend-item">
+            @{f.username}
+            <button onClick={()=>handleChallenge(f)}>Challenge</button>
           </div>
         ))
       )}
-      {waiting && <p>Waiting for friend to accept…</p>}
-      {waiting && (
-        <button onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
+
+      {waitingGameId && (
+        <>
+          <p>Waiting for friend to accept…</p>
+          <button onClick={()=>navigate('/dashboard')}>
+            Back to Dashboard
+          </button>
+        </>
       )}
     </div>
   );
