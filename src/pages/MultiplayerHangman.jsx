@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase-config';
-import { collection, doc, setDoc, onSnapshot, updateDoc, arrayUnion, getDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, updateDoc, arrayUnion, getDocs, Timestamp } from 'firebase/firestore';
 import './HangmanGame.css';
 
 function MultiplayerHangman() {
+  const [friends, setFriends] = useState([]);
   const [gameId, setGameId] = useState('');
   const [gameData, setGameData] = useState(null);
   const [wordInput, setWordInput] = useState('');
@@ -15,24 +16,36 @@ function MultiplayerHangman() {
   const user = auth.currentUser;
 
   useEffect(() => {
+    const fetchFriends = async () => {
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDocs(collection(db, `users/${user.uid}/friends`));
+      setFriends(userDoc.docs.map(doc => ({ uid: doc.id, ...doc.data() })));
+    };
     const fetchUsername = async () => {
       const docSnap = await getDoc(doc(db, 'users', user.uid));
       setUsername(docSnap.exists() ? docSnap.data().username : 'Player');
     };
+    fetchFriends();
     fetchUsername();
   }, []);
 
-  const startNewGame = async () => {
-    const id = `${user.uid}_${Date.now()}`;
+  const challengeFriend = async (friendUid) => {
+    const id = `${user.uid}_${friendUid}_${Date.now()}`;
     await setDoc(doc(db, 'hangman_games', id), {
       player1: user.uid,
-      player2: null,
+      player2: friendUid,
       word: '',
       guesses: [],
       incorrectGuesses: 0,
       chat: [],
       turn: user.uid,
       status: 'waiting'
+    });
+    await setDoc(doc(db, `users/${friendUid}/notifications/${id}`), {
+      type: 'hangman_invite',
+      message: `🎮 ${username} challenged you to Hangman!`,
+      gameId: id,
+      timestamp: Timestamp.now()
     });
     setGameId(id);
   };
@@ -52,6 +65,7 @@ function MultiplayerHangman() {
       word: wordInput.toLowerCase(),
       status: 'started'
     });
+    setWordInput('');
   };
 
   const handleGuess = async () => {
@@ -76,27 +90,51 @@ function MultiplayerHangman() {
   return (
     <div className="hangman-room">
       {!gameId ? (
-        <button onClick={startNewGame}>Start New Game</button>
+        <>
+          <h2>Challenge a Friend to Hangman</h2>
+          {friends.length === 0 ? (
+            <p>No friends available. Add friends to start a game!</p>
+          ) : (
+            friends.map(friend => (
+              <div key={friend.uid}>
+                @{friend.username}
+                <button onClick={() => challengeFriend(friend.uid)}>Challenge</button>
+              </div>
+            ))
+          )}
+        </>
       ) : !gameData ? (
-        <p>Loading...</p>
+        <p>Loading game...</p>
       ) : (
         <>
           <h2>Multiplayer Hangman</h2>
-          <p>{gameData.status === 'waiting' ? 'Waiting for opponent...' : `Word: ${gameData.word.replace(/./g, '_ ')}`}</p>
-          {gameData.status === 'started' && user.uid === gameData.turn && (
+          {gameData.status === 'waiting' ? (
+            <p>Waiting for the other player to join...</p>
+          ) : (
             <>
-              <input value={guessInput} onChange={(e) => setGuessInput(e.target.value)} maxLength="1" />
-              <button onClick={handleGuess}>Guess</button>
+              <p>Word: {gameData.word ? gameData.word.split('').map(l => '_ ').join('') : 'Waiting for word...'}</p>
+              {gameData.word && user.uid === gameData.turn && (
+                <>
+                  <input value={guessInput} onChange={(e) => setGuessInput(e.target.value)} maxLength="1" />
+                  <button onClick={handleGuess}>Guess</button>
+                </>
+              )}
+              {!gameData.word && user.uid === gameData.player1 && (
+                <>
+                  <p>Set a word for your friend:</p>
+                  <input value={wordInput} onChange={(e) => setWordInput(e.target.value)} />
+                  <button onClick={handleSetWord}>Submit</button>
+                </>
+              )}
+              <div className="chatbox">
+                {gameData.chat.map((msg, i) => (
+                  <p key={i}><strong>{msg.sender}:</strong> {msg.message}</p>
+                ))}
+                <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} />
+                <button onClick={sendMessage}>Send</button>
+              </div>
             </>
           )}
-          {gameData.status === 'waiting' && <p>Waiting for the word to be set.</p>}
-          <div className="chatbox">
-            {gameData.chat.map((msg, i) => (
-              <p key={i}><strong>{msg.sender}:</strong> {msg.message}</p>
-            ))}
-            <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} />
-            <button onClick={sendMessage}>Send</button>
-          </div>
         </>
       )}
     </div>
