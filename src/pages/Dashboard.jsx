@@ -34,7 +34,7 @@ function Dashboard() {
     const user = auth.currentUser;
     if (!user) return navigate('/');
 
-    // Fetch username & friends list
+    // load username & friends
     (async () => {
       const uSnap = await getDoc(doc(db, 'users', user.uid));
       if (uSnap.exists()) setUsername(uSnap.data().username);
@@ -43,7 +43,7 @@ function Dashboard() {
       setFriendsList(fSnap.docs.map(d => d.id));
     })();
 
-    // Listen for notifications
+    // real-time notifications listener (only invites)
     const unsub = onSnapshot(
       collection(db, `users/${auth.currentUser.uid}/notifications`),
       snap => setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })))
@@ -58,12 +58,12 @@ function Dashboard() {
     setActionMessage('');
     if (!q.trim()) return;
 
-    const usersQ = query(
+    const userQ = query(
       collection(db, 'users'),
       where('username', '>=', q),
       where('username', '<=', q + '\uf8ff')
     );
-    const snap = await getDocs(usersQ);
+    const snap = await getDocs(userQ);
     const res = [];
     snap.forEach(d => {
       if (d.id !== auth.currentUser.uid) res.push({ uid: d.id, ...d.data() });
@@ -101,7 +101,7 @@ function Dashboard() {
   };
 
   const acceptHangmanInvite = async notif => {
-    // Activate the game (invite OR rematch)
+    // only invites—no rematch here
     await updateDoc(doc(db, `hangman_games/${notif.gameId}`), { status: 'active' });
     markNotificationRead(notif.id);
     navigate(`/hangman/multiplayer/${notif.gameId}`);
@@ -118,10 +118,7 @@ function Dashboard() {
           style={{ cursor: 'pointer' }}
         />
         <div className="header-controls">
-          <FaSearch
-            className="search-icon"
-            onClick={() => setShowSearch(!showSearch)}
-          />
+          <FaSearch className="search-icon" onClick={() => setShowSearch(!showSearch)} />
           {showSearch && (
             <div className="search-container">
               <input
@@ -151,13 +148,8 @@ function Dashboard() {
             </div>
           )}
           <div className="notif-container">
-            <FaBell
-              className="notif-bell"
-              onClick={() => setShowNotifications(!showNotifications)}
-            />
-            {notifications.length > 0 && (
-              <span className="notif-count">{notifications.length}</span>
-            )}
+            <FaBell className="notif-bell" onClick={() => setShowNotifications(!showNotifications)} />
+            {notifications.length > 0 && <span className="notif-count">{notifications.length}</span>}
             {showNotifications && (
               <div className="notif-dropdown">
                 {notifications.length === 0 ? (
@@ -166,17 +158,10 @@ function Dashboard() {
                   notifications.map(notif => (
                     <div key={notif.id} className="notif-item">
                       <p>{notif.message}</p>
-                      {(notif.type === 'hangman_invite' ||
-                        notif.type === 'hangman_rematch') && (
-                        <button onClick={() => acceptHangmanInvite(notif)}>
-                          {notif.type === 'hangman_invite'
-                            ? 'Join Game'
-                            : 'Join Rematch'}
-                        </button>
+                      {notif.type === 'hangman_invite' && (
+                        <button onClick={() => acceptHangmanInvite(notif)}>Join Game</button>
                       )}
-                      <button onClick={() => markNotificationRead(notif.id)}>
-                        Mark as Read
-                      </button>
+                      <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
                     </div>
                   ))
                 )}
@@ -189,33 +174,17 @@ function Dashboard() {
         </div>
       </header>
 
-      {actionMessage && (
-        <p style={{ color: 'white', textAlign: 'center' }}>
-          {actionMessage}
-        </p>
-      )}
+      {actionMessage && <p style={{ color: 'white', textAlign: 'center' }}>{actionMessage}</p>}
 
       <main className="dashboard-main">
         <h2 style={{ textAlign: 'center' }}>🎮 Games</h2>
         <div className="game-grid">
-          <div
-            className="game-card"
-            onClick={() => navigate('/hangman/single')}
-          >
-            <img
-              src="https://via.placeholder.com/150"
-              alt="Single Player Hangman"
-            />
+          <div className="game-card" onClick={() => navigate('/hangman/single')}>
+            <img src="https://via.placeholder.com/150" alt="Single Player Hangman" />
             <p>Single Player Hangman</p>
           </div>
-          <div
-            className="game-card"
-            onClick={() => navigate('/hangman/multiplayer')}
-          >
-            <img
-              src="https://via.placeholder.com/150"
-              alt="Multiplayer Hangman"
-            />
+          <div className="game-card" onClick={() => navigate('/hangman/multiplayer')}>
+            <img src="https://via.placeholder.com/150" alt="Multiplayer Hangman" />
             <p>Multiplayer Hangman</p>
           </div>
         </div>
@@ -223,14 +192,9 @@ function Dashboard() {
 
       <footer className="dashboard-footer">
         © {new Date().getFullYear()} PlayPal. Built with ❤️ by{' '}
-        <a
-          href="https://github.com/usmanAfzalKhan"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="footer-link"
-        >
+        <a href="https://github.com/usmanAfzalKhan" className="footer-link" target="_blank">
           Usman Khan
-        </a>
+        </a>.
       </footer>
     </div>
   );
