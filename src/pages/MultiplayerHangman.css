@@ -1,29 +1,68 @@
-.multiplayer-hangman {
+.multiplayer-container {
   min-height: 100vh;
   background-color: #1e293b;
   color: white;
-  text-align: center;
   padding: 2rem;
+  text-align: center;
 }
 
-.friend-challenge {
-  display: flex;
-  justify-content: space-between;
-  background-color: #0f172a;
+.multiplayer-container input {
+  padding: 0.5rem;
+  font-size: 1rem;
+  margin: 0.5rem;
+  border-radius: 6px;
+  border: none;
+}
+
+.multiplayer-container button {
   padding: 0.5rem 1rem;
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
-}
-
-.friend-challenge button {
+  margin: 0.3rem;
   background-color: #38bdf8;
   border: none;
   border-radius: 6px;
-  padding: 0.3rem 0.6rem;
+  color: black;
   font-weight: bold;
   cursor: pointer;
 }
 
-.friend-challenge button:hover {
+.multiplayer-container button:hover {
   background-color: #0ea5e9;
+}
+
+.chatbox {
+  margin-top: 1.5rem;
+  background-color: #0f172a;
+  padding: 1rem;
+  border-radius: 8px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.chat-messages {
+  max-height: 200px;
+  overflow-y: auto;
+  text-align: left;
+  margin-bottom: 0.5rem;
+}
+
+.chat-messages p {
+  margin-bottom: 0.3rem;
+}
+
+.chatbox input {
+  width: 70%;
+  padding: 0.4rem;
+  border-radius: 6px;
+  border: none;
+}
+
+.chatbox button {
+  padding: 0.4rem 1rem;
+}
+
+@media (max-width: 600px) {
+  .chatbox {
+    width: 90%;
+  }
 }

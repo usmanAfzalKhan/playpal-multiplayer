@@ -1,73 +1,121 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../firebase-config';
-import { collection, getDocs, doc, setDoc, onSnapshot, Timestamp } from 'firebase/firestore';
-import './HangmanGame.css';
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { auth, db } from "../firebase-config";
+import {
+  doc,
+  onSnapshot,
+  updateDoc,
+  arrayUnion,
+  setDoc,
+  getDoc,
+  collection,
+  addDoc,
+  query,
+  orderBy,
+} from "firebase/firestore";
+import "./MultiplayerHangman.css";
 
 function MultiplayerHangman() {
-  const [friends, setFriends] = useState([]);
-  const [waitingGameId, setWaitingGameId] = useState(null);
+  const { gameId } = useParams();
   const navigate = useNavigate();
-  const user = auth.currentUser;
+  const [gameData, setGameData] = useState(null);
+  const [guessInput, setGuessInput] = useState("");
+  const [chatMessages, setChatMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [user, setUser] = useState(auth.currentUser);
 
   useEffect(() => {
-    const fetchFriends = async () => {
-      if (!user) return navigate('/');
-      const friendsSnap = await getDocs(collection(db, `users/${user.uid}/friends`));
-      setFriends(friendsSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() })));
-    };
-    fetchFriends();
-  }, [navigate, user]);
+    if (!user) {
+      navigate("/");
+      return;
+    }
 
-  const handleChallenge = async (friend) => {
-    const gameId = `${user.uid}_${friend.uid}_${Date.now()}`;
-    await setDoc(doc(db, 'hangman_games', gameId), {
-      player1: user.uid,
-      player2: friend.uid,
-      player1Name: user.displayName || 'Player1',
-      player2Name: friend.username || 'Player2',
-      currentWordSetter: user.uid,
-      currentGuesser: friend.uid,
-      word: '',
-      guesses: [],
-      chat: [],
-      status: 'pending',
-      createdAt: Timestamp.now(),
-    });
-    await setDoc(doc(db, `users/${friend.uid}/notifications/${gameId}`), {
-      type: 'hangman_challenge',
-      message: `🎮 @${user.displayName || 'User'} challenged you to Hangman!`,
-      gameId,
-      senderUid: user.uid,
-      timestamp: Timestamp.now(),
-    });
-    setWaitingGameId(gameId);
-  };
-
-  useEffect(() => {
-    if (!waitingGameId) return;
-    const unsub = onSnapshot(doc(db, 'hangman_games', waitingGameId), (docSnap) => {
-      if (docSnap.exists() && docSnap.data().status === 'started') {
-        navigate(`/hangman/game/${waitingGameId}`);
+    const unsubGame = onSnapshot(doc(db, "hangman_games", gameId), (docSnap) => {
+      if (docSnap.exists()) {
+        setGameData(docSnap.data());
       }
     });
-    return () => unsub();
-  }, [waitingGameId, navigate]);
+
+    const unsubChat = onSnapshot(
+      query(collection(db, `hangman_games/${gameId}/chat`), orderBy("timestamp")),
+      (snapshot) => {
+        setChatMessages(snapshot.docs.map((doc) => doc.data()));
+      }
+    );
+
+    return () => {
+      unsubGame();
+      unsubChat();
+    };
+  }, [gameId, navigate]);
+
+  const handleGuess = async () => {
+    if (!guessInput.trim() || gameData.guesses.includes(guessInput)) return;
+
+    const nextTurn = gameData.currentTurn === gameData.player1 ? gameData.player2 : gameData.player1;
+
+    await updateDoc(doc(db, "hangman_games", gameId), {
+      guesses: arrayUnion(guessInput.toLowerCase()),
+      currentTurn: gameData.word.includes(guessInput) ? gameData.currentTurn : nextTurn,
+    });
+
+    setGuessInput("");
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim()) return;
+    await addDoc(collection(db, `hangman_games/${gameId}/chat`), {
+      senderUid: user.uid,
+      senderName: user.displayName || "Player",
+      message: newMessage,
+      timestamp: Date.now(),
+    });
+    setNewMessage("");
+  };
+
+  if (!gameData) return <p>Loading...</p>;
+
+  const wordDisplay = gameData.word
+    .split("")
+    .map((l) => (gameData.guesses.includes(l) ? l : "_"))
+    .join(" ");
 
   return (
-    <div className="hangman-room">
-      <h2>Challenge a Friend to Hangman</h2>
-      {friends.length === 0 ? (
-        <p>No friends to challenge. Add friends first!</p>
-      ) : (
-        friends.map(friend => (
-          <div key={friend.uid} className="friend-challenge">
-            @{friend.username}
-            <button onClick={() => handleChallenge(friend)}>Challenge</button>
-          </div>
-        ))
+    <div className="multiplayer-container">
+      <h2>Multiplayer Hangman</h2>
+      <p>Word: {wordDisplay}</p>
+      <p>Current Turn: {gameData.currentTurn === user.uid ? "Your turn" : "Opponent's turn"}</p>
+
+      {gameData.currentTurn === user.uid && (
+        <>
+          <input
+            type="text"
+            maxLength="1"
+            value={guessInput}
+            onChange={(e) => setGuessInput(e.target.value)}
+          />
+          <button onClick={handleGuess}>Guess</button>
+        </>
       )}
-      {waitingGameId && <p>Waiting for friend to accept...</p>}
+
+      <div className="chatbox">
+        <div className="chat-messages">
+          {chatMessages.map((msg, index) => (
+            <p key={index}>
+              <strong>{msg.senderName}</strong>: {msg.message}
+            </p>
+          ))}
+        </div>
+        <input
+          placeholder="Type message..."
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+        />
+        <button onClick={sendMessage}>Send</button>
+      </div>
+
+      <button onClick={() => navigate("/dashboard")}>Quit</button>
     </div>
   );
 }

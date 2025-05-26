@@ -2,7 +2,7 @@ import './Dashboard.css';
 import logo from '../assets/logo.png';
 import { useEffect, useState } from 'react';
 import { auth, db } from '../firebase-config';
-import { doc, getDoc, collection, query, where, getDocs, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, setDoc, Timestamp } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { FaSearch } from 'react-icons/fa';
 
@@ -41,13 +41,11 @@ function Dashboard() {
 
     if (queryInput.trim() === '') return;
 
-    const q = query(collection(db, 'users'), where('username', '>=', queryInput), where('username', '<=', queryInput + '\uf8ff'));
-    const snapshot = await getDocs(q);
-
+    const snapshot = await getDocs(collection(db, 'users'));
     const results = [];
     snapshot.forEach(doc => {
       const data = doc.data();
-      if (doc.id !== auth.currentUser.uid) {
+      if (data.username?.toLowerCase().includes(queryInput.toLowerCase()) && doc.id !== auth.currentUser.uid) {
         results.push({ ...data, uid: doc.id });
       }
     });
@@ -72,7 +70,6 @@ function Dashboard() {
 
       setActionMessage(`✅ Friend request sent to @${user.username}`);
       setTimeout(() => setActionMessage(''), 3000);
-
       setSearchQuery('');
       setSuggestions([]);
     } catch (err) {
@@ -138,26 +135,22 @@ function Dashboard() {
 
       {actionMessage && <p style={{ color: 'white', textAlign: 'center' }}>{actionMessage}</p>}
 
-<main className="dashboard-main">
-  <h2 style={{ textAlign: 'center' }}>🎮 Games</h2>
-  <div className="game-grid">
-    <div className="game-card">
-      <img src="https://via.placeholder.com/150" alt="Hangman" />
-      <p>Hangman</p>
-      <button onClick={() => navigate('/hangman/single')}>Single Player</button>
-      <button onClick={() => navigate('/hangman/multiplayer')}>Multiplayer</button>
-    </div>
-    <div className="game-card">
-      <img src="https://via.placeholder.com/150" alt="Tic Tac Toe" />
-      <p>Tic Tac Toe</p>
-    </div>
-    <div className="game-card">
-      <img src="https://via.placeholder.com/150" alt="Coming Soon" />
-      <p>More Games Coming</p>
-    </div>
-  </div>
-</main>
-
+      <main className="dashboard-main">
+        <h2 style={{ textAlign: 'center' }}>🎮 Games</h2>
+        <div className="game-grid">
+          <div className="game-card">
+            <img src="https://via.placeholder.com/150" alt="Hangman" />
+            <p>Hangman</p>
+            <button onClick={() => navigate('/hangman/single')}>Single Player</button>
+            <button onClick={() => navigate('/hangman/multiplayer')}>Multiplayer</button>
+          </div>
+          <div className="game-card">
+            <img src="https://via.placeholder.com/150" alt="Tic Tac Toe" />
+            <p>Tic Tac Toe</p>
+            {/* Placeholder for future game modes */}
+          </div>
+        </div>
+      </main>
 
       <footer className="dashboard-footer">
         © {new Date().getFullYear()} PlayPal. Built with ❤️ by{' '}

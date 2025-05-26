@@ -1,20 +1,15 @@
-/* HangmanGame.css */
-
 .hangman-room {
   min-height: 100vh;
   background-color: #1e293b;
   color: white;
   padding: 2rem;
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
 }
 
-.hangman-room input[type="text"] {
+.hangman-room input {
   padding: 0.5rem;
   font-size: 1rem;
-  margin: 0.5rem 0;
+  margin-right: 0.5rem;
   border-radius: 6px;
   border: none;
 }
@@ -34,32 +29,32 @@
   background-color: #0ea5e9;
 }
 
-.chatbox {
+.game-chat {
+  margin-top: 2rem;
   background-color: #0f172a;
   padding: 1rem;
   border-radius: 8px;
-  margin-top: 1rem;
-  display: flex;
-  flex-direction: column;
-  max-height: 250px;
-  overflow-y: auto;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.chatbox div {
+.chat-messages {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 0.5rem;
   text-align: left;
+  padding: 0.5rem;
+  background-color: #1e1e2e;
+  border-radius: 8px;
+}
+
+.chat-message {
   margin-bottom: 0.3rem;
 }
 
-.chatbox input {
-  width: 100%;
-  padding: 0.5rem;
-  margin-top: 0.5rem;
-  border-radius: 6px;
-  border: none;
-}
-
-.chatbox button {
-  margin-top: 0.5rem;
+.chat-message strong {
+  color: #38bdf8;
 }
 
 .hangman-drawing {
@@ -68,21 +63,17 @@
   max-width: 100%;
 }
 
-.friend-challenge {
-  background-color: #334155;
-  padding: 0.5rem;
-  border-radius: 6px;
-  margin: 0.5rem 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 @media (max-width: 480px) {
-  .hangman-room {
-    padding: 1rem;
+  .hangman-room input {
+    width: 80px;
   }
-  .chatbox {
-    max-height: 200px;
+
+  .game-chat {
+    width: 90%;
+    padding: 0.5rem;
+  }
+
+  .chat-messages {
+    max-height: 150px;
   }
 }
