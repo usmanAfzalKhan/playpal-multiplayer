@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './SingleHangman.css';
 
-const words = ['javascript', 'firebase', 'netlify', 'react', 'playpal']; // Add more words!
+const words = ['javascript', 'firebase', 'react', 'netlify', 'playpal', 'coding'];
 
 function SingleHangman() {
   const [word, setWord] = useState('');
@@ -11,7 +11,6 @@ function SingleHangman() {
   const [input, setInput] = useState('');
   const [gameOver, setGameOver] = useState(false);
   const [win, setWin] = useState(false);
-
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,7 +20,6 @@ function SingleHangman() {
 
   const handleGuess = () => {
     if (!input || gameOver) return;
-
     const guess = input.toLowerCase();
     if (guesses.includes(guess)) return;
 
@@ -29,7 +27,6 @@ function SingleHangman() {
     if (!word.includes(guess)) {
       setIncorrectGuesses(incorrectGuesses + 1);
     }
-
     setInput('');
   };
 
@@ -44,19 +41,16 @@ function SingleHangman() {
 
   const handleRestart = () => {
     navigate('/hangman/single');
-    window.location.reload();
-  };
-
-  const renderDrawing = () => {
-    return <img src={`/hangman-${incorrectGuesses}.png`} alt={`Hangman ${incorrectGuesses}`} className="hangman-drawing" />;
+    window.location.reload(); // Full refresh to reset state
   };
 
   return (
     <div className="hangman-room">
       <h2>Single Player Hangman</h2>
-      {renderDrawing()}
-      <p>Word: {word.split('').map(letter => (guesses.includes(letter) ? letter : '_')).join(' ')}</p>
+      <HangmanDrawing incorrectGuesses={incorrectGuesses} />
+      <p>Word: {word ? word.split('').map(letter => (guesses.includes(letter) ? letter : '_')).join(' ') : 'Loading...'}</p>
       <p>Incorrect Guesses: {incorrectGuesses} / 6</p>
+
       {!gameOver ? (
         <>
           <input
@@ -75,6 +69,23 @@ function SingleHangman() {
         </>
       )}
     </div>
+  );
+}
+
+function HangmanDrawing({ incorrectGuesses }) {
+  return (
+    <svg height="250" width="200" className="hangman-drawing">
+      <line x1="10" y1="240" x2="190" y2="240" stroke="black" strokeWidth="4" />
+      <line x1="50" y1="240" x2="50" y2="20" stroke="black" strokeWidth="4" />
+      <line x1="50" y1="20" x2="150" y2="20" stroke="black" strokeWidth="4" />
+      <line x1="150" y1="20" x2="150" y2="50" stroke="black" strokeWidth="4" />
+      {incorrectGuesses > 0 && <circle cx="150" cy="70" r="20" stroke="black" strokeWidth="4" fill="none" />}
+      {incorrectGuesses > 1 && <line x1="150" y1="90" x2="150" y2="150" stroke="black" strokeWidth="4" />}
+      {incorrectGuesses > 2 && <line x1="150" y1="110" x2="120" y2="90" stroke="black" strokeWidth="4" />}
+      {incorrectGuesses > 3 && <line x1="150" y1="110" x2="180" y2="90" stroke="black" strokeWidth="4" />}
+      {incorrectGuesses > 4 && <line x1="150" y1="150" x2="120" y2="180" stroke="black" strokeWidth="4" />}
+      {incorrectGuesses > 5 && <line x1="150" y1="150" x2="180" y2="180" stroke="black" strokeWidth="4" />}
+    </svg>
   );
 }
 

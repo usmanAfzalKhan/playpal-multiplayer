@@ -138,23 +138,26 @@ function Dashboard() {
 
       {actionMessage && <p style={{ color: 'white', textAlign: 'center' }}>{actionMessage}</p>}
 
-      <main className="dashboard-main">
-        <h2 style={{ textAlign: 'center' }}>🎮 Games</h2>
-        <div className="game-grid">
-          <div className="game-card" onClick={() => navigate('/hangman')}>
-            <img src="https://via.placeholder.com/150" alt="Hangman" />
-            <p>Hangman</p>
-          </div>
-          <div className="game-card">
-            <img src="https://via.placeholder.com/150" alt="Tic Tac Toe" />
-            <p>Tic Tac Toe</p>
-          </div>
-          <div className="game-card">
-            <img src="https://via.placeholder.com/150" alt="Coming Soon" />
-            <p>More Games Coming</p>
-          </div>
-        </div>
-      </main>
+<main className="dashboard-main">
+  <h2 style={{ textAlign: 'center' }}>🎮 Games</h2>
+  <div className="game-grid">
+    <div className="game-card">
+      <img src="https://via.placeholder.com/150" alt="Hangman" />
+      <p>Hangman</p>
+      <button onClick={() => navigate('/hangman/single')}>Single Player</button>
+      <button onClick={() => navigate('/hangman/multiplayer')}>Multiplayer</button>
+    </div>
+    <div className="game-card">
+      <img src="https://via.placeholder.com/150" alt="Tic Tac Toe" />
+      <p>Tic Tac Toe</p>
+    </div>
+    <div className="game-card">
+      <img src="https://via.placeholder.com/150" alt="Coming Soon" />
+      <p>More Games Coming</p>
+    </div>
+  </div>
+</main>
+
 
       <footer className="dashboard-footer">
         © {new Date().getFullYear()} PlayPal. Built with ❤️ by{' '}
