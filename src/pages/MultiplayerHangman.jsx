@@ -106,17 +106,18 @@ function MultiplayerHangman() {
     if (!input.trim() || gameOver || user.uid !== gameData.currentTurn) return;
     const letter = input.toLowerCase();
     const newGuesses = gameData.guesses.includes(letter) ? gameData.guesses : [...gameData.guesses, letter];
-    const incorrectGuesses = gameData.word.split('').filter(l => !newGuesses.includes(l)).length;
 
-    const isWinner = gameData.word.split('').every(l => newGuesses.includes(l));
+    const incorrectGuesses = newGuesses.filter(l => !gameData.word.includes(l)).length;
+    const hasWon = gameData.word.split('').every(l => newGuesses.includes(l));
+
     let newStatus = 'active';
     let newWinner = '';
     let nextTurn = gameData.currentTurn === gameData.player1 ? gameData.player2 : gameData.player1;
 
-    if (isWinner) {
+    if (hasWon) {
       newStatus = 'finished';
       newWinner = user.uid;
-    } else if (!gameData.word.includes(letter) && incorrectGuesses >= 6) {
+    } else if (incorrectGuesses >= 6) {
       newStatus = 'finished';
       newWinner = 'draw';
     } else if (gameData.word.includes(letter)) {
@@ -206,7 +207,7 @@ function MultiplayerHangman() {
         friends.map(friend => (
           <div key={friend.uid}>
             @{friend.username}
-            <button onClick={() => handleChallenge(friend)} disabled={waitingGameId !== null}>Challenge</button>
+            <button onClick={() => handleChallenge(friend)}>Challenge</button>
           </div>
         ))
       )}
