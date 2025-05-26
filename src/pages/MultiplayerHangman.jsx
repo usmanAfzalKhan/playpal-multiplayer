@@ -4,7 +4,7 @@ import { auth, db } from '../firebase-config';
 import {
   collection, getDocs, doc, setDoc, Timestamp, onSnapshot, arrayUnion, updateDoc, getDoc
 } from 'firebase/firestore';
-import { HangmanDrawing } from './SingleHangman'; // 🔥 Import drawing from SingleHangman
+import { HangmanDrawing } from './SingleHangman'; // 🔥 Import drawing
 import './MultiplayerHangman.css';
 
 function MultiplayerHangman() {
@@ -31,7 +31,7 @@ function MultiplayerHangman() {
     fetchFriends();
   }, [navigate, user]);
 
-  // Fetch user username
+  // Fetch user's username
   useEffect(() => {
     const fetchUsername = async () => {
       if (user) {
@@ -44,7 +44,7 @@ function MultiplayerHangman() {
     fetchUsername();
   }, [user]);
 
-  // Create challenge
+  // Challenge a friend
   const handleChallenge = async (friend) => {
     const currentUid = user.uid;
     const newGameId = `${currentUid}_${friend.uid}_${Date.now()}`;
@@ -75,9 +75,26 @@ function MultiplayerHangman() {
     setWaitingGameId(newGameId);
   };
 
-  // Game logic if gameId is present
+  // Watch for game status change to "active"
+  useEffect(() => {
+    if (!waitingGameId) return;
+
+    const unsub = onSnapshot(doc(db, 'hangman_games', waitingGameId), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.status === 'active') {
+          navigate(`/hangman/multiplayer/${waitingGameId}`);
+        }
+      }
+    });
+
+    return () => unsub();
+  }, [waitingGameId, navigate]);
+
+  // Game logic for /:gameId
   useEffect(() => {
     if (!gameId) return;
+
     const unsub = onSnapshot(doc(db, 'hangman_games', gameId), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -90,6 +107,7 @@ function MultiplayerHangman() {
         setGameData(null);
       }
     });
+
     return () => unsub();
   }, [gameId]);
 
@@ -97,9 +115,10 @@ function MultiplayerHangman() {
     if (!input.trim() || gameOver || user.uid !== gameData.currentTurn) return;
     const letter = input.toLowerCase();
     const newGuesses = gameData.guesses.includes(letter) ? gameData.guesses : [...gameData.guesses, letter];
-    const incorrectGuesses = gameData.word.split('').filter(l => !newGuesses.includes(l)).length;
 
     const isWinner = gameData.word.split('').every(l => newGuesses.includes(l));
+    const incorrectGuesses = gameData.word.split('').filter(l => !newGuesses.includes(l)).length;
+
     let newStatus = 'active';
     let newWinner = '';
     let nextTurn = gameData.currentTurn === gameData.player1 ? gameData.player2 : gameData.player1;
@@ -111,7 +130,7 @@ function MultiplayerHangman() {
       newStatus = 'finished';
       newWinner = 'draw';
     } else if (gameData.word.includes(letter)) {
-      nextTurn = user.uid; // Keep turn on correct guess
+      nextTurn = user.uid; // Retain turn on correct guess
     }
 
     await updateDoc(doc(db, 'hangman_games', gameId), {
