@@ -1,7 +1,8 @@
+// src/pages/HangmanGame.jsx
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase-config';
-import { doc, onSnapshot, updateDoc, arrayUnion, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 import './HangmanGame.css';
 
 function HangmanGame() {
@@ -36,7 +37,6 @@ function HangmanGame() {
   const gameLost = incorrectGuesses >= maxIncorrect;
   const gameWon = gameData.word && gameData.word.split('').every(l => guesses.includes(l));
 
-  // Determine current roles
   const isCurrentWordSetter = gameData.currentWordSetter === user.uid;
   const isCurrentGuesser = gameData.currentGuesser === user.uid;
 
@@ -61,19 +61,22 @@ function HangmanGame() {
 
   const sendMessage = async () => {
     if (newMessage.trim() === '') return;
+
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const senderUsername = userDoc.exists() ? userDoc.data().username : 'Unknown';
+
     await updateDoc(doc(db, 'hangman_games', gameId), {
-      chat: arrayUnion({ senderUid: user.uid, message: newMessage, timestamp: Date.now() })
+      chat: arrayUnion({ senderUid: user.uid, senderUsername, message: newMessage, timestamp: Date.now() })
     });
     setNewMessage('');
   };
 
   const renderWord = () => {
-    if (!gameData.word) return '_ '.repeat(5); // Placeholder if word not set yet
+    if (!gameData.word) return '_ '.repeat(5);
     return gameData.word.split('').map(letter => (guesses.includes(letter) ? letter : '_')).join(' ');
   };
 
   const handleRestart = async () => {
-    // Swap roles for the next round
     await updateDoc(doc(db, 'hangman_games', gameId), {
       currentWordSetter: gameData.currentGuesser,
       currentGuesser: gameData.currentWordSetter,
@@ -88,7 +91,7 @@ function HangmanGame() {
     <div className="hangman-room">
       <h2>Multiplayer Hangman</h2>
       <p>Game ID: {gameId}</p>
-      <p>Role: {isCurrentWordSetter ? 'Word Setter' : 'Guesser'}</p>
+      <p>Role: {isCurrentWordSetter ? 'Word Setter' : isCurrentGuesser ? 'Guesser' : 'Spectator'}</p>
 
       {gameData.status === 'pending' && isCurrentWordSetter && (
         <>
@@ -102,7 +105,9 @@ function HangmanGame() {
         </>
       )}
 
-      {gameData.status === 'pending' && isCurrentGuesser && <p>Waiting for the word setter to choose a word...</p>}
+      {gameData.status === 'pending' && isCurrentGuesser && (
+        <p>Waiting for the word setter to choose a word...</p>
+      )}
 
       {gameData.status === 'started' && (
         <>
@@ -131,7 +136,7 @@ function HangmanGame() {
       <div className="game-chat">
         <div className="chat-messages">
           {chatMessages.map((msg, index) => (
-            <p key={index}><strong>{msg.senderUid}</strong>: {msg.message}</p>
+            <p key={index}><strong>{msg.senderUsername}</strong>: {msg.message}</p>
           ))}
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>

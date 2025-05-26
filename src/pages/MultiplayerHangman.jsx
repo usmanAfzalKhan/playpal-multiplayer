@@ -1,3 +1,4 @@
+// src/pages/MultiplayerHangman.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase-config';
@@ -25,16 +26,16 @@ function MultiplayerHangman() {
     const currentUid = auth.currentUser.uid;
     const gameId = `${currentUid}_${friend.uid}_${Date.now()}`;
 
-    // Create a game room (ephemeral)
     await setDoc(doc(db, 'hangman_games', gameId), {
-      player1: currentUid,
-      player2: friend.uid,
-      word: '', // Will be set by player1 later
+      currentWordSetter: currentUid,
+      currentGuesser: friend.uid,
+      word: '',
+      guesses: [],
+      chat: [],
       status: 'pending',
       createdAt: Timestamp.now(),
     });
 
-    // Notify the friend
     await setDoc(doc(db, `users/${friend.uid}/notifications/${gameId}`), {
       type: 'hangman_challenge',
       message: `🎮 @${auth.currentUser.displayName || 'A user'} challenged you to Hangman!`,
@@ -52,7 +53,7 @@ function MultiplayerHangman() {
     const unsub = onSnapshot(doc(db, 'hangman_games', waitingGameId), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.status === 'accepted') {
+        if (data.status === 'started' || data.word) {
           navigate(`/hangman/game/${waitingGameId}`);
         }
       }
