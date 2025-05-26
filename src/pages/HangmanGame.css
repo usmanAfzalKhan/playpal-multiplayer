@@ -1,0 +1,54 @@
+.hangman-room {
+  min-height: 100vh;
+  background-color: #1e293b;
+  color: white;
+  padding: 2rem;
+  text-align: center;
+}
+
+.hangman-room input {
+  padding: 0.5rem;
+  font-size: 1rem;
+  margin-right: 0.5rem;
+  border-radius: 6px;
+  border: none;
+}
+
+.hangman-room button {
+  padding: 0.5rem 1rem;
+  margin: 0.3rem;
+  background-color: #38bdf8;
+  border: none;
+  border-radius: 6px;
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.hangman-room button:hover {
+  background-color: #0ea5e9;
+}
+
+.chatbox {
+  margin-top: 2rem;
+  background-color: #0f172a;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.chat-messages {
+  max-height: 150px;
+  overflow-y: auto;
+  margin-bottom: 0.5rem;
+  text-align: left;
+}
+
+.chat-message {
+  margin-bottom: 0.3rem;
+}
+
+@media (max-width: 480px) {
+  .hangman-room input {
+    width: 60px;
+  }
+}
