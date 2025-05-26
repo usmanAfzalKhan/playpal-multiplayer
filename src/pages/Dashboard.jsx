@@ -2,9 +2,9 @@ import './Dashboard.css';
 import logo from '../assets/logo.png';
 import { useEffect, useState } from 'react';
 import { auth, db } from '../firebase-config';
-import { doc, getDoc, collection, getDocs, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, onSnapshot, deleteDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaBell } from 'react-icons/fa';
 
 function Dashboard() {
   const [username, setUsername] = useState('');
@@ -13,13 +13,16 @@ function Dashboard() {
   const [suggestions, setSuggestions] = useState([]);
   const [friendsList, setFriendsList] = useState([]);
   const [actionMessage, setActionMessage] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchUsername = async () => {
-      const user = auth.currentUser;
-      if (!user) return navigate('/');
+    const user = auth.currentUser;
+    if (!user) return navigate('/');
 
+    const fetchUserData = async () => {
       const docRef = doc(db, 'users', user.uid);
       const userSnap = await getDoc(docRef);
       if (userSnap.exists()) {
@@ -30,8 +33,15 @@ function Dashboard() {
       setFriendsList(friendsSnap.docs.map(doc => doc.id));
     };
 
-    fetchUsername();
-  }, []);
+    fetchUserData();
+
+    // Notifications real-time listener
+    const unsub = onSnapshot(collection(db, `users/${user.uid}/notifications`), snapshot => {
+      setNotifications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => unsub();
+  }, [navigate]);
 
   const handleSearchChange = async (e) => {
     const queryInput = e.target.value;
@@ -41,11 +51,13 @@ function Dashboard() {
 
     if (queryInput.trim() === '') return;
 
-    const snapshot = await getDocs(collection(db, 'users'));
+    const q = query(collection(db, 'users'), where('username', '>=', queryInput), where('username', '<=', queryInput + '\uf8ff'));
+    const snapshot = await getDocs(q);
+
     const results = [];
     snapshot.forEach(doc => {
       const data = doc.data();
-      if (data.username?.toLowerCase().includes(queryInput.toLowerCase()) && doc.id !== auth.currentUser.uid) {
+      if (doc.id !== auth.currentUser.uid) {
         results.push({ ...data, uid: doc.id });
       }
     });
@@ -59,7 +71,7 @@ function Dashboard() {
       const targetUid = user.uid;
 
       await setDoc(doc(db, `users/${targetUid}/requests/${currentUid}`), {
-        username: username,
+        username,
         requestedAt: Timestamp.now(),
       });
 
@@ -76,6 +88,11 @@ function Dashboard() {
       setActionMessage('❌ Error sending friend request.');
       setTimeout(() => setActionMessage(''), 3000);
     }
+  };
+
+  const markNotificationRead = async (notifId) => {
+    const currentUid = auth.currentUser.uid;
+    await deleteDoc(doc(db, `users/${currentUid}/notifications/${notifId}`));
   };
 
   return (
@@ -123,6 +140,39 @@ function Dashboard() {
               )}
             </div>
           )}
+
+          {/* 🔔 Add Notification Bell */}
+          <div className="notif-container">
+            <FaBell
+              className="notif-bell"
+              onClick={() => setShowNotifications(!showNotifications)}
+              title="Notifications"
+            />
+            {notifications.length > 0 && (
+              <span className="notif-count">{notifications.length}</span>
+            )}
+            {showNotifications && (
+              <div className="notif-dropdown">
+                {notifications.length === 0 ? (
+                  <p>No new notifications.</p>
+                ) : (
+                  notifications.map(notif => (
+                    <div key={notif.id} className="notif-item">
+                      <p>{notif.message}</p>
+                      {notif.type === 'hangman_invite' && (
+                        <button onClick={() => {
+                          navigate(`/hangman/game/${notif.gameId}`);
+                          markNotificationRead(notif.id);
+                        }}>Join Game</button>
+                      )}
+                      <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
           <span
             className="profile-icon"
             title={`Logged in as @${username}`}
@@ -138,31 +188,26 @@ function Dashboard() {
       <main className="dashboard-main">
         <h2 style={{ textAlign: 'center' }}>🎮 Games</h2>
         <div className="game-grid">
-          <div className="game-card">
+          <div className="game-card" onClick={() => navigate('/hangman')}>
             <img src="https://via.placeholder.com/150" alt="Hangman" />
             <p>Hangman</p>
-            <button onClick={() => navigate('/hangman/single')}>Single Player</button>
-            <button onClick={() => navigate('/hangman/multiplayer')}>Multiplayer</button>
           </div>
           <div className="game-card">
             <img src="https://via.placeholder.com/150" alt="Tic Tac Toe" />
             <p>Tic Tac Toe</p>
-            {/* Placeholder for future game modes */}
+          </div>
+          <div className="game-card">
+            <img src="https://via.placeholder.com/150" alt="Coming Soon" />
+            <p>More Games Coming</p>
           </div>
         </div>
       </main>
 
       <footer className="dashboard-footer">
         © {new Date().getFullYear()} PlayPal. Built with ❤️ by{' '}
-        <a
-          href="https://github.com/usmanAfzalKhan"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="footer-link"
-        >
+        <a href="https://github.com/usmanAfzalKhan" target="_blank" rel="noopener noreferrer" className="footer-link">
           Usman Khan
-        </a>
-        .
+        </a>.
       </footer>
     </div>
   );
