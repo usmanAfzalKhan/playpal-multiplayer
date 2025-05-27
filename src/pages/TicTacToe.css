@@ -1,41 +1,120 @@
-/* src/pages/TicTacToe.css*/
-.single-container,
-.multiplayer-container {
+/* src/pages/TicTacToe.css */
+
+/* center everything in the container */
+.ttt-container {
   padding: 2rem;
   background: #1e293b;
   color: white;
   min-height: 100vh;
   text-align: center;
+
+  /* new: flexbox to center the board */
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.board {
-  display: grid;
-  grid-template-columns: repeat(3, 60px);
-  gap: 8px;
-  margin: 1rem 0;
+/* status text */
+.ttt-status {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
 }
 
-.square {
-  width: 60px;
-  height: 60px;
-  font-size: 2rem;
+/* board grid & slim outer border */
+.ttt-board {
+  position: relative;   /* for strike-line positioning */
+  display: inline-grid; /* inline so border wraps tightly */
+  grid-template: repeat(3, 100px) / repeat(3, 100px);
+  border: 4px solid #38bdf8;
+  border-radius: 6px;   /* soften corners */
+  background: #1e293b;   /* match the page bg */
+  margin-bottom: 1rem;   /* space before Reset button */
+}
+
+/* each cell */
+.ttt-cell {
+  font-size: 2.5rem;
   background: #0f172a;
-  border: 2px solid #38bdf8;
-  border-radius: 4px;
+  color: #38bdf8;
   cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.restart-button,
-.multiplayer-container button {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
+/* internal grid lines */
+.ttt-cell:not(:nth-child(3n)) {
+  border-right: 2px solid #38bdf8;
+}
+.ttt-cell:nth-child(-n+3),
+.ttt-cell:nth-child(-n+6):not(:nth-child(-n+3)) {
+  border-bottom: 2px solid #38bdf8;
+}
+
+/* strike-through line base */
+.strike-line {
+  position: absolute;
+  background: #ef4444;
+  z-index: 1;
+}
+
+/* horizontal stripes */
+.strike-row-1, .strike-row-2, .strike-row-3 {
+  width: 100%; height: 4px; left: 0;
+}
+.strike-row-1 { top: calc(100px/2); }
+.strike-row-2 { top: calc(100px*1.5); }
+.strike-row-3 { top: calc(100px*2.5); }
+
+/* vertical stripes */
+.strike-col-1, .strike-col-2, .strike-col-3 {
+  width: 4px; height: 100%; top: 0;
+}
+.strike-col-1 { left: calc(100px/2); }
+.strike-col-2 { left: calc(100px*1.5); }
+.strike-col-3 { left: calc(100px*2.5); }
+
+/* main diagonal */
+.strike-diag-main {
+  width: 424px; height: 4px;
+  top: 50%; left: calc((300px - 424px)/2);
+  transform: rotate(45deg);
+}
+/* anti-diagonal */
+.strike-diag-anti {
+  width: 424px; height: 4px;
+  top: 50%; left: calc((300px - 424px)/2);
+  transform: rotate(-45deg);
+}
+
+/* reset button */
+.ttt-reset {
   background: #38bdf8;
-  border: none;
-  border-radius: 6px;
   color: black;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
+  transition: transform 0.1s;
 }
+.ttt-reset:hover {
+  transform: scale(1.05);
+}
+
+/* in TicTacToe.css */
+.ttt-quit {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.ttt-quit:hover {
+  transform: scale(1.05);
+}
+
