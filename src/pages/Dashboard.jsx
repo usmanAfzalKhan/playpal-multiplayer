@@ -1,10 +1,10 @@
 // src/pages/Dashboard.jsx
 import './Dashboard.css';
-import logo from '../assets/logo.png';
-import singleImg from '../assets/singlehangman.png';
-import multiImg from '../assets/multiplayerhangman.png';
+import logo               from '../assets/logo.png';
+import singleHangmanImg   from '../assets/singlehangman.png';
+import multiHangmanImg    from '../assets/multiplayerhangman.png';
 import { useEffect, useState } from 'react';
-import { auth, db } from '../firebase-config';
+import { auth, db }           from '../firebase-config';
 import {
   doc,
   getDoc,
@@ -18,15 +18,15 @@ import {
   updateDoc,
   Timestamp
 } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate }      from 'react-router-dom';
 import { FaSearch, FaBell } from 'react-icons/fa';
 
-function Dashboard() {
-  const [username, setUsername] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
-  const [friendsList, setFriendsList] = useState([]);
+export default function Dashboard() {
+  const [username, setUsername]           = useState('');
+  const [searchQuery, setSearchQuery]     = useState('');
+  const [showSearch, setShowSearch]       = useState(false);
+  const [suggestions, setSuggestions]     = useState([]);
+  const [friendsList, setFriendsList]     = useState([]);
   const [actionMessage, setActionMessage] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -38,17 +38,13 @@ function Dashboard() {
     if (!user) return navigate('/');
 
     (async () => {
-      // load username
       const uSnap = await getDoc(doc(db, 'users', user.uid));
-      if (uSnap.exists()) {
-        setUsername(uSnap.data().username);
-      }
-      // load friends
+      if (uSnap.exists()) setUsername(uSnap.data().username);
+
       const fSnap = await getDocs(collection(db, `users/${user.uid}/friends`));
       setFriendsList(fSnap.docs.map(d => d.id));
     })();
 
-    // realtime invitations listener
     const unsub = onSnapshot(
       collection(db, `users/${auth.currentUser.uid}/notifications`),
       snap => setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })))
@@ -195,14 +191,28 @@ function Dashboard() {
 
       <main className="dashboard-main">
         <h2>🎮 Games</h2>
+
+        {/* Hangman Section */}
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/hangman/single')}>
-            <img src={singleImg} alt="Single Player Hangman" />
+            <img src={singleHangmanImg} alt="Single Player Hangman" />
             <p>Single Player Hangman</p>
           </div>
           <div className="game-card" onClick={() => navigate('/hangman/multiplayer')}>
-            <img src={multiImg} alt="Multiplayer Hangman" />
+            <img src={multiHangmanImg} alt="Multiplayer Hangman" />
             <p>Multiplayer Hangman</p>
+          </div>
+        </div>
+
+        {/* Tic Tac Toe Section */}
+        <div className="game-grid">
+          <div className="game-card" onClick={() => navigate('/tictactoe/single')}>
+            <img src="https://via.placeholder.com/150" alt="Single Player Tic Tac Toe" />
+            <p>Single Player Tic Tac Toe</p>
+          </div>
+          <div className="game-card" onClick={() => navigate('/tictactoe/multiplayer')}>
+            <img src="https://via.placeholder.com/150" alt="Multiplayer Tic Tac Toe" />
+            <p>Multiplayer Tic Tac Toe</p>
           </div>
         </div>
       </main>
@@ -211,9 +221,9 @@ function Dashboard() {
         © {new Date().getFullYear()} PlayPal. Built with ❤️ by{' '}
         <a
           href="https://github.com/usmanAfzalKhan"
+          className="footer-link"
           target="_blank"
           rel="noopener noreferrer"
-          className="footer-link"
         >
           Usman Khan
         </a>.
@@ -221,5 +231,3 @@ function Dashboard() {
     </div>
   );
 }
-
-export default Dashboard;
