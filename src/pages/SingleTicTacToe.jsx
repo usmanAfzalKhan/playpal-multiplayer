@@ -11,10 +11,10 @@ export default function SingleTicTacToe() {
   const navigate = useNavigate();
   const timeoutRef = useRef(null);
 
-  // get both winner and the winning line for strike-through
+  // get both winner and the winning line
   const { winner, line } = getWinnerInfo(board);
 
-  // status text: your turn vs. computer thinking vs. final result
+  // build status text
   const status = winner
     ? `Winner: ${winner}`
     : board.every(cell => cell)
@@ -23,62 +23,30 @@ export default function SingleTicTacToe() {
         ? 'Your turn (X)'
         : 'Computer is thinking…';
 
-  // handle player's click; only when X’s turn and cell empty
+  // player click handler (only X on their turn, and not after game over)
   function handleClick(i) {
     if (!xIsNext || board[i] || winner) return;
-    const next = board.slice();
-    next[i] = 'X';
-    setBoard(next);
-    setXIsNext(false);
+    updateBoard(i, 'X', false);
   }
 
-  // computer move on O’s turn
+  // helper to apply a move
+  function updateBoard(idx, symbol, nextTurnX) {
+    setBoard(b => {
+      const nb = [...b];
+      nb[idx] = symbol;
+      return nb;
+    });
+    setXIsNext(nextTurnX);
+  }
+
+  // computer uses Minimax to pick the optimal move after 500ms
   useEffect(() => {
-    if (xIsNext || winner) return;
-    const empty = board
-      .map((c, idx) => (c ? null : idx))
-      .filter(i => i !== null);
-
-    if (!empty.length) return;
-
-    timeoutRef.current = setTimeout(() => {
-      // 1. Winning move?
-      for (let idx of empty) {
-        const test = [...board];
-        test[idx] = 'O';
-        if (getWinnerInfo(test).winner === 'O') {
-          makeOMove(idx);
-          return;
-        }
-      }
-      // 2. Block X’s winning move?
-      for (let idx of empty) {
-        const test = [...board];
-        test[idx] = 'X';
-        if (getWinnerInfo(test).winner === 'X') {
-          makeOMove(idx);
-          return;
-        }
-      }
-      // 3. Take center if free
-      if (empty.includes(4)) {
-        makeOMove(4);
-        return;
-      }
-      // 4. Otherwise random
-      const choice = empty[Math.floor(Math.random() * empty.length)];
-      makeOMove(choice);
-    }, 500);
-
-    function makeOMove(i) {
-      setBoard(b => {
-        const nb = [...b];
-        nb[i] = 'O';
-        return nb;
-      });
-      setXIsNext(true);
+    if (!xIsNext && !winner) {
+      timeoutRef.current = setTimeout(() => {
+        const move = findBestMove(board);
+        updateBoard(move, 'O', true);
+      }, 500);
     }
-
     return () => clearTimeout(timeoutRef.current);
   }, [xIsNext, board, winner]);
 
@@ -109,17 +77,63 @@ export default function SingleTicTacToe() {
           </button>
         ))}
       </div>
-      <button className="ttt-reset" onClick={reset}>
-        Reset
-      </button>
-      <button className="ttt-quit" onClick={quit}>
-        Quit
-      </button>
+      <div className="ttt-actions">
+        <button onClick={reset}>Reset</button>
+        <button onClick={quit}>Quit</button>
+      </div>
     </div>
   );
 }
 
-// returns { winner, line } or { null, null }
+// Minimax implementation
+function findBestMove(board) {
+  let bestVal = -Infinity;
+  let bestMove = null;
+  for (let i = 0; i < 9; i++) {
+    if (!board[i]) {
+      board[i] = 'O';
+      const moveVal = minimax(board, 0, false);
+      board[i] = null;
+      if (moveVal > bestVal) {
+        bestVal = moveVal;
+        bestMove = i;
+      }
+    }
+  }
+  return bestMove;
+}
+
+// returns +1 if O wins, -1 if X wins, 0 for draw
+function minimax(bd, depth, isMax) {
+  const { winner } = getWinnerInfo(bd);
+  if (winner === 'O') return  1;
+  if (winner === 'X') return -1;
+  if (bd.every(c => c))       return  0;
+
+  if (isMax) {
+    let best = -Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (!bd[i]) {
+        bd[i] = 'O';
+        best = Math.max(best, minimax(bd, depth + 1, false));
+        bd[i] = null;
+      }
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (!bd[i]) {
+        bd[i] = 'X';
+        best = Math.min(best, minimax(bd, depth + 1, true));
+        bd[i] = null;
+      }
+    }
+    return best;
+  }
+}
+
+// returns { winner: 'X'|'O'|null, line: [i,j,k]|null }
 function getWinnerInfo(sq) {
   const lines = [
     [0,1,2],[3,4,5],[6,7,8],
@@ -135,6 +149,7 @@ function getWinnerInfo(sq) {
   return { winner: null, line: null };
 }
 
+// map a winning triple to a CSS class
 function strikeClass([a,b,c]) {
   if (a===0&&b===1&&c===2) return 'strike-row-1';
   if (a===3&&b===4&&c===5) return 'strike-row-2';

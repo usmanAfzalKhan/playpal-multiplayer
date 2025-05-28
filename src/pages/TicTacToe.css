@@ -1,9 +1,13 @@
+/* src/pages/TicTacToe.css */
+
 .ttt-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 2rem;
   background: #1e293b;
   color: white;
   min-height: 100vh;
-  text-align: center;
 }
 
 /* Status text */
@@ -16,23 +20,29 @@
 .ttt-board {
   position: relative;
   display: grid;
-  grid-template: repeat(3,100px) / repeat(3,100px);
-  margin: 0 auto 1rem;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  width: 300px;       /* 3 cells × 100px */
+  height: 300px;
+  margin: 1rem 0;
   border: 4px solid #38bdf8;
+  box-sizing: border-box;
 }
 
-/* Cells */
+/* Each cell */
 .ttt-cell {
+  box-sizing: border-box;         /* include borders in cell size */
+  width: 100px; height: 100px;
   font-size: 2.5rem;
   background: #0f172a;
   color: #38bdf8;
   cursor: pointer;
   border: none;
-  outline: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  outline: none;                  /* remove focus outline */
 }
+
 /* internal grid lines */
 .ttt-cell:not(:nth-child(3n)) {
   border-right: 2px solid #38bdf8;
@@ -48,73 +58,52 @@
   background: #ef4444;
   z-index: 1;
 }
-/* rows */
+
+/* horizontal strikes */
 .strike-row-1, .strike-row-2, .strike-row-3 {
   width: 100%;
   height: 4px;
   left: 0;
 }
-.strike-row-1 { top: calc(100px/2); }
-.strike-row-2 { top: calc(100px*1.5); }
-.strike-row-3 { top: calc(100px*2.5); }
-/* cols */
+.strike-row-1 { top: calc(100px / 2); }
+.strike-row-2 { top: calc(100px * 1.5); }
+.strike-row-3 { top: calc(100px * 2.5); }
+
+/* vertical strikes */
 .strike-col-1, .strike-col-2, .strike-col-3 {
   width: 4px;
   height: 100%;
   top: 0;
 }
-.strike-col-1 { left: calc(100px/2); }
-.strike-col-2 { left: calc(100px*1.5); }
-.strike-col-3 { left: calc(100px*2.5); }
-/* diags */
-.strike-diag-main,
-.strike-diag-anti {
-  width: 424px;
+.strike-col-1 { left: calc(100px / 2); }
+.strike-col-2 { left: calc(100px * 1.5); }
+.strike-col-3 { left: calc(100px * 2.5); }
+
+/* diagonal strikes */
+.strike-diag-main, .strike-diag-anti {
+  width: 424px;   /* √(300²+300²) ≈ 424 */
   height: 4px;
   top: 50%;
-  left: calc((300px - 424px)/2);
+  left: calc((300px - 424px) / 2);
 }
-.strike-diag-main { transform: rotate(45deg);  }
+.strike-diag-main { transform: rotate(45deg); }
 .strike-diag-anti { transform: rotate(-45deg); }
 
-/* chat box */
-.chatbox {
-  background: #0f172a;
-  padding: 1rem;
-  border-radius: 8px;
-  max-width: 400px;
-  margin: 1rem auto;
+/* Reset/Quit buttons */
+.ttt-actions {
+  display: flex;
+  gap: 1rem;
 }
-.chat-messages {
-  max-height: 150px;
-  overflow-y: auto;
-  text-align: left;
-  margin-bottom: 0.5rem;
-}
-.chatbox input {
-  width: calc(100% - 60px);
-  padding: 0.5rem;
-  margin-right: 0.5rem;
-  border-radius: 4px;
-  border: none;
-}
-.chatbox button {
-  padding: 0.5rem 1rem;
-  background: #38bdf8;
-  border: none;
-  border-radius: 6px;
-  color: black;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-/* rematch/quit actions */
 .ttt-actions button {
-  margin: 0.5rem;
   padding: 0.6rem 1.2rem;
   background: #38bdf8;
   border: none;
   border-radius: 6px;
   font-weight: bold;
+  color: black;
   cursor: pointer;
+  transition: transform 0.1s;
+}
+.ttt-actions button:hover {
+  transform: scale(1.05);
 }
