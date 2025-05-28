@@ -1,48 +1,98 @@
-.cf-container {
+.c4-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 2rem;
   background: #1e293b;
   color: white;
+  min-height: 100vh;
   text-align: center;
 }
 
-.cf-status {
+.c4-status {
   margin-bottom: 1rem;
   font-size: 1.2rem;
 }
 
-.cf-board {
+/* 7×6 grid */
+.c4-board {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(7, 50px);
-  grid-template-rows: repeat(6, 50px);
+  grid-template-columns: repeat(7, 60px);
+  grid-template-rows: repeat(6, 60px);
   gap: 4px;
-  margin: 0 auto 1rem;
-  background: #0f172a;
   padding: 4px;
+  background: #0f172a;
   border-radius: 8px;
+  margin-bottom: 1rem;
 }
 
-.cf-cell {
-  width: 50px; height: 50px;
+.c4-cell {
+  width: 60px;
+  height: 60px;
   background: #1e293b;
   border-radius: 50%;
   cursor: pointer;
-  transition: background 0.2s;
+  position: relative;
+}
+.c4-cell:hover {
+  box-shadow: 0 0 0 2px #38bdf8;
 }
 
-.cf-cell.red    { background: #ef4444; }
-.cf-cell.yellow{ background: #facc15; }
+.disc {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+.red    { background: #ef4444; }
+.yellow { background: #facc15; }
 
-.cf-cell:hover {
-  box-shadow: inset 0 0 0 4px #38bdf8;
+/* strike overlay base */
+.c4-strike {
+  position: absolute;
+  background: #ef4444;
+  z-index: 10;
 }
 
-button {
-  margin-top: 1rem;
+/* horizontal lines */
+.c4-strike.strike-row-0 { top: calc(60px*0 + 30px + 4px); left: 4px; width: calc(60px*4 + 3*4px); height: 6px; }
+.c4-strike.strike-row-1 { top: calc(60px*1 + 30px + 4px); left: 4px; width: calc(60px*4 + 3*4px); height: 6px; }
+/* ...repeat for each row 0–5 */
+
+/* vertical lines */
+.c4-strike.strike-col-0 { left: calc(60px*0 + 30px + 4px); top: 4px; height: calc(60px*4 + 3*4px); width: 6px; }
+.c4-strike.strike-col-1 { left: calc(60px*1 + 30px + 4px); top: 4px; height: calc(60px*4 + 3*4px); width: 6px; }
+/* ...repeat for each col 0–6 */
+
+/* main diagonal */
+.c4-strike.strike-diag-main {
+  width: calc(60px*4 + 3*4px);
+  height: 6px;
+  top: 4px;
+  left: 4px;
+  transform: rotate(45deg);
+  transform-origin: top left;
+}
+/* anti-diagonal */
+.c4-strike.strike-diag-anti {
+  width: calc(60px*4 + 3*4px);
+  height: 6px;
+  top: 4px;
+  right: 4px;
+  transform: rotate(-45deg);
+  transform-origin: top right;
+}
+
+.c4-actions button {
+  margin: 0 0.5rem;
   padding: 0.6rem 1.2rem;
   background: #38bdf8;
   border: none;
   border-radius: 6px;
-  color: black;
   font-weight: bold;
   cursor: pointer;
+  color: black;
+}
+.c4-actions button:hover {
+  transform: scale(1.05);
 }
