@@ -11,21 +11,22 @@
   font-size: 1.2rem;
 }
 
-/* Responsive 7×6 grid */
+/* Responsive board: always show full 7×6 grid */
 .c4-board {
   position: relative;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   grid-auto-rows: 1fr;
 
-  width: 90vw;           /* shrink on mobile */
-  max-width: 600px;      /* cap on desktop */
-  aspect-ratio: 7 / 6;   /* keep perfect proportions */
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 7 / 6;
 
   margin: 0 auto 1.5rem;
   background: #0f172a;
   border-radius: 8px;
   overflow: hidden;
+  touch-action: manipulation;
 }
 
 .c4-cell {
@@ -44,7 +45,7 @@
 .red    { background: #ef4444; }
 .yellow { background: #facc15; }
 
-/* Strike-through bar */
+/* Strike line overlay */
 .c4-strike {
   position: absolute;
   background: #38bdf8;
@@ -55,25 +56,24 @@
   left: 0;
 }
 
-/* Horizontal strikes */
-.strike-row-0 { top:  100px * 0.5; }
-.strike-row-1 { top:  100px * 1.5; }
-.strike-row-2 { top:  100px * 2.5; }
-.strike-row-3 { top:  100px * 3.5; }
-.strike-row-4 { top:  100px * 4.5; }
-.strike-row-5 { top:  100px * 5.5; }
+/* Horizontal strikes (row 0 through 5) */
+.strike-row-0 { top: calc((100% / 6) * 0.5); }
+.strike-row-1 { top: calc((100% / 6) * 1.5); }
+.strike-row-2 { top: calc((100% / 6) * 2.5); }
+.strike-row-3 { top: calc((100% / 6) * 3.5); }
+.strike-row-4 { top: calc((100% / 6) * 4.5); }
+.strike-row-5 { top: calc((100% / 6) * 5.5); }
 
-/* Vertical strikes */
-.strike-col-0, .strike-col-1, .strike-col-2, 
-.strike-col-3, .strike-col-4, .strike-col-5, .strike-col-6 {
-  width: 4px;
-  height: 100%;
-  left: calc((100% / 7) * var(--col) + (100% / 14));
-}
-/* you can dynamically set --col in JS if you like, 
-   or precompute left: calc(100px/2), 100px*1.5, etc. */
+/* Vertical strikes (col 0 through 6) */
+.strike-col-0 { width: 4px; height: 100%; left: calc((100% / 7) * 0.5); }
+.strike-col-1 { width: 4px; height: 100%; left: calc((100% / 7) * 1.5); }
+.strike-col-2 { width: 4px; height: 100%; left: calc((100% / 7) * 2.5); }
+.strike-col-3 { width: 4px; height: 100%; left: calc((100% / 7) * 3.5); }
+.strike-col-4 { width: 4px; height: 100%; left: calc((100% / 7) * 4.5); }
+.strike-col-5 { width: 4px; height: 100%; left: calc((100% / 7) * 5.5); }
+.strike-col-6 { width: 4px; height: 100%; left: calc((100% / 7) * 6.5); }
 
-/* Main diagonal */
+/* Diagonal strikes */
 .strike-diag-main {
   width: calc(100% * 1.414);
   height: 4px;
@@ -81,8 +81,6 @@
   left: calc((100% - 100% * 1.414) / 2);
   transform: rotate(45deg);
 }
-
-/* Anti diagonal */
 .strike-diag-anti {
   width: calc(100% * 1.414);
   height: 4px;
@@ -91,12 +89,17 @@
   transform: rotate(-45deg);
 }
 
+.c4-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
 .c4-actions button {
-  margin: 0 0.5rem;
   padding: 0.6rem 1.2rem;
   background: #38bdf8;
   border: none;
   border-radius: 6px;
+  color: black;
   font-weight: bold;
   cursor: pointer;
 }
