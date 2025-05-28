@@ -190,8 +190,9 @@ export default function Dashboard() {
 
       <main className="dashboard-main">
         <h2>🎮 Games</h2>
+
+        {/* Hangman row */}
         <div className="game-grid">
-          {/* Hangman */}
           <div className="game-card" onClick={() => navigate('/hangman/single')}>
             <img src={singleHangmanImg} alt="Single Player Hangman" />
             <p>Single Player Hangman</p>
@@ -200,8 +201,10 @@ export default function Dashboard() {
             <img src={multiHangmanImg} alt="Multiplayer Hangman" />
             <p>Multiplayer Hangman</p>
           </div>
+        </div>
 
-          {/* Tic-Tac-Toe (placeholders) */}
+        {/* Tic-Tac-Toe row */}
+        <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/tictactoe/single')}>
             <img src="https://via.placeholder.com/150" alt="Single Player Tic-Tac-Toe" />
             <p>Single Player Tic-Tac-Toe</p>
