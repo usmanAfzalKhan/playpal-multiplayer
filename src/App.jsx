@@ -9,7 +9,8 @@ import SingleHangman          from './pages/SingleHangman';
 import MultiplayerHangman     from './pages/MultiplayerHangman';
 import SingleTicTacToe      from './pages/SingleTicTacToe';
 import MultiplayerTicTacToe from './pages/MultiplayerTicTacToe';
-
+import SingleConnectFour    from './pages/SingleConnectFour.jsx';
+import MultiplayerConnectFour from './pages/MultiplayerConnectFour';
 function App() {
   return (
     <Router>
@@ -29,6 +30,11 @@ function App() {
         <Route path="/tictactoe/single" element={<SingleTicTacToe />} />
 <Route path="/tictactoe/multiplayer" element={<MultiplayerTicTacToe />} />
 <Route path="/tictactoe/multiplayer/:gameId" element={<MultiplayerTicTacToe />} />
+
+        {/* Connect Four */}
+  <Route path="/connect4/single"       element={<SingleConnectFour />} />
+  <Route path="/connect4/multiplayer"  element={<MultiplayerConnectFour />} />
+  <Route path="/connect4/:gameId"      element={<MultiplayerConnectFour />} />
       </Routes>
     </Router>
   );

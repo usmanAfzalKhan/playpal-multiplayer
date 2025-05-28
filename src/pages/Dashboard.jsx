@@ -212,6 +212,19 @@ export default function Dashboard() {
             <img src={multiTicTacToeImg} alt="Multiplayer Tic-Tac-Toe" />
           </div>
         </div>
+
+        {/* Connect Four row */}
+<div className="game-grid">
+  <div className="game-card" onClick={() => navigate('/connect4/single')}>
+    <img src="https://via.placeholder.com/150" alt="Single Player Connect Four" />
+    <p>Single Player Connect Four</p>
+  </div>
+  <div className="game-card" onClick={() => navigate('/connect4/multiplayer')}>
+    <img src="https://via.placeholder.com/150" alt="Multiplayer Connect Four" />
+    <p>Multiplayer Connect Four</p>
+  </div>
+</div>
+
       </main>
 
       <footer className="dashboard-footer">
