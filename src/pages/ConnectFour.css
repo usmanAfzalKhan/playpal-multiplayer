@@ -1,7 +1,7 @@
 /* src/pages/ConnectFour.css */
 
 .c4-container {
-  padding: 2rem;
+  padding: 2rem 1rem;          /* a little side padding for mobile */
   background: #1e293b;
   color: white;
   min-height: 100vh;
@@ -13,21 +13,24 @@
   font-size: 1.2rem;
 }
 
+/* make the board scale to its container */
 .c4-board {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(7, 60px);
-  grid-template-rows: repeat(6, 60px);
-  gap: 4px;
-  margin: 0 auto 1.5rem;
+  grid-template-columns: repeat(7, 1fr);
+  aspect-ratio: 7 / 6;
+  width: 100%;
+  max-width: 500px;            /* never stretch beyond 500px */
+  margin: 0 auto 1.5rem;       /* center + bottom gap */
   background: #0f172a;
   padding: 4px;
   border-radius: 8px;
+  box-sizing: border-box;
 }
 
 .c4-cell {
-  width: 60px;
-  height: 60px;
+  width: 100%;
+  aspect-ratio: 1;
   background: #1e293b;
   border-radius: 50%;
   display: flex;
@@ -41,8 +44,8 @@
 }
 
 .disc {
-  width: 48px;
-  height: 48px;
+  width: 70%;
+  height: 70%;
   border-radius: 50%;
 }
 .disc.red {
@@ -70,14 +73,14 @@
   transform: scale(1.05);
 }
 
-/* strike-through overlay */
+/* strike‐through overlay */
 .c4-strike {
   position: absolute;
   background: #38bdf8;
   z-index: 1;
 }
 
-/* horizontal strikes */
+/* horizontal rows (4px high, full width, at 0.5,1.5,2.5,... * (100%/6) down) */
 .strike-row-0,
 .strike-row-1,
 .strike-row-2,
@@ -88,14 +91,14 @@
   height: 4px;
   left: 0;
 }
-.strike-row-0 { top: calc(4px + 30px); }
-.strike-row-1 { top: calc(4px + 60px + 30px); }
-.strike-row-2 { top: calc(4px + 2*(60px + 4px) + 30px); }
-.strike-row-3 { top: calc(4px + 3*(60px + 4px) + 30px); }
-.strike-row-4 { top: calc(4px + 4*(60px + 4px) + 30px); }
-.strike-row-5 { top: calc(4px + 5*(60px + 4px) + 30px); }
+.strike-row-0 { top: calc(0.5 * (100% / 6)); }
+.strike-row-1 { top: calc(1.5 * (100% / 6)); }
+.strike-row-2 { top: calc(2.5 * (100% / 6)); }
+.strike-row-3 { top: calc(3.5 * (100% / 6)); }
+.strike-row-4 { top: calc(4.5 * (100% / 6)); }
+.strike-row-5 { top: calc(5.5 * (100% / 6)); }
 
-/* vertical strikes */
+/* vertical columns (4px wide, full height, at 0.5,1.5,... * (100%/7) across) */
 .strike-col-0,
 .strike-col-1,
 .strike-col-2,
@@ -107,25 +110,26 @@
   height: 100%;
   top: 0;
 }
-.strike-col-0 { left: calc(4px + 30px); }
-.strike-col-1 { left: calc(4px + 60px + 30px); }
-.strike-col-2 { left: calc(4px + 2*(60px + 4px) + 30px); }
-.strike-col-3 { left: calc(4px + 3*(60px + 4px) + 30px); }
-.strike-col-4 { left: calc(4px + 4*(60px + 4px) + 30px); }
-.strike-col-5 { left: calc(4px + 5*(60px + 4px) + 30px); }
-.strike-col-6 { left: calc(4px + 6*(60px + 4px) + 30px); }
+.strike-col-0 { left: calc(0.5 * (100% / 7)); }
+.strike-col-1 { left: calc(1.5 * (100% / 7)); }
+.strike-col-2 { left: calc(2.5 * (100% / 7)); }
+.strike-col-3 { left: calc(3.5 * (100% / 7)); }
+.strike-col-4 { left: calc(4.5 * (100% / 7)); }
+.strike-col-5 { left: calc(5.5 * (100% / 7)); }
+.strike-col-6 { left: calc(6.5 * (100% / 7)); }
 
 /* diagonal strikes */
 .strike-diag-main,
 .strike-diag-anti {
-  width: 424px; /* ≈ √(6*64²) */
+  width: calc(100% * sqrt(7*7 + 6*6) / 7); /* approx the hypotenuse */
   height: 4px;
   top: 50%;
-  left: calc((7*64px - 424px)/2);
+  left: 50%;
+  transform-origin: center;
 }
 .strike-diag-main {
-  transform: rotate(45deg);
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 .strike-diag-anti {
-  transform: rotate(-45deg);
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
