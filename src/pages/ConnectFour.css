@@ -133,3 +133,12 @@
 .strike-diag-anti {
   transform: translate(-50%, -50%) rotate(-45deg);
 }
+
+/* strike overlay is now sized & angled by JS */
+.c4-strike {
+  position: absolute;
+  height: 4px;
+  background: #38bdf8;
+  z-index: 1;
+}
+/* remove any old .strike-diag-* rules — everything is inline styled now */
