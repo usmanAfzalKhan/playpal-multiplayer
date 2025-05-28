@@ -2,6 +2,8 @@ import './Dashboard.css';
 import logo from '../assets/logo.png';
 import singleHangmanImg from '../assets/singlehangman.png';
 import multiHangmanImg from '../assets/multiplayerhangman.png';
+import singleTicTacToeImg from '../assets/singleplayertictactoe.png';
+import multiTicTacToeImg from '../assets/multiplayertictactoe.png';
 import { useEffect, useState } from 'react';
 import { auth, db } from '../firebase-config';
 import {
@@ -195,23 +197,19 @@ export default function Dashboard() {
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/hangman/single')}>
             <img src={singleHangmanImg} alt="Single Player Hangman" />
-            <p>Single Player Hangman</p>
           </div>
           <div className="game-card" onClick={() => navigate('/hangman/multiplayer')}>
             <img src={multiHangmanImg} alt="Multiplayer Hangman" />
-            <p>Multiplayer Hangman</p>
           </div>
         </div>
 
         {/* Tic-Tac-Toe row */}
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/tictactoe/single')}>
-            <img src="https://via.placeholder.com/150" alt="Single Player Tic-Tac-Toe" />
-            <p>Single Player Tic-Tac-Toe</p>
+            <img src={singleTicTacToeImg} alt="Single Player Tic-Tac-Toe" />
           </div>
           <div className="game-card" onClick={() => navigate('/tictactoe/multiplayer')}>
-            <img src="https://via.placeholder.com/150" alt="Multiplayer Tic-Tac-Toe" />
-            <p>Multiplayer Tic-Tac-Toe</p>
+            <img src={multiTicTacToeImg} alt="Multiplayer Tic-Tac-Toe" />
           </div>
         </div>
       </main>
