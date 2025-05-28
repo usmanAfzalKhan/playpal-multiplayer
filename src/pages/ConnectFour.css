@@ -1,7 +1,6 @@
+/* src/pages/ConnectFour.css */
+
 .c4-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   padding: 2rem;
   background: #1e293b;
   color: white;
@@ -14,17 +13,16 @@
   font-size: 1.2rem;
 }
 
-/* 7×6 grid */
 .c4-board {
   position: relative;
   display: grid;
   grid-template-columns: repeat(7, 60px);
   grid-template-rows: repeat(6, 60px);
   gap: 4px;
-  padding: 4px;
+  margin: 0 auto 1.5rem;
   background: #0f172a;
+  padding: 4px;
   border-radius: 8px;
-  margin-bottom: 1rem;
 }
 
 .c4-cell {
@@ -32,67 +30,102 @@
   height: 60px;
   background: #1e293b;
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  position: relative;
+  transition: opacity 0.1s;
 }
 .c4-cell:hover {
-  box-shadow: 0 0 0 2px #38bdf8;
+  opacity: 0.8;
 }
 
 .disc {
-  width: 100%;
-  height: 100%;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
 }
-.red    { background: #ef4444; }
-.yellow { background: #facc15; }
-
-/* strike overlay base */
-.c4-strike {
-  position: absolute;
+.disc.red {
   background: #ef4444;
-  z-index: 10;
+}
+.disc.yellow {
+  background: #facc15;
 }
 
-/* horizontal lines */
-.c4-strike.strike-row-0 { top: calc(60px*0 + 30px + 4px); left: 4px; width: calc(60px*4 + 3*4px); height: 6px; }
-.c4-strike.strike-row-1 { top: calc(60px*1 + 30px + 4px); left: 4px; width: calc(60px*4 + 3*4px); height: 6px; }
-/* ...repeat for each row 0–5 */
-
-/* vertical lines */
-.c4-strike.strike-col-0 { left: calc(60px*0 + 30px + 4px); top: 4px; height: calc(60px*4 + 3*4px); width: 6px; }
-.c4-strike.strike-col-1 { left: calc(60px*1 + 30px + 4px); top: 4px; height: calc(60px*4 + 3*4px); width: 6px; }
-/* ...repeat for each col 0–6 */
-
-/* main diagonal */
-.c4-strike.strike-diag-main {
-  width: calc(60px*4 + 3*4px);
-  height: 6px;
-  top: 4px;
-  left: 4px;
-  transform: rotate(45deg);
-  transform-origin: top left;
+.c4-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
 }
-/* anti-diagonal */
-.c4-strike.strike-diag-anti {
-  width: calc(60px*4 + 3*4px);
-  height: 6px;
-  top: 4px;
-  right: 4px;
-  transform: rotate(-45deg);
-  transform-origin: top right;
-}
-
 .c4-actions button {
-  margin: 0 0.5rem;
   padding: 0.6rem 1.2rem;
   background: #38bdf8;
   border: none;
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
-  color: black;
+  transition: transform 0.1s;
 }
 .c4-actions button:hover {
   transform: scale(1.05);
+}
+
+/* strike-through overlay */
+.c4-strike {
+  position: absolute;
+  background: #38bdf8;
+  z-index: 1;
+}
+
+/* horizontal strikes */
+.strike-row-0,
+.strike-row-1,
+.strike-row-2,
+.strike-row-3,
+.strike-row-4,
+.strike-row-5 {
+  width: 100%;
+  height: 4px;
+  left: 0;
+}
+.strike-row-0 { top: calc(4px + 30px); }
+.strike-row-1 { top: calc(4px + 60px + 30px); }
+.strike-row-2 { top: calc(4px + 2*(60px + 4px) + 30px); }
+.strike-row-3 { top: calc(4px + 3*(60px + 4px) + 30px); }
+.strike-row-4 { top: calc(4px + 4*(60px + 4px) + 30px); }
+.strike-row-5 { top: calc(4px + 5*(60px + 4px) + 30px); }
+
+/* vertical strikes */
+.strike-col-0,
+.strike-col-1,
+.strike-col-2,
+.strike-col-3,
+.strike-col-4,
+.strike-col-5,
+.strike-col-6 {
+  width: 4px;
+  height: 100%;
+  top: 0;
+}
+.strike-col-0 { left: calc(4px + 30px); }
+.strike-col-1 { left: calc(4px + 60px + 30px); }
+.strike-col-2 { left: calc(4px + 2*(60px + 4px) + 30px); }
+.strike-col-3 { left: calc(4px + 3*(60px + 4px) + 30px); }
+.strike-col-4 { left: calc(4px + 4*(60px + 4px) + 30px); }
+.strike-col-5 { left: calc(4px + 5*(60px + 4px) + 30px); }
+.strike-col-6 { left: calc(4px + 6*(60px + 4px) + 30px); }
+
+/* diagonal strikes */
+.strike-diag-main,
+.strike-diag-anti {
+  width: 424px; /* ≈ √(6*64²) */
+  height: 4px;
+  top: 50%;
+  left: calc((7*64px - 424px)/2);
+}
+.strike-diag-main {
+  transform: rotate(45deg);
+}
+.strike-diag-anti {
+  transform: rotate(-45deg);
 }
