@@ -5,20 +5,19 @@ import './ConnectFour.css';
 const COLS = 7;
 const ROWS = 6;
 
-// Build empty board
-function makeEmpty() {
-  return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
-}
+// create an empty board
+const makeEmpty = () =>
+  Array.from({ length: ROWS }, () => Array(COLS).fill(null));
 
-// Directions to scan for a win
+// directions to scan for a connect-4
 const DIRECTIONS = [
-  { dr: 0, dc: 1 },  // horiz
-  { dr: 1, dc: 0 },  // vert
-  { dr: 1, dc: 1 },  // diag ↘
-  { dr: 1, dc: -1 }  // diag ↙
+  { dr: 0, dc: 1 },   // horizontal
+  { dr: 1, dc: 0 },   // vertical
+  { dr: 1, dc: 1 },   // diag ↘
+  { dr: 1, dc: -1 }   // diag ↙
 ];
 
-// Return { winner: 'R'|'Y'|null, line: [[r,c],…] }
+// return { winner:'R'|'Y'|null, line:[[r,c],…] }
 function getWinnerInfo(board) {
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
@@ -27,8 +26,7 @@ function getWinnerInfo(board) {
       for (let { dr, dc } of DIRECTIONS) {
         const line = [[r, c]];
         for (let i = 1; i < 4; i++) {
-          const nr = r + dr * i;
-          const nc = c + dc * i;
+          const nr = r + dr * i, nc = c + dc * i;
           if (
             nr < 0 || nr >= ROWS ||
             nc < 0 || nc >= COLS ||
@@ -48,17 +46,9 @@ function getWinnerInfo(board) {
   return { winner: null, line: null };
 }
 
-// Finds bottom‐most empty row in col, or null
-function dropRow(board, col) {
-  for (let r = ROWS - 1; r >= 0; r--) {
-    if (!board[r][col]) return r;
-  }
-  return null;
-}
-
-// AI: win if can, block if must, else random
+// simple AI: win if possible, block if needed, else random
 function pickComputerMove(board) {
-  // try win
+  // winning move
   for (let c = 0; c < COLS; c++) {
     const r = dropRow(board, c);
     if (r === null) continue;
@@ -69,7 +59,7 @@ function pickComputerMove(board) {
     }
     board[r][c] = null;
   }
-  // try block
+  // block X
   for (let c = 0; c < COLS; c++) {
     const r = dropRow(board, c);
     if (r === null) continue;
@@ -80,53 +70,57 @@ function pickComputerMove(board) {
     }
     board[r][c] = null;
   }
-  // else random
-  const opts = [];
-  for (let c = 0; c < COLS; c++) {
-    if (dropRow(board, c) !== null) opts.push(c);
+  // random
+  const choices = [...Array(COLS).keys()].filter(c => dropRow(board, c) !== null);
+  return choices[Math.floor(Math.random() * choices.length)];
+}
+
+// find the lowest empty row in column
+function dropRow(board, col) {
+  for (let r = ROWS - 1; r >= 0; r--) {
+    if (!board[r][col]) return r;
   }
-  return opts[Math.floor(Math.random() * opts.length)];
+  return null;
 }
 
 export default function SingleConnectFour() {
-  const [board, setBoard]     = useState(makeEmpty());
-  const [turnRed, setTurnRed] = useState(true);  // R=you, Y=computer
+  const [board, setBoard] = useState(makeEmpty());
+  const [turnRed, setTurnRed] = useState(true);
   const [gameOver, setGameOver] = useState(false);
   const [winInfo, setWinInfo] = useState({ winner: null, line: null });
-  const aiTimer = useRef();
   const navigate = useNavigate();
+  const aiTimer = useRef();
 
-  // 1) Check for win/draw on every board change
+  // check for win/draw or let AI move
   useEffect(() => {
     const info = getWinnerInfo(board);
-    if (info.winner || board.every(row => row.every(cell => cell))) {
-      setWinInfo(info.winner ? info : { winner: 'draw', line: null });
+    if (info.winner) {
+      setWinInfo(info);
       setGameOver(true);
-      clearTimeout(aiTimer.current);
+      return;
     }
-  }, [board]);
-
-  // 2) Let AI play when it's Yellow's turn and game still going
-  useEffect(() => {
+    if (board.every(row => row.every(cell => cell))) {
+      setWinInfo({ winner: 'draw', line: null });
+      setGameOver(true);
+      return;
+    }
     if (!turnRed && !gameOver) {
       aiTimer.current = setTimeout(() => {
-        const sim = board.map(r => [...r]);
-        const col = pickComputerMove(sim);
-        const row = dropRow(board, col);
-        if (row !== null) {
+        const col = pickComputerMove(board.map(r => [...r]));
+        const r = dropRow(board, col);
+        if (r !== null) {
           const nb = board.map(r => [...r]);
-          nb[row][col] = 'Y';
+          nb[r][col] = 'Y';
           setBoard(nb);
           setTurnRed(true);
         }
       }, 600);
     }
     return () => clearTimeout(aiTimer.current);
-  }, [turnRed, gameOver, board]);
+  }, [board, turnRed, gameOver]);
 
-  // Player drops red disc
   function handleColumnClick(c) {
-    if (!turnRed || gameOver) return;
+    if (gameOver || !turnRed) return;
     const r = dropRow(board, c);
     if (r === null) return;
     const nb = board.map(r => [...r]);
@@ -143,17 +137,16 @@ export default function SingleConnectFour() {
     setWinInfo({ winner: null, line: null });
   }
   function quit() {
-    clearTimeout(aiTimer.current);
     navigate('/dashboard');
   }
 
-  // Build status text
   const { winner, line } = winInfo;
-  let statusText;
-  if (winner === 'R') statusText = 'You win!';
-  else if (winner === 'Y') statusText = 'Computer wins!';
-  else if (winner === 'draw') statusText = 'Draw!';
-  else statusText = turnRed ? 'Your turn' : 'Computer is thinking…';
+  const statusText =
+    winner === 'R' ? 'You win!' :
+    winner === 'Y' ? 'Computer wins!' :
+    winner === 'draw' ? 'Draw!' :
+    turnRed ? 'Your turn' :
+    'Computer is thinking…';
 
   return (
     <div className="c4-container">
@@ -169,7 +162,7 @@ export default function SingleConnectFour() {
               className="c4-cell"
               onClick={() => handleColumnClick(c)}
             >
-              {cell && <div className={`disc ${cell === 'R' ? 'red' : 'yellow'}`} />}
+              {cell && <div className={`disc ${cell==='R'?'red':'yellow'}`} />}
             </div>
           ))
         )}
@@ -183,11 +176,10 @@ export default function SingleConnectFour() {
   );
 }
 
-// Convert win‐line coords to CSS class
+// choose strike-through class
 function getStrikeClass(line) {
-  const [[r0, c0], [r1, c1]] = line;
-  if (r0 === r1)            return `strike-row-${r0}`;
-  if (c0 === c1)            return `strike-col-${c0}`;
-  if (r1 - r0 === c1 - c0)  return 'strike-diag-main';
-  return 'strike-diag-anti';
+  const [[r0,c0],[r1,c1]] = line;
+  if (r0 === r1) return `c4-strike-row-${r0}`;
+  if (c0 === c1) return `c4-strike-col-${c0}`;
+  return (r1-r0 === c1-c0) ? 'c4-strike-diag-main' : 'c4-strike-diag-anti';
 }
