@@ -7,34 +7,36 @@ import Messaging              from './pages/Messaging';
 import FirestoreSeeder        from './pages/FirestoreSeeder';
 import SingleHangman          from './pages/SingleHangman';
 import MultiplayerHangman     from './pages/MultiplayerHangman';
-import SingleTicTacToe      from './pages/SingleTicTacToe';
-import MultiplayerTicTacToe from './pages/MultiplayerTicTacToe';
-import SingleConnectFour    from './pages/SingleConnectFour.jsx';
+import SingleTicTacToe        from './pages/SingleTicTacToe';
+import MultiplayerTicTacToe   from './pages/MultiplayerTicTacToe';
+import SingleConnectFour      from './pages/SingleConnectFour';
 import MultiplayerConnectFour from './pages/MultiplayerConnectFour';
+
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/"                           element={<AuthPage />} />
-        <Route path="/dashboard"                  element={<Dashboard />} />
-        <Route path="/profile"                    element={<Profile />} />
-        <Route path="/messages/:friendId"         element={<Messaging />} />
-        <Route path="/seed"                       element={<FirestoreSeeder />} />
+        {/* auth / profile / misc */}
+        <Route path="/"                       element={<AuthPage />} />
+        <Route path="/dashboard"              element={<Dashboard />} />
+        <Route path="/profile"                element={<Profile />} />
+        <Route path="/messages/:friendId"     element={<Messaging />} />
+        <Route path="/seed"                   element={<FirestoreSeeder />} />
 
         {/* Hangman */}
         <Route path="/hangman/single"             element={<SingleHangman />} />
         <Route path="/hangman/multiplayer"        element={<MultiplayerHangman />} />
         <Route path="/hangman/multiplayer/:gameId" element={<MultiplayerHangman />} />
 
-        {/* Tic Tac Toe */}
-        <Route path="/tictactoe/single" element={<SingleTicTacToe />} />
-<Route path="/tictactoe/multiplayer" element={<MultiplayerTicTacToe />} />
-<Route path="/tictactoe/multiplayer/:gameId" element={<MultiplayerTicTacToe />} />
+        {/* Tic-Tac-Toe */}
+        <Route path="/tictactoe/single"            element={<SingleTicTacToe />} />
+        <Route path="/tictactoe/multiplayer"       element={<MultiplayerTicTacToe />} />
+        <Route path="/tictactoe/multiplayer/:gameId" element={<MultiplayerTicTacToe />} />
 
         {/* Connect Four */}
-  <Route path="/connect4/single"       element={<SingleConnectFour />} />
-  <Route path="/connect4/multiplayer"  element={<MultiplayerConnectFour />} />
-  <Route path="/connect4/:gameId"      element={<MultiplayerConnectFour />} />
+        <Route path="/connect4/single"            element={<SingleConnectFour />} />
+        <Route path="/connect4/multiplayer"       element={<MultiplayerConnectFour />} />
+        <Route path="/connect4/multiplayer/:gameId" element={<MultiplayerConnectFour />} />
       </Routes>
     </Router>
   );
