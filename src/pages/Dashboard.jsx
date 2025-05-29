@@ -1,11 +1,11 @@
 import './Dashboard.css';
-import logo from '../assets/logo.png';
-import singleHangmanImg from '../assets/singlehangman.png';
-import multiHangmanImg from '../assets/multiplayerhangman.png';
-import singleTicTacToeImg from '../assets/singleplayertictactoe.png';
-import multiTicTacToeImg from '../assets/multiplayertictactoe.png';
+import logo                  from '../assets/logo.png';
+import singleHangmanImg      from '../assets/singlehangman.png';
+import multiHangmanImg       from '../assets/multiplayerhangman.png';
+import singleTicTacToeImg    from '../assets/singleplayertictactoe.png';
+import multiTicTacToeImg     from '../assets/multiplayertictactoe.png';
 import { useEffect, useState } from 'react';
-import { auth, db } from '../firebase-config';
+import { auth, db }         from '../firebase-config';
 import {
   doc,
   getDoc,
@@ -18,15 +18,15 @@ import {
   deleteDoc,
   setDoc,
 } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate }      from 'react-router-dom';
 import { FaSearch, FaBell } from 'react-icons/fa';
 
 export default function Dashboard() {
-  const [username, setUsername] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
-  const [friendsList, setFriendsList] = useState([]);
+  const [username, setUsername]         = useState('');
+  const [searchQuery, setSearchQuery]   = useState('');
+  const [showSearch, setShowSearch]     = useState(false);
+  const [suggestions, setSuggestions]   = useState([]);
+  const [friendsList, setFriendsList]   = useState([]);
   const [actionMessage, setActionMessage] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -37,7 +37,6 @@ export default function Dashboard() {
     const user = auth.currentUser;
     if (!user) return navigate('/');
 
-    // load username & friend-IDs
     (async () => {
       const uSnap = await getDoc(doc(db, 'users', user.uid));
       if (uSnap.exists()) setUsername(uSnap.data().username);
@@ -46,7 +45,6 @@ export default function Dashboard() {
       setFriendsList(fSnap.docs.map(d => d.id));
     })();
 
-    // realtime notifications (hangman + ttt invites, etc.)
     const unsub = onSnapshot(
       collection(db, `users/${auth.currentUser.uid}/notifications`),
       snap => setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })))
@@ -115,6 +113,12 @@ export default function Dashboard() {
     navigate(`/tictactoe/multiplayer/${notif.gameId}`);
   };
 
+  const acceptConnectFourInvite = async notif => {
+    await updateDoc(doc(db, `connect4_games/${notif.gameId}`), { status: 'active' });
+    markNotificationRead(notif.id);
+    navigate(`/connect4/multiplayer/${notif.gameId}`);
+  };
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
@@ -164,27 +168,22 @@ export default function Dashboard() {
                     <div key={notif.id} className="notif-item">
                       <p>{notif.message}</p>
                       {notif.type === 'hangman_invite' && (
-                        <button onClick={() => acceptHangmanInvite(notif)}>
-                          Join Hangman
-                        </button>
+                        <button onClick={() => acceptHangmanInvite(notif)}>Join Hangman</button>
                       )}
                       {notif.type === 'tictactoe_invite' && (
-                        <button onClick={() => acceptTicTacToeInvite(notif)}>
-                          Join Tic-Tac-Toe
-                        </button>
+                        <button onClick={() => acceptTicTacToeInvite(notif)}>Join Tic-Tac-Toe</button>
                       )}
-                      <button onClick={() => markNotificationRead(notif.id)}>
-                        Mark as Read
-                      </button>
+                      {notif.type === 'connect4_invite' && (
+                        <button onClick={() => acceptConnectFourInvite(notif)}>Join Connect Four</button>
+                      )}
+                      <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
                     </div>
                   ))
                 )}
               </div>
             )}
           </div>
-          <span className="profile-icon" onClick={() => navigate('/profile')}>
-            👤
-          </span>
+          <span className="profile-icon" onClick={() => navigate('/profile')}>👤</span>
         </div>
       </header>
 
@@ -197,9 +196,11 @@ export default function Dashboard() {
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/hangman/single')}>
             <img src={singleHangmanImg} alt="Single Player Hangman" />
+            <p>Single Hangman</p>
           </div>
           <div className="game-card" onClick={() => navigate('/hangman/multiplayer')}>
             <img src={multiHangmanImg} alt="Multiplayer Hangman" />
+            <p>Multiplayer Hangman</p>
           </div>
         </div>
 
@@ -207,24 +208,25 @@ export default function Dashboard() {
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/tictactoe/single')}>
             <img src={singleTicTacToeImg} alt="Single Player Tic-Tac-Toe" />
+            <p>Single Tic-Tac-Toe</p>
           </div>
           <div className="game-card" onClick={() => navigate('/tictactoe/multiplayer')}>
             <img src={multiTicTacToeImg} alt="Multiplayer Tic-Tac-Toe" />
+            <p>Multiplayer Tic-Tac-Toe</p>
           </div>
         </div>
 
         {/* Connect Four row */}
-<div className="game-grid">
-  <div className="game-card" onClick={() => navigate('/connect4/single')}>
-    <img src="https://via.placeholder.com/150" alt="Single Player Connect Four" />
-    <p>Single Player Connect Four</p>
-  </div>
-  <div className="game-card" onClick={() => navigate('/connect4/multiplayer')}>
-    <img src="https://via.placeholder.com/150" alt="Multiplayer Connect Four" />
-    <p>Multiplayer Connect Four</p>
-  </div>
-</div>
-
+        <div className="game-grid">
+          <div className="game-card" onClick={() => navigate('/connect4/single')}>
+            <img src="https://via.placeholder.com/150" alt="Single Player Connect Four" />
+            <p>Single Connect Four</p>
+          </div>
+          <div className="game-card" onClick={() => navigate('/connect4/multiplayer')}>
+            <img src="https://via.placeholder.com/150" alt="Multiplayer Connect Four" />
+            <p>Multiplayer Connect Four</p>
+          </div>
+        </div>
       </main>
 
       <footer className="dashboard-footer">
