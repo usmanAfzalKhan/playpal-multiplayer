@@ -1,3 +1,4 @@
+// src/pages/MultiplayerConnectFour.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { auth, db } from '../firebase-config';
@@ -5,40 +6,36 @@ import {
   collection,
   getDocs,
   getDoc,
+  query,
+  where,
   doc,
   setDoc,
   updateDoc,
   deleteDoc,
   onSnapshot,
   arrayUnion,
-  query,
-  where,
   Timestamp
 } from 'firebase/firestore';
 import './ConnectFour.css';
 
 const COLS = 7;
 const ROWS = 6;
-const makeEmptyBoard = () =>
-  Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+const CELLS = ROWS * COLS;
 
-const DIRECTIONS = [
-  { dr: 0, dc: 1 },
-  { dr: 1, dc: 0 },
-  { dr: 1, dc: 1 },
-  { dr: 1, dc: -1 },
-];
+// produce a flat array of length 42
+const makeEmptyBoard = () => Array(CELLS).fill(null);
 
 export default function MultiplayerConnectFour() {
   const { gameId } = useParams();
-  const navigate  = useNavigate();
-  const user      = auth.currentUser;
+  const navigate    = useNavigate();
+  const user        = auth.currentUser;
   const [username, setUsername]     = useState('');
   const [friends, setFriends]       = useState([]);
   const [waitingGameId, setWaiting] = useState(null);
   const [gameData, setGameData]     = useState(null);
   const [chatInput, setChatInput]   = useState('');
 
+  // fetch my username
   useEffect(() => {
     if (!user) return navigate('/');
     getDoc(doc(db, 'users', user.uid)).then(snap => {
@@ -46,14 +43,14 @@ export default function MultiplayerConnectFour() {
     });
   }, [user, navigate]);
 
+  // load friends
   useEffect(() => {
     if (!user) return;
     getDocs(collection(db, `users/${user.uid}/friends`))
-      .then(snap =>
-        setFriends(snap.docs.map(d => ({ uid: d.id, ...d.data() })))
-      );
+      .then(snap => setFriends(snap.docs.map(d => ({ uid: d.id, ...d.data() }))));
   }, [user]);
 
+  // send challenge → pending game + notification
   const handleChallenge = async friend => {
     const id = `${user.uid}_${friend.uid}_${Date.now()}`;
     await setDoc(doc(db, 'connect4_games', id), {
@@ -80,6 +77,7 @@ export default function MultiplayerConnectFour() {
     setWaiting(id);
   };
 
+  // watch pending→active
   useEffect(() => {
     if (!waitingGameId) return;
     const unsub = onSnapshot(
@@ -93,6 +91,7 @@ export default function MultiplayerConnectFour() {
     return unsub;
   }, [waitingGameId, navigate]);
 
+  // subscribe game doc
   useEffect(() => {
     if (!gameId) return;
     const unsub = onSnapshot(
@@ -108,38 +107,7 @@ export default function MultiplayerConnectFour() {
     return unsub;
   }, [gameId]);
 
-  const makeMove = async c => {
-    if (!gameData || gameData.status !== 'active') return;
-    if (gameData.currentTurn !== user.uid) return;
-
-    const board = gameData.board.map(r => [...r]);
-    let dropR = null;
-    for (let r = ROWS - 1; r >= 0; r--) {
-      if (!board[r][c]) { dropR = r; break; }
-    }
-    if (dropR === null) return;
-
-    const disc = user.uid === gameData.player1 ? 'R' : 'Y';
-    board[dropR][c] = disc;
-
-    const { winner } = getWinnerInfo(board);
-    const isDraw = board.every(r => r.every(cell => cell));
-    const nextTurn = winner || isDraw
-      ? null
-      : gameData.currentTurn === gameData.player1
-        ? gameData.player2
-        : gameData.player1;
-
-    await updateDoc(doc(db, 'connect4_games', gameId), {
-      board,
-      currentTurn: nextTurn,
-      status: winner || isDraw ? 'finished' : 'active',
-      winner: winner
-        ? (winner === 'R' ? gameData.player1 : gameData.player2)
-        : (isDraw ? 'draw' : '')
-    });
-  };
-
+  // send chat
   const sendChat = async () => {
     if (!chatInput.trim()) return;
     await updateDoc(doc(db, 'connect4_games', gameId), {
@@ -152,6 +120,13 @@ export default function MultiplayerConnectFour() {
     setChatInput('');
   };
 
+  // accept invite from dashboard
+  const acceptInvite = async notif => {
+    await updateDoc(doc(db, 'connect4_games', notif.gameId), { status: 'active' });
+    navigate(`/connect4/multiplayer/${notif.gameId}`);
+  };
+
+  // rematch
   const handleRematch = async () => {
     await updateDoc(doc(db, 'connect4_games', gameId), {
       board:       makeEmptyBoard(),
@@ -162,13 +137,53 @@ export default function MultiplayerConnectFour() {
     });
   };
 
+  // quit & remove
   const handleQuit = async () => {
     await deleteDoc(doc(db, 'connect4_games', gameId));
     navigate('/dashboard');
   };
 
+  // make move (drop in column c)
+  const makeMove = async c => {
+    if (!gameData || gameData.status !== 'active') return;
+    const flat = [...gameData.board];
+    // find lowest empty row in this column
+    let r = ROWS - 1;
+    while (r >= 0 && flat[r * COLS + c] !== null) r--;
+    if (r < 0) return;
+    flat[r * COLS + c] = (user.uid === gameData.player1 ? 'R' : 'Y');
+    // check win/draw
+    const info = getWinnerInfo(flat);
+    const nextTurn = info.winner || flat.every(cell => cell !== null)
+      ? null
+      : (gameData.currentTurn === gameData.player1
+          ? gameData.player2
+          : gameData.player1);
+    await updateDoc(doc(db, 'connect4_games', gameId), {
+      board:       flat,
+      currentTurn: nextTurn,
+      status:      info.winner || flat.every(cell => cell !== null)
+                    ? 'finished'
+                    : 'active',
+      winner:      info.winner === 'R'
+                    ? gameData.player1
+                    : info.winner === 'Y'
+                      ? gameData.player2
+                      : (flat.every(cell => cell !== null) ? 'draw' : '')
+    });
+  };
+
+  // --- RENDER ---
+
+  // inside a game
   if (gameData) {
     const { winner, line } = getWinnerInfo(gameData.board);
+    // chunk flat board into rows
+    const grid = [];
+    for (let i = 0; i < ROWS; i++) {
+      grid.push(gameData.board.slice(i * COLS, i * COLS + COLS));
+    }
+
     return (
       <div className="c4-container">
         <h2>Multiplayer Connect Four</h2>
@@ -188,12 +203,18 @@ export default function MultiplayerConnectFour() {
 
         <div className="c4-board">
           {line && <div className={`c4-strike ${getStrikeClass(line)}`} />}
-          {gameData.board.map((row, r) =>
+          {grid.map((row, r) =>
             row.map((cell, c) => (
               <div
                 key={`${r}-${c}`}
                 className="c4-cell"
-                onClick={() => r === 0 && makeMove(c)}
+                onClick={() => {
+                  if (
+                    gameData.status === 'active' &&
+                    gameData.currentTurn === user.uid &&
+                    r === 0
+                  ) makeMove(c);
+                }}
               >
                 {cell && <div className={`disc ${cell === 'R' ? 'red' : 'yellow'}`} />}
               </div>
@@ -230,42 +251,57 @@ export default function MultiplayerConnectFour() {
     );
   }
 
+  // challenge screen
   return (
     <div className="c4-container">
       <h2>Challenge a Friend to Connect Four</h2>
-      {friends.length === 0
-        ? <p>No friends to challenge.</p>
-        : friends.map(f => (
-          <div key={f.uid} className="friend-row">
-            <span>@{f.username}</span>{' '}
-            <button onClick={() => handleChallenge(f)}>Challenge</button>
-          </div>
-        ))
-      }
+      {friends.length === 0 ? (
+        <p>No friends to challenge.</p>
+      ) : friends.map(f => (
+        <div key={f.uid} className="friend-row">
+          <span>@{f.username}</span>
+          <button onClick={() => handleChallenge(f)}>Challenge</button>
+        </div>
+      ))}
       {waitingGameId && (
         <>
           <p>Waiting for friend to accept…</p>
-          <button onClick={() => navigate('/dashboard')}>Cancel &amp; Back</button>
+          <button onClick={() => navigate('/dashboard')}>
+            Cancel &amp; Back
+          </button>
         </>
       )}
     </div>
   );
 }
 
-function getWinnerInfo(board) {
+// ─── Helpers ─────────────────────────────────────────────────
+
+const DIRECTIONS = [
+  { dr: 0, dc: 1 },
+  { dr: 1, dc: 0 },
+  { dr: 1, dc: 1 },
+  { dr: 1, dc: -1 },
+];
+
+// scan flat array of length 42 for a connect-4
+function getWinnerInfo(flat) {
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
-      const p = board[r][c];
+      const p = flat[r * COLS + c];
       if (!p) continue;
       for (let { dr, dc } of DIRECTIONS) {
-        const line = [[r,c]];
+        let line = [[r,c]];
         for (let i = 1; i < 4; i++) {
           const nr = r + dr*i, nc = c + dc*i;
           if (
             nr < 0 || nr >= ROWS ||
             nc < 0 || nc >= COLS ||
-            board[nr][nc] !== p
-          ) { line.length = 0; break; }
+            flat[nr * COLS + nc] !== p
+          ) {
+            line = [];
+            break;
+          }
           line.push([nr,nc]);
         }
         if (line.length === 4) return { winner: p, line };
@@ -275,10 +311,9 @@ function getWinnerInfo(board) {
   return { winner: null, line: null };
 }
 
-function getStrikeClass(line) {
-  const [[r0,c0],[r1,c1]] = line;
+function getStrikeClass([[r0,c0],[r1,c1]]) {
   if (r0 === r1)      return `strike-row-${r0}`;
   if (c0 === c1)      return `strike-col-${c0}`;
-  if (r1-r0 === c1-c0) return 'strike-diag-main';
+  if (r1 - r0 === c1 - c0) return 'strike-diag-main';
   return 'strike-diag-anti';
 }
