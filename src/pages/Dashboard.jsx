@@ -5,6 +5,8 @@ import singleHangmanImg      from '../assets/singlehangman.png';
 import multiHangmanImg       from '../assets/multiplayerhangman.png';
 import singleTicTacToeImg    from '../assets/singleplayertictactoe.png';
 import multiTicTacToeImg     from '../assets/multiplayertictactoe.png';
+import singleConnectFourImg from '../assets/connectfoursingleplayer.png';
+import multiConnectFourImg  from '../assets/connectfourmultiplayer.png';
 import { useEffect, useState } from 'react';
 import { auth, db }         from '../firebase-config';
 import {
@@ -211,11 +213,9 @@ export default function Dashboard() {
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/hangman/single')}>
             <img src={singleHangmanImg} alt="Single Player Hangman" />
-            <p>Single Hangman</p>
           </div>
           <div className="game-card" onClick={() => navigate('/hangman/multiplayer')}>
             <img src={multiHangmanImg} alt="Multiplayer Hangman" />
-            <p>Multiplayer Hangman</p>
           </div>
         </div>
 
@@ -223,23 +223,19 @@ export default function Dashboard() {
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/tictactoe/single')}>
             <img src={singleTicTacToeImg} alt="Single Player Tic-Tac-Toe" />
-            <p>Single Tic-Tac-Toe</p>
           </div>
           <div className="game-card" onClick={() => navigate('/tictactoe/multiplayer')}>
             <img src={multiTicTacToeImg} alt="Multiplayer Tic-Tac-Toe" />
-            <p>Multiplayer Tic-Tac-Toe</p>
           </div>
         </div>
 
         {/* Connect Four */}
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/connect4/single')}>
-            <img src="https://via.placeholder.com/150" alt="Single Player Connect Four" />
-            <p>Single Connect Four</p>
+            <img src={singleConnectFourImg} alt="Single Player Connect Four" />
           </div>
           <div className="game-card" onClick={() => navigate('/connect4/multiplayer')}>
-            <img src="https://via.placeholder.com/150" alt="Multiplayer Connect Four" />
-            <p>Multiplayer Connect Four</p>
+            <img src={multiConnectFourImg} alt="Multiplayer Connect Four" />
           </div>
         </div>
       </main>
