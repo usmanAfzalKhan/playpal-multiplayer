@@ -1,3 +1,4 @@
+// src/pages/Dashboard.jsx
 import './Dashboard.css';
 import logo                  from '../assets/logo.png';
 import singleHangmanImg      from '../assets/singlehangman.png';
@@ -22,17 +23,18 @@ import { useNavigate }      from 'react-router-dom';
 import { FaSearch, FaBell } from 'react-icons/fa';
 
 export default function Dashboard() {
-  const [username, setUsername]         = useState('');
-  const [searchQuery, setSearchQuery]   = useState('');
-  const [showSearch, setShowSearch]     = useState(false);
-  const [suggestions, setSuggestions]   = useState([]);
-  const [friendsList, setFriendsList]   = useState([]);
-  const [actionMessage, setActionMessage] = useState('');
-  const [notifications, setNotifications] = useState([]);
+  const [username, setUsername]               = useState('');
+  const [searchQuery, setSearchQuery]         = useState('');
+  const [showSearch, setShowSearch]           = useState(false);
+  const [suggestions, setSuggestions]         = useState([]);
+  const [friendsList, setFriendsList]         = useState([]);
+  const [actionMessage, setActionMessage]     = useState('');
+  const [notifications, setNotifications]     = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
   const navigate = useNavigate();
 
+  // load user info + subscribe to notifications
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return navigate('/');
@@ -52,6 +54,7 @@ export default function Dashboard() {
     return () => unsub();
   }, [navigate]);
 
+  // user search for new friends
   const handleSearchChange = async e => {
     const q = e.target.value;
     setSearchQuery(q);
@@ -72,6 +75,7 @@ export default function Dashboard() {
     setSuggestions(res);
   };
 
+  // send friend request
   const handleSendRequest = async u => {
     try {
       const me = auth.currentUser.uid;
@@ -97,22 +101,22 @@ export default function Dashboard() {
     }
   };
 
+  // mark any notification as read (deletes it)
   const markNotificationRead = async id => {
     await deleteDoc(doc(db, `users/${auth.currentUser.uid}/notifications/${id}`));
   };
 
+  // handlers for accepting invites:
   const acceptHangmanInvite = async notif => {
     await updateDoc(doc(db, `hangman_games/${notif.gameId}`), { status: 'active' });
     markNotificationRead(notif.id);
     navigate(`/hangman/multiplayer/${notif.gameId}`);
   };
-
   const acceptTicTacToeInvite = async notif => {
     await updateDoc(doc(db, `tictactoe_games/${notif.gameId}`), { status: 'active' });
     markNotificationRead(notif.id);
     navigate(`/tictactoe/multiplayer/${notif.gameId}`);
   };
-
   const acceptConnectFourInvite = async notif => {
     await updateDoc(doc(db, `connect4_games/${notif.gameId}`), { status: 'active' });
     markNotificationRead(notif.id);
@@ -158,28 +162,39 @@ export default function Dashboard() {
           )}
           <div className="notif-container">
             <FaBell className="notif-bell" onClick={() => setShowNotifications(!showNotifications)} />
-            {notifications.length > 0 && <span className="notif-count">{notifications.length}</span>}
+            {notifications.length > 0 && (
+              <span className="notif-count">{notifications.length}</span>
+            )}
             {showNotifications && (
               <div className="notif-dropdown">
-                {notifications.length === 0 ? (
-                  <p>No new notifications.</p>
-                ) : (
-                  notifications.map(notif => (
-                    <div key={notif.id} className="notif-item">
-                      <p>{notif.message}</p>
-                      {notif.type === 'hangman_invite' && (
-                        <button onClick={() => acceptHangmanInvite(notif)}>Join Hangman</button>
-                      )}
-                      {notif.type === 'tictactoe_invite' && (
-                        <button onClick={() => acceptTicTacToeInvite(notif)}>Join Tic-Tac-Toe</button>
-                      )}
-                      {notif.type === 'connect4_invite' && (
-                        <button onClick={() => acceptConnectFourInvite(notif)}>Join Connect Four</button>
-                      )}
-                      <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
-                    </div>
-                  ))
-                )}
+                {notifications.length === 0
+                  ? <p>No new notifications.</p>
+                  : notifications.map(notif => (
+                      <div key={notif.id} className="notif-item">
+                        <p>{notif.message}</p>
+
+                        {notif.type === 'hangman_invite' && (
+                          <button onClick={() => acceptHangmanInvite(notif)}>
+                            Join Hangman
+                          </button>
+                        )}
+                        {notif.type === 'tictactoe_invite' && (
+                          <button onClick={() => acceptTicTacToeInvite(notif)}>
+                            Join Tic-Tac-Toe
+                          </button>
+                        )}
+                        {notif.type === 'connect4_invite' && (
+                          <button onClick={() => acceptConnectFourInvite(notif)}>
+                            Join Connect Four
+                          </button>
+                        )}
+
+                        <button onClick={() => markNotificationRead(notif.id)}>
+                          Mark as Read
+                        </button>
+                      </div>
+                    ))
+                }
               </div>
             )}
           </div>
@@ -192,7 +207,7 @@ export default function Dashboard() {
       <main className="dashboard-main">
         <h2>🎮 Games</h2>
 
-        {/* Hangman row */}
+        {/* Hangman */}
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/hangman/single')}>
             <img src={singleHangmanImg} alt="Single Player Hangman" />
@@ -204,7 +219,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Tic-Tac-Toe row */}
+        {/* Tic-Tac-Toe */}
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/tictactoe/single')}>
             <img src={singleTicTacToeImg} alt="Single Player Tic-Tac-Toe" />
@@ -216,7 +231,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Connect Four row */}
+        {/* Connect Four */}
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/connect4/single')}>
             <img src="https://via.placeholder.com/150" alt="Single Player Connect Four" />
@@ -231,10 +246,15 @@ export default function Dashboard() {
 
       <footer className="dashboard-footer">
         © {new Date().getFullYear()} PlayPal. Built with ❤️ by{' '}
-        <a href="https://github.com/usmanAfzalKhan" target="_blank" rel="noopener noreferrer" className="footer-link">
+        <a
+          href="https://github.com/usmanAfzalKhan"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="footer-link"
+        >
           Usman Khan
         </a>.
       </footer>
     </div>
-);
+  );
 }
