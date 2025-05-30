@@ -1,37 +1,32 @@
 // src/pages/Dashboard.jsx
 import './Dashboard.css';
-import logo                  from '../assets/logo.png';
-import singleHangmanImg      from '../assets/singlehangman.png';
-import multiHangmanImg       from '../assets/multiplayerhangman.png';
-import singleTicTacToeImg    from '../assets/singleplayertictactoe.png';
-import multiTicTacToeImg     from '../assets/multiplayertictactoe.png';
-import singleConnectFourImg from '../assets/connectfoursingleplayer.png';
-import multiConnectFourImg  from '../assets/connectfourmultiplayer.png';
+import logo                   from '../assets/logo.png';
+import singleHangmanImg       from '../assets/singlehangman.png';
+import multiHangmanImg        from '../assets/multiplayerhangman.png';
+import singleTicTacToeImg     from '../assets/singleplayertictactoe.png';
+import multiTicTacToeImg      from '../assets/multiplayertictactoe.png';
+import singleConnectFourImg   from '../assets/connectfoursingleplayer.png';
+import multiConnectFourImg    from '../assets/connectfourmultiplayer.png';
+// — no Battleship PNGs here —
+
 import { useEffect, useState } from 'react';
-import { auth, db }         from '../firebase-config';
+import { auth, db }            from '../firebase-config';
 import {
-  doc,
-  getDoc,
-  getDocs,
-  collection,
-  query,
-  where,
-  onSnapshot,
-  updateDoc,
-  deleteDoc,
-  setDoc,
+  doc, getDoc, getDocs, collection,
+  query, where, onSnapshot,
+  updateDoc, deleteDoc, setDoc,
 } from 'firebase/firestore';
-import { useNavigate }      from 'react-router-dom';
-import { FaSearch, FaBell } from 'react-icons/fa';
+import { useNavigate }         from 'react-router-dom';
+import { FaSearch, FaBell }    from 'react-icons/fa';
 
 export default function Dashboard() {
-  const [username, setUsername]               = useState('');
-  const [searchQuery, setSearchQuery]         = useState('');
-  const [showSearch, setShowSearch]           = useState(false);
-  const [suggestions, setSuggestions]         = useState([]);
-  const [friendsList, setFriendsList]         = useState([]);
-  const [actionMessage, setActionMessage]     = useState('');
-  const [notifications, setNotifications]     = useState([]);
+  const [username, setUsername]                   = useState('');
+  const [searchQuery, setSearchQuery]             = useState('');
+  const [showSearch, setShowSearch]               = useState(false);
+  const [suggestions, setSuggestions]             = useState([]);
+  const [friendsList, setFriendsList]             = useState([]);
+  const [actionMessage, setActionMessage]         = useState('');
+  const [notifications, setNotifications]         = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
   const navigate = useNavigate();
@@ -124,6 +119,11 @@ export default function Dashboard() {
     markNotificationRead(notif.id);
     navigate(`/connect4/multiplayer/${notif.gameId}`);
   };
+  const acceptBattleshipInvite = async notif => {
+    await updateDoc(doc(db, `battleship_games/${notif.gameId}`), { status: 'active' });
+    markNotificationRead(notif.id);
+    navigate(`/battleship/multiplayer/${notif.gameId}`);
+  };
 
   return (
     <div className="dashboard-container">
@@ -190,6 +190,11 @@ export default function Dashboard() {
                             Join Connect Four
                           </button>
                         )}
+                        {notif.type === 'battleship_invite' && (
+                          <button onClick={() => acceptBattleshipInvite(notif)}>
+                            Join Battleship
+                          </button>
+                        )}
 
                         <button onClick={() => markNotificationRead(notif.id)}>
                           Mark as Read
@@ -236,6 +241,22 @@ export default function Dashboard() {
           </div>
           <div className="game-card" onClick={() => navigate('/connect4/multiplayer')}>
             <img src={multiConnectFourImg} alt="Multiplayer Connect Four" />
+          </div>
+        </div>
+
+        {/* Battleship (text‐only until you re-add your PNGs) */}
+        <div className="game-grid">
+          <div
+            className="game-card"
+            onClick={() => navigate('/battleship/single')}
+          >
+            Single Player Battleship
+          </div>
+          <div
+            className="game-card"
+            onClick={() => navigate('/battleship/multiplayer')}
+          >
+            Multiplayer Battleship
           </div>
         </div>
       </main>
