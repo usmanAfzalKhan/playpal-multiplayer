@@ -12,9 +12,13 @@ import MultiplayerTicTacToe   from './pages/MultiplayerTicTacToe';
 import SingleConnectFour      from './pages/SingleConnectFour';
 import MultiplayerConnectFour from './pages/MultiplayerConnectFour';
 
-// ✔️ Battleship imports from pages, not components
+// Battleship imports
 import SinglePlayerBattleship from './pages/SinglePlayerBattleship';
 import MultiplayerBattleship  from './pages/MultiplayerBattleship';
+
+// Duel Shots imports
+import SinglePlayerDuel       from './pages/SinglePlayerDuel';
+import MultiplayerDuel        from './pages/MultiplayerDuel';
 
 function App() {
   return (
@@ -46,6 +50,11 @@ function App() {
         <Route path="/battleship/single"              element={<SinglePlayerBattleship />} />
         <Route path="/battleship/multiplayer"         element={<MultiplayerBattleship />} />
         <Route path="/battleship/multiplayer/:gameId" element={<MultiplayerBattleship />} />
+
+        {/* Duel Shots */}
+        <Route path="/duel/single"                    element={<SinglePlayerDuel />} />
+        <Route path="/duel/multiplayer"               element={<MultiplayerDuel />} />
+        <Route path="/duel/multiplayer/:gameId"       element={<MultiplayerDuel />} />
       </Routes>
     </Router>
   );

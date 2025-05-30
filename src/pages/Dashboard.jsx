@@ -7,9 +7,8 @@ import singleTicTacToeImg     from '../assets/singleplayertictactoe.png';
 import multiTicTacToeImg      from '../assets/multiplayertictactoe.png';
 import singleConnectFourImg   from '../assets/connectfoursingleplayer.png';
 import multiConnectFourImg    from '../assets/connectfourmultiplayer.png';
-import singleBattleshipImg from '../assets/singleplayerbattleship.png';
-import multiBattleshipImg  from '../assets/multiplayerbattleship.png';
-
+import singleBattleshipImg    from '../assets/singleplayerbattleship.png';
+import multiBattleshipImg     from '../assets/multiplayerbattleship.png';
 import { useEffect, useState } from 'react';
 import { auth, db }            from '../firebase-config';
 import {
@@ -36,15 +35,12 @@ export default function Dashboard() {
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return navigate('/');
-
     (async () => {
       const uSnap = await getDoc(doc(db, 'users', user.uid));
       if (uSnap.exists()) setUsername(uSnap.data().username);
-
       const fSnap = await getDocs(collection(db, `users/${user.uid}/friends`));
       setFriendsList(fSnap.docs.map(d => d.id));
     })();
-
     const unsub = onSnapshot(
       collection(db, `users/${auth.currentUser.uid}/notifications`),
       snap => setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })))
@@ -52,14 +48,13 @@ export default function Dashboard() {
     return () => unsub();
   }, [navigate]);
 
-  // user search for new friends
+  // friend search
   const handleSearchChange = async e => {
     const q = e.target.value;
     setSearchQuery(q);
     setSuggestions([]);
     setActionMessage('');
     if (!q.trim()) return;
-
     const userQ = query(
       collection(db, 'users'),
       where('username', '>=', q),
@@ -99,12 +94,12 @@ export default function Dashboard() {
     }
   };
 
-  // mark any notification as read (deletes it)
+  // mark notification read
   const markNotificationRead = async id => {
     await deleteDoc(doc(db, `users/${auth.currentUser.uid}/notifications/${id}`));
   };
 
-  // handlers for accepting invites:
+  // invite accept handlers
   const acceptHangmanInvite = async notif => {
     await updateDoc(doc(db, `hangman_games/${notif.gameId}`), { status: 'active' });
     markNotificationRead(notif.id);
@@ -125,6 +120,11 @@ export default function Dashboard() {
     markNotificationRead(notif.id);
     navigate(`/battleship/multiplayer/${notif.gameId}`);
   };
+  const acceptDuelInvite = async notif => {
+    await updateDoc(doc(db, `duelGames/${notif.gameId}`), { status: 'active' });
+    markNotificationRead(notif.id);
+    navigate(`/duel/multiplayer/${notif.gameId}`);
+  };
 
   return (
     <div className="dashboard-container">
@@ -136,38 +136,33 @@ export default function Dashboard() {
           onClick={() => { auth.signOut(); navigate('/'); }}
         />
         <div className="header-controls">
-          <FaSearch className="search-icon" onClick={() => setShowSearch(!showSearch)} />
+          <FaSearch onClick={() => setShowSearch(!showSearch)} className="search-icon" />
           {showSearch && (
             <div className="search-container">
               <input
                 type="text"
                 placeholder="Search by username..."
-                className="search-box"
                 value={searchQuery}
                 onChange={handleSearchChange}
+                className="search-box"
               />
               {suggestions.length > 0 && (
                 <div className="search-suggestions">
-                  {suggestions.map(u => {
-                    const isFriend = friendsList.includes(u.uid);
-                    return (
-                      <div key={u.uid} className="suggestion-item">
-                        @{u.username}
-                        {!isFriend
-                          ? <button onClick={() => handleSendRequest(u)}>Add</button>
-                          : <span>Already a friend</span>}
-                      </div>
-                    );
-                  })}
+                  {suggestions.map(u => (
+                    <div key={u.uid} className="suggestion-item">
+                      @{u.username}
+                      {!friendsList.includes(u.uid)
+                        ? <button onClick={() => handleSendRequest(u)}>Add</button>
+                        : <span>Already a friend</span>}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           )}
           <div className="notif-container">
-            <FaBell className="notif-bell" onClick={() => setShowNotifications(!showNotifications)} />
-            {notifications.length > 0 && (
-              <span className="notif-count">{notifications.length}</span>
-            )}
+            <FaBell onClick={() => setShowNotifications(!showNotifications)} className="notif-bell" />
+            {notifications.length > 0 && <span className="notif-count">{notifications.length}</span>}
             {showNotifications && (
               <div className="notif-dropdown">
                 {notifications.length === 0
@@ -177,32 +172,24 @@ export default function Dashboard() {
                         <p>{notif.message}</p>
 
                         {notif.type === 'hangman_invite' && (
-                          <button onClick={() => acceptHangmanInvite(notif)}>
-                            Join Hangman
-                          </button>
+                          <button onClick={() => acceptHangmanInvite(notif)}>Join Hangman</button>
                         )}
                         {notif.type === 'tictactoe_invite' && (
-                          <button onClick={() => acceptTicTacToeInvite(notif)}>
-                            Join Tic-Tac-Toe
-                          </button>
+                          <button onClick={() => acceptTicTacToeInvite(notif)}>Join Tic-Tac-Toe</button>
                         )}
                         {notif.type === 'connect4_invite' && (
-                          <button onClick={() => acceptConnectFourInvite(notif)}>
-                            Join Connect Four
-                          </button>
+                          <button onClick={() => acceptConnectFourInvite(notif)}>Join Connect Four</button>
                         )}
                         {notif.type === 'battleship_invite' && (
-                          <button onClick={() => acceptBattleshipInvite(notif)}>
-                            Join Battleship
-                          </button>
+                          <button onClick={() => acceptBattleshipInvite(notif)}>Join Battleship</button>
+                        )}
+                        {notif.type === 'duel_invite' && (
+                          <button onClick={() => acceptDuelInvite(notif)}>Join Duel Shots</button>
                         )}
 
-                        <button onClick={() => markNotificationRead(notif.id)}>
-                          Mark as Read
-                        </button>
+                        <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
                       </div>
-                    ))
-                }
+                    ))}
               </div>
             )}
           </div>
@@ -255,6 +242,15 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Duel Shots (text cards until assets added) */}
+        <div className="game-grid">
+          <div className="game-card" onClick={() => navigate('/duel/single')}>
+            Single Player Duel Shots
+          </div>
+          <div className="game-card" onClick={() => navigate('/duel/multiplayer')}>
+            Multiplayer Duel Shots
+          </div>
+        </div>
       </main>
 
       <footer className="dashboard-footer">

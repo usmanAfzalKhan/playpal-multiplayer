@@ -1,0 +1,101 @@
+/* src/pages/DuelGame.css */
+.duel-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  background: #0f172a;
+  color: #f1f5f9;
+}
+
+.duel-container h2 {
+  margin-bottom: 0.25rem;
+}
+
+.instructions {
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.status-bar-duel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.canvas-wrapper {
+  position: relative;
+}
+
+.duel-canvas {
+  border: 2px solid #334155;
+  background: #1e293b;
+  margin-bottom: 1rem;
+  cursor: crosshair;
+}
+
+.restart-btn,
+.pause-btn,
+.quit-btn {
+  padding: 0.5rem 1rem;
+  margin: 0.25rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.restart-btn {
+  background: #38bdf8;
+  color: #000;
+}
+
+.pause-btn {
+  background: #f59e0b;
+  color: #000;
+}
+
+.quit-btn {
+  background: #ef4444;
+  color: #fff;
+}
+
+.action-msg {
+  margin-top: 0.5rem;
+  color: #fbbf24;
+  font-weight: bold;
+}
+
+/* Mobile joysticks hidden by default on desktop */
+.controls-duel {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .duel-container {
+    padding: 0.5rem;
+  }
+  .duel-canvas {
+    width: 90vw;
+    height: 90vw;
+  }
+  .controls-duel {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 320px;
+    margin-bottom: 1rem;
+  }
+  .joystick-area {
+    width: 80px;
+    height: 80px;
+    background: #334155;
+    border: 2px solid #71c9f8;
+    border-radius: 50%;
+    touch-action: none;
+  }
+}
