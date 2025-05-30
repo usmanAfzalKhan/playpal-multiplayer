@@ -7,7 +7,8 @@ import singleTicTacToeImg     from '../assets/singleplayertictactoe.png';
 import multiTicTacToeImg      from '../assets/multiplayertictactoe.png';
 import singleConnectFourImg   from '../assets/connectfoursingleplayer.png';
 import multiConnectFourImg    from '../assets/connectfourmultiplayer.png';
-// — no Battleship PNGs here —
+import singleBattleshipImg from '../assets/singleplayerbattleship.png';
+import multiBattleshipImg  from '../assets/multiplayerbattleship.png';
 
 import { useEffect, useState } from 'react';
 import { auth, db }            from '../firebase-config';
@@ -244,21 +245,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Battleship (text‐only until you re-add your PNGs) */}
+        {/* Battleship */}
         <div className="game-grid">
-          <div
-            className="game-card"
-            onClick={() => navigate('/battleship/single')}
-          >
-            Single Player Battleship
+          <div className="game-card" onClick={() => navigate('/battleship/single')}>
+            <img src={singleBattleshipImg} alt="Single Player Battleship" />
           </div>
-          <div
-            className="game-card"
-            onClick={() => navigate('/battleship/multiplayer')}
-          >
-            Multiplayer Battleship
+          <div className="game-card" onClick={() => navigate('/battleship/multiplayer')}>
+            <img src={multiBattleshipImg} alt="Multiplayer Battleship" />
           </div>
         </div>
+
       </main>
 
       <footer className="dashboard-footer">
