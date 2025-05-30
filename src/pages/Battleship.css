@@ -1,10 +1,15 @@
+/* src/components/Battleship.css */
+
 .battleship-container {
   text-align: center;
+  padding: 1rem;
+  color: #f1f5f9;
 }
 
+.explanation,
 .instructions {
   margin: 0.5rem 0;
-  color: #ddd;
+  color: #cbd5e1;
 }
 
 .status {
@@ -12,11 +17,24 @@
   margin-bottom: 1rem;
 }
 
-.battleship-boards {
+.status-bar {
   display: flex;
   justify-content: center;
   gap: 2rem;
-  margin-top: 1rem;
+  margin: 1rem 0;
+}
+
+.boards-wrapper {
+  overflow-x: auto;
+  width: 100%;
+  padding-bottom: 1rem;
+}
+
+.battleship-boards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
 }
 
 .battleship-grid {
@@ -32,23 +50,115 @@
 }
 
 .battleship-grid .hit {
-  background-color: #dc2626; /* red */
+  background-color: #dc2626; /* red for hits */
 }
 
 .battleship-grid .miss {
-  background-color: #2563eb; /* blue */
+  background-color: #2563eb; /* blue for misses */
 }
 
 .battleship-grid .ship {
-  outline: 1px solid #2563eb; /* show your own ships */
+  outline: 1px solid #2563eb; /* show your ships */
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 .restart-btn {
-  margin-top: 1.5rem;
   padding: 0.5rem 1rem;
   background: #38bdf8;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.quit-btn {
+  padding: 0.5rem 1rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Chat */
+.chatbox {
+  max-width: 600px;
+  margin: 1rem auto;
+  background: #0f172a;
+  padding: 1rem;
+  border-radius: 8px;
+  color: #f1f5f9;
+}
+
+.chatbox h4 {
+  margin-top: 0;
+}
+
+.chat-messages {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 0.5rem;
+}
+
+.chat-messages p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.chat-input {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 0.5rem;
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  border-radius: 4px;
+}
+
+.chat-input button {
+  padding: 0.5rem 1rem;
+  background: #38bdf8;
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+  .battleship-container {
+    padding: 0.5rem;
+  }
+  .battleship-grid {
+    grid-template-columns: repeat(10, 1.4rem);
+    grid-template-rows:    repeat(10, 1.4rem);
+    gap: 1px;
+  }
+  .status-bar {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .controls {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .controls button {
+    width: 100%;
+  }
+  .chatbox {
+    width: 100%;
+    padding: 0.5rem;
+  }
 }
