@@ -1,7 +1,7 @@
 // src/pages/MultiplayerBattleship.jsx
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { auth, db } from '../firebase-config';
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { auth, db } from "../firebase-config";
 import {
   collection,
   doc,
@@ -12,9 +12,9 @@ import {
   deleteDoc,
   onSnapshot,
   arrayUnion,
-  Timestamp
-} from 'firebase/firestore';
-import './Battleship.css';
+  Timestamp,
+} from "firebase/firestore";
+import "./Battleship.css";
 
 const GRID_SIZE = 10;
 const SHIP_SIZES = [5, 4, 3, 3, 2];
@@ -29,8 +29,8 @@ function make2DGrid() {
 
 // randomly place ships in a 2D grid
 function placeShipsRandomly(grid2D) {
-  const g = grid2D.map(row => row.map(cell => ({ ...cell })));
-  SHIP_SIZES.forEach(size => {
+  const g = grid2D.map((row) => row.map((cell) => ({ ...cell })));
+  SHIP_SIZES.forEach((size) => {
     let placed = false;
     while (!placed) {
       const hor = Math.random() < 0.5;
@@ -76,46 +76,47 @@ export default function MultiplayerBattleship() {
   const navigate = useNavigate();
   const user = auth.currentUser;
 
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState("");
   const [friends, setFriends] = useState([]);
   const [waitingId, setWaitingId] = useState(null);
   const [gameData, setGameData] = useState(null);
-  const [chatInput, setChatInput] = useState('');
+  const [chatInput, setChatInput] = useState("");
 
   // load user info
   useEffect(() => {
-    if (!user) return navigate('/');
-    getDoc(doc(db, 'users', user.uid)).then(snap => {
+    if (!user) return navigate("/");
+    getDoc(doc(db, "users", user.uid)).then((snap) => {
       if (snap.exists()) setUsername(snap.data().username);
     });
-    getDocs(collection(db, `users/${user.uid}/friends`))
-      .then(s => setFriends(s.docs.map(d => ({ uid: d.id, ...d.data() }))));
+    getDocs(collection(db, `users/${user.uid}/friends`)).then((s) =>
+      setFriends(s.docs.map((d) => ({ uid: d.id, ...d.data() })))
+    );
   }, [user, navigate]);
 
   // challenge a friend
-  const handleChallenge = async friend => {
+  const handleChallenge = async (friend) => {
     const id = `${user.uid}_${friend.uid}_${Date.now()}`;
     // create two random boards, flatten for storage
     const b2A = placeShipsRandomly(make2DGrid());
     const b2B = placeShipsRandomly(make2DGrid());
-    await setDoc(doc(db, 'battleship_games', id), {
-      playerA:     user.uid,
-      playerB:     friend.uid,
+    await setDoc(doc(db, "battleship_games", id), {
+      playerA: user.uid,
+      playerB: friend.uid,
       currentTurn: user.uid,
-      boardA:      flatten(b2A),
-      boardB:      flatten(b2B),
-      status:      'pending',
-      winner:      '',
-      chat:        [],
-      createdAt:   Timestamp.now()
+      boardA: flatten(b2A),
+      boardB: flatten(b2B),
+      status: "pending",
+      winner: "",
+      chat: [],
+      createdAt: Timestamp.now(),
     });
     await setDoc(doc(db, `users/${friend.uid}/notifications/${id}`), {
-      type:           'battleship_invite',
-      gameId:         id,
-      senderUid:      user.uid,
+      type: "battleship_invite",
+      gameId: id,
+      senderUid: user.uid,
       senderUsername: username,
-      message:        `🚢 @${username} challenged you to Battleship!`,
-      timestamp:      Timestamp.now()
+      message: `🚢 @${username} challenged you to Battleship!`,
+      timestamp: Timestamp.now(),
     });
     setWaitingId(id);
   };
@@ -123,8 +124,8 @@ export default function MultiplayerBattleship() {
   // wait for opponent to accept
   useEffect(() => {
     if (!waitingId) return;
-    const unsub = onSnapshot(doc(db, 'battleship_games', waitingId), snap => {
-      if (snap.exists() && snap.data().status === 'active') {
+    const unsub = onSnapshot(doc(db, "battleship_games", waitingId), (snap) => {
+      if (snap.exists() && snap.data().status === "active") {
         navigate(`/battleship/multiplayer/${waitingId}`);
       }
     });
@@ -134,33 +135,35 @@ export default function MultiplayerBattleship() {
   // subscribe to game doc
   useEffect(() => {
     if (!gameId) return;
-    const unsub = onSnapshot(doc(db, 'battleship_games', gameId), snap => {
+    const unsub = onSnapshot(doc(db, "battleship_games", gameId), (snap) => {
       setGameData(snap.exists() ? { id: snap.id, ...snap.data() } : null);
     });
     return unsub;
   }, [gameId]);
 
   // helper to count remaining ship cells
-  const countRemaining = flat =>
-    flat.filter(cell => cell.hasShip && !cell.hit).length;
+  const countRemaining = (flat) =>
+    flat.filter((cell) => cell.hasShip && !cell.hit).length;
 
   // handle firing on opponent
   const handleFire = async (r, c) => {
-    if (!gameData || gameData.status !== 'active') return;
+    if (!gameData || gameData.status !== "active") return;
     if (gameData.currentTurn !== user.uid) return;
     const isA = user.uid === gameData.playerA;
-    const key = isA ? 'boardB' : 'boardA';
+    const key = isA ? "boardB" : "boardA";
     const flat = [...gameData[key]];
     const idx = r * GRID_SIZE + c;
     if (flat[idx].hit) return;
     flat[idx] = { ...flat[idx], hit: true };
 
-    const allSunk = flat.filter(cell => cell.hasShip).every(cell => cell.hit);
-    await updateDoc(doc(db, 'battleship_games', gameId), {
-      [key]:        flat,
-      currentTurn:  allSunk ? null : (isA ? gameData.playerB : gameData.playerA),
-      status:       allSunk ? 'finished' : 'active',
-      winner:       allSunk ? user.uid : ''
+    const allSunk = flat
+      .filter((cell) => cell.hasShip)
+      .every((cell) => cell.hit);
+    await updateDoc(doc(db, "battleship_games", gameId), {
+      [key]: flat,
+      currentTurn: allSunk ? null : isA ? gameData.playerB : gameData.playerA,
+      status: allSunk ? "finished" : "active",
+      winner: allSunk ? user.uid : "",
     });
   };
 
@@ -168,33 +171,33 @@ export default function MultiplayerBattleship() {
   const handleRematch = async () => {
     const b2A = placeShipsRandomly(make2DGrid());
     const b2B = placeShipsRandomly(make2DGrid());
-    await updateDoc(doc(db, 'battleship_games', gameId), {
-      boardA:      flatten(b2A),
-      boardB:      flatten(b2B),
-      status:      'active',
-      winner:      '',
+    await updateDoc(doc(db, "battleship_games", gameId), {
+      boardA: flatten(b2A),
+      boardB: flatten(b2B),
+      status: "active",
+      winner: "",
       currentTurn: gameData.playerA,
-      chat:        []
+      chat: [],
     });
   };
 
   // quit
   const handleQuit = async () => {
-    if (gameId) await deleteDoc(doc(db, 'battleship_games', gameId));
-    navigate('/dashboard');
+    if (gameId) await deleteDoc(doc(db, "battleship_games", gameId));
+    navigate("/dashboard");
   };
 
   // chat
   const sendChat = async () => {
     if (!chatInput.trim()) return;
-    await updateDoc(doc(db, 'battleship_games', gameId), {
+    await updateDoc(doc(db, "battleship_games", gameId), {
       chat: arrayUnion({
-        sender:    username,
-        message:   chatInput,
-        timestamp: Timestamp.now()
-      })
+        sender: username,
+        message: chatInput,
+        timestamp: Timestamp.now(),
+      }),
     });
-    setChatInput('');
+    setChatInput("");
   };
 
   // render a 2D grid (array of rows)
@@ -202,13 +205,13 @@ export default function MultiplayerBattleship() {
     <div className="battleship-grid">
       {rows.map((row, r) =>
         row.map((cell, c) => {
-          let cls = 'unclicked';
-          if (cell.hit) cls = cell.hasShip ? 'hit' : 'miss';
+          let cls = "unclicked";
+          if (cell.hit) cls = cell.hasShip ? "hit" : "miss";
           const showShip = cell.hasShip && !hideShips;
           return (
             <div
               key={`${r}-${c}`}
-              className={`${cls}${showShip ? ' ship' : ''}`}
+              className={`${cls}${showShip ? " ship" : ""}`}
               onClick={() => onClick && onClick(r, c)}
             />
           );
@@ -220,28 +223,39 @@ export default function MultiplayerBattleship() {
   // GAME SCREEN
   if (gameData) {
     const {
-      playerA, playerB, currentTurn,
-      boardA, boardB, status, winner, chat
+      playerA,
+      playerB,
+      currentTurn,
+      boardA,
+      boardB,
+      status,
+      winner,
+      chat,
     } = gameData;
     const isA = user.uid === playerA;
-    const myFlat  = isA ? boardA : boardB;
+    const myFlat = isA ? boardA : boardB;
     const oppFlat = isA ? boardB : boardA;
-    const rowsMy  = chunk(myFlat);
+    const rowsMy = chunk(myFlat);
     const rowsOpp = chunk(oppFlat);
 
-    let statusText = status === 'pending'
-      ? 'Waiting for opponent to join…'
-      : status === 'active'
-        ? (currentTurn === user.uid ? 'Your turn' : "Opponent’s turn")
+    let statusText =
+      status === "pending"
+        ? "Waiting for opponent to join…"
+        : status === "active"
+        ? currentTurn === user.uid
+          ? "Your turn"
+          : "Opponent’s turn"
         : winner === user.uid
-          ? 'You win! 🎉'
-          : 'You lose 💥';
+        ? "You win! 🎉"
+        : "You lose 💥";
 
     return (
       <div className="battleship-container">
         <h2>Multiplayer Battleship</h2>
         <p className="explanation">
-          Click in <strong>Enemy Waters</strong> to fire. 🔴=hit 🔵=miss. Chat below.
+          Welcome to Battleship! Your mission is to locate and sink all enemy
+          ships before yours are destroyed. Click on a square in{" "}
+          <strong>Enemy Waters</strong> to fire. 🔴 =
         </p>
         <p className="status">{statusText}</p>
         <div className="status-bar">
@@ -259,19 +273,25 @@ export default function MultiplayerBattleship() {
           </div>
         </div>
         <div className="controls">
-          {status === 'finished' && <button onClick={handleRematch}>▶️ Play Again</button>}
+          {status === "finished" && (
+            <button onClick={handleRematch}>▶️ Play Again</button>
+          )}
           <button onClick={handleQuit}>❌ Quit to Dashboard</button>
         </div>
         <div className="chatbox">
           <h4>Game Chat</h4>
           <div className="chat-messages">
-            {chat.map((m,i) => <p key={i}><strong>{m.sender}:</strong> {m.message}</p>)}
+            {chat.map((m, i) => (
+              <p key={i}>
+                <strong>{m.sender}:</strong> {m.message}
+              </p>
+            ))}
           </div>
-          {status === 'active' && (
+          {status === "active" && (
             <div className="chat-input">
               <input
                 value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
+                onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Type a message…"
               />
               <button onClick={sendChat}>Send</button>
@@ -289,18 +309,20 @@ export default function MultiplayerBattleship() {
       <p className="explanation">
         Select a friend to start— they’ll get an invite notification.
       </p>
-      {friends.length === 0
-        ? <p>You have no friends to challenge.</p>
-        : friends.map(f => (
-            <div key={f.uid} className="friend-row">
-              <span>@{f.username}</span>
-              <button onClick={() => handleChallenge(f)}>Challenge</button>
-            </div>
-          ))}
+      {friends.length === 0 ? (
+        <p>You have no friends to challenge.</p>
+      ) : (
+        friends.map((f) => (
+          <div key={f.uid} className="friend-row">
+            <span>@{f.username}</span>
+            <button onClick={() => handleChallenge(f)}>Challenge</button>
+          </div>
+        ))
+      )}
       {waitingId && (
         <>
           <p>Waiting for acceptance…</p>
-          <button onClick={() => navigate('/dashboard')}>❌ Cancel</button>
+          <button onClick={() => navigate("/dashboard")}>❌ Cancel</button>
         </>
       )}
     </div>
