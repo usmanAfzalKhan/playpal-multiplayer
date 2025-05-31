@@ -242,7 +242,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Duel Shots (text cards until assets added) */}
+        {/* Duel Shots */}
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/duel/single')}>
             Single Player Duel Shots

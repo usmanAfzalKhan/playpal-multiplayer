@@ -1,22 +1,24 @@
-// src/pages/MultiplayerDuel.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { auth, db } from "../firebase-config";
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
   deleteDoc,
   onSnapshot,
   arrayUnion,
   Timestamp,
+  query,
+  where,
 } from "firebase/firestore";
 import "./DuelGame.css";
 
 const ARENA_W        = 300;
 const ARENA_H        = 300;
-// Sync speeds: player moves a bit faster; bullets a bit slower
 const PLAYER_SPEED   = 200;   // px/sec
 const SHOT_SPEED     = 150;   // px/sec
 const INITIAL_HEALTH = 5;
@@ -25,12 +27,10 @@ const GAME_TIME      = 60;    // seconds
 const PICKUP_SIZE    = 12;    // px
 const PICKUP_INTERVAL = 5;    // seconds
 
-// helper: random integer [min, max)
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
-// helper: check rectangle overlap
 function rectsOverlap(r1, r2) {
   return (
     r1.x < r2.x + r2.w &&
@@ -40,7 +40,6 @@ function rectsOverlap(r1, r2) {
   );
 }
 
-// Generate 5 random obstacles that do not overlap spawn zones
 function generateObstacles() {
   const arr = [];
   let attempts = 0;
@@ -54,9 +53,8 @@ function generateObstacles() {
 
     const overlap =
       arr.some(o => rectsOverlap(o, rect)) ||
-      // avoid spawn zones: Player A spawn (center‐bottom), Player B spawn (center‐top)
-      rectsOverlap(rect, { x: ARENA_W/2 - 15, y: ARENA_H - 30 - 15, w: 30, h: 30 }) ||
-      rectsOverlap(rect, { x: ARENA_W/2 - 15, y: 15,            w: 30, h: 30 });
+      rectsOverlap(rect, { x: ARENA_W / 2 - 15, y: ARENA_H - 30 - 15, w: 30, h: 30 }) ||
+      rectsOverlap(rect, { x: ARENA_W / 2 - 15, y: 15,            w: 30, h: 30 });
 
     if (!overlap) arr.push(rect);
   }
@@ -69,75 +67,123 @@ export default function MultiplayerDuel() {
   const user       = auth.currentUser;
 
   const canvasRef  = useRef(null);
-  const moveVecRef = useRef({ dx: 0, dy: 0 }); // mobile input
+  const moveVecRef = useRef({ dx: 0, dy: 0 });
 
-  // Local mirror of Firestore’s state object
+  // Shared game state from Firestore
   const [sharedState, setSharedState] = useState(null);
   const [gameDocRef,  setGameDocRef]  = useState(null);
   const [playerA,     setPlayerA]     = useState("");
   const [playerB,     setPlayerB]     = useState("");
+  const [username,    setUsername]    = useState("");
+  const [friends,     setFriends]     = useState([]);
+  const [waitingId,   setWaitingId]   = useState(null);
 
   // Chat input
   const [chatInput, setChatInput] = useState("");
 
   const isMobile = window.innerWidth < 768;
 
-  // ─── 1) Guard: missing gameId or not logged in → redirect
+  // ─── A) Load current user's username
   useEffect(() => {
-    if (!user) {
-      navigate("/");
-      return;
-    }
-    if (!gameId) {
-      navigate("/dashboard");
-      return;
-    }
+    if (!user) return navigate("/");
+    getDoc(doc(db, "users", user.uid)).then(snap => {
+      if (snap.exists()) setUsername(snap.data().username);
+    });
+  }, [user, navigate]);
+
+  // ─── B) If no gameId, fetch friends for challenge list
+  useEffect(() => {
+    if (gameId) return;
+    if (!user) return;
+    getDocs(collection(db, `users/${user.uid}/friends`)).then(snap => {
+      const f = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+      setFriends(f);
+    });
+  }, [gameId, user]);
+
+  // ─── C) Challenge a friend
+  const handleChallenge = async (friend) => {
+    if (!user) return;
+    const id = `${user.uid}_${friend.uid}_${Date.now()}`;
+    const initialState = {
+      initted: false,
+      leaving: [],
+    };
+    await setDoc(doc(db, "duelGames", id), {
+      playerA: user.uid,
+      playerB: friend.uid,
+      status: "pending",
+      state: initialState,
+    });
+    // send notification to opponent
+    await setDoc(
+      doc(db, `users/${friend.uid}/notifications/${id}-duel`),
+      {
+        type: "duel_invite",
+        gameId: id,
+        senderUid: user.uid,
+        senderUsername: username,
+        message: `🚀 @${username} challenged you to Duel Shots!`,
+        timestamp: Timestamp.now(),
+      }
+    );
+    setWaitingId(id);
+  };
+
+  // ─── D) Wait for opponent to accept
+  useEffect(() => {
+    if (!waitingId) return;
+    const docRef = doc(db, "duelGames", waitingId);
+    const unsub = onSnapshot(docRef, snap => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      if (data.status === "active") {
+        navigate(`/duel/multiplayer/${waitingId}`);
+      }
+    });
+    return () => unsub();
+  }, [waitingId, navigate]);
+
+  // ─── E) If gameId provided, set up Firestore subscription
+  useEffect(() => {
+    if (!gameId) return;
+    if (!user) return navigate("/");
     const docRef = doc(db, "duelGames", gameId);
     setGameDocRef(docRef);
 
-    // Fetch initial doc to see if it exists
-    getDoc(docRef).then((snap) => {
-      if (!snap.exists()) {
-        // invalid gameId
-        navigate("/dashboard");
-        return;
-      }
+    getDoc(docRef).then(snap => {
+      if (!snap.exists()) return navigate("/dashboard");
       const data = snap.data();
       setPlayerA(data.playerA);
       setPlayerB(data.playerB);
 
-      // If this user is playerB and status still "pending", flip to "active"
+      // If I’m playerB and status is still “pending,” switch to “active”
       if (user.uid === data.playerB && data.status === "pending") {
         updateDoc(docRef, { status: "active" });
       }
     });
-  }, [user, gameId, navigate]);
+  }, [gameId, user, navigate]);
 
-  // ─── 2) Subscribe to Firestore doc
+  // ─── F) Subscribe to shared state changes
   useEffect(() => {
     if (!gameDocRef) return;
-    const unsub = onSnapshot(gameDocRef, (snap) => {
-      if (!snap.exists()) {
-        // Game was deleted (both players left)
-        navigate("/dashboard");
-        return;
-      }
+    const unsub = onSnapshot(gameDocRef, snap => {
+      if (!snap.exists()) return navigate("/dashboard");
       const data = snap.data();
       setSharedState(data.state);
     });
-    // On unload, mark this player as "leaving"
+
+    // On unload, mark leaving
     const cleanupOnExit = () => {
-      getDoc(gameDocRef).then((snap) => {
+      getDoc(gameDocRef).then(snap => {
         if (!snap.exists()) return;
         const data = snap.data();
         const leaves = data.state.leaving || [];
         if (!leaves.includes(user.uid)) leaves.push(user.uid);
 
         if (leaves.includes(data.playerA) && leaves.includes(data.playerB)) {
-          // both have left → delete game doc
           deleteDoc(gameDocRef);
         } else {
-          // otherwise, update "leaving" array
           updateDoc(gameDocRef, { state: { ...data.state, leaving: leaves } });
         }
       });
@@ -149,16 +195,14 @@ export default function MultiplayerDuel() {
       cleanupOnExit();
       unsub();
     };
-  }, [gameDocRef, navigate, user]);
+  }, [gameDocRef, user, navigate]);
 
-  // ─── 3) Initialize sharedState once Firestore's state arrives and initted is false
+  // ─── G) Initialize game once both players joined
   useEffect(() => {
     if (!sharedState || !gameDocRef) return;
     if (!sharedState.initted) {
-      // First time both players have joined → set up initial state
       const initObs = generateObstacles();
       const initTime = Date.now() / 1000;
-
       const initial = {
         initted: true,
         started: true,
@@ -180,9 +224,14 @@ export default function MultiplayerDuel() {
     }
   }, [sharedState, gameDocRef]);
 
-  // ─── 4) Main game loop (60fps) ──────────────────────────────────────────
+  // ─── H) Main game loop (60fps)
   useEffect(() => {
-    if (!sharedState || !sharedState.started || sharedState.paused || sharedState.winner) return;
+    if (
+      !sharedState ||
+      !sharedState.started ||
+      sharedState.paused ||
+      sharedState.winner
+    ) return;
 
     let last = performance.now();
     let rafId;
@@ -191,23 +240,19 @@ export default function MultiplayerDuel() {
       const dt = (now - last) / 1000;
       last = now;
 
-      // Copy local slice of state
-      const s = JSON.parse(JSON.stringify(sharedState));
+      const s = JSON.parse(JSON.stringify(sharedState)); // deep copy
 
-      // Determine which player this user is
       const amA = user.uid === playerA;
       const meKey = amA ? "pA" : "pB";
       const oppKey = amA ? "pB" : "pA";
-      const bulletsKey = amA ? "bulletsA" : "bulletsB";
 
-      // ─── a) Move this player's ship
-      const vec = isMobile ? moveVecRef.current : sharedState.moveVecDesktop || { dx: 0, dy: 0 };
+      // Move this player's ship
+      const vec = isMobile ? moveVecRef.current : s.moveVecDesktop || { dx: 0, dy: 0 };
       if (vec.dx || vec.dy) {
         const me = s[meKey];
         const nx = Math.max(0, Math.min(ARENA_W, me.x + vec.dx * PLAYER_SPEED * dt));
         const ny = Math.max(0, Math.min(ARENA_H, me.y + vec.dy * PLAYER_SPEED * dt));
 
-        // Check obstacle collision
         let blocked = false;
         for (const o of s.obstacles) {
           if (nx > o.x && nx < o.x + o.w && ny > o.y && ny < o.y + o.h) {
@@ -221,19 +266,14 @@ export default function MultiplayerDuel() {
         }
       }
 
-      // ─── b) Update bulletsA
+      // Update bulletsA
       s.bulletsA = s.bulletsA.filter((b) => {
         b.x += b.dx * SHOT_SPEED * dt;
         b.y += b.dy * SHOT_SPEED * dt;
-        // out of bounds?
         if (b.x < 0 || b.x > ARENA_W || b.y < 0 || b.y > ARENA_H) return false;
-        // obstacle collision?
         for (const o of s.obstacles) {
-          if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) {
-            return false;
-          }
+          if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) return false;
         }
-        // hit P_B?
         const hitDist = Math.hypot(b.x - s.pB.x, b.y - s.pB.y);
         if (hitDist < 12) {
           s.pB.health = Math.max(0, s.pB.health - 1);
@@ -242,15 +282,13 @@ export default function MultiplayerDuel() {
         return true;
       });
 
-      // ─── c) Update bulletsB
+      // Update bulletsB
       s.bulletsB = s.bulletsB.filter((b) => {
         b.x += b.dx * SHOT_SPEED * dt;
         b.y += b.dy * SHOT_SPEED * dt;
         if (b.x < 0 || b.x > ARENA_W || b.y < 0 || b.y > ARENA_H) return false;
         for (const o of s.obstacles) {
-          if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) {
-            return false;
-          }
+          if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) return false;
         }
         const hitDist = Math.hypot(b.x - s.pA.x, b.y - s.pA.y);
         if (hitDist < 12) {
@@ -260,14 +298,14 @@ export default function MultiplayerDuel() {
         return true;
       });
 
-      // ─── d) Spawn pickups every PICKUP_INTERVAL
+      // Spawn pickups every PICKUP_INTERVAL
       const nowSec = Date.now() / 1000;
       if (nowSec - s.lastPickupTime >= PICKUP_INTERVAL) {
         let px, py, tries = 0;
         do {
           px = randInt(15, ARENA_W - 15);
           py = randInt(15, ARENA_H - 15);
-          const rect = { x: px - PICKUP_SIZE / 2, y: py - PICKUP_SIZE / 2, w: PICKUP_SIZE, h: PICKUP_SIZE };
+          const rect = { x: px - PICKUP_SIZE/2, y: py - PICKUP_SIZE/2, w: PICKUP_SIZE, h: PICKUP_SIZE };
           const collObs = s.obstacles.some(o => rectsOverlap(o, rect));
           const collPick = s.pickups.some(pk => Math.hypot(pk.x - px, pk.y - py) < PICKUP_SIZE);
           if (!collObs && !collPick) break;
@@ -279,7 +317,7 @@ export default function MultiplayerDuel() {
         s.lastPickupTime = nowSec;
       }
 
-      // ─── e) Collect pickups
+      // Collect pickups
       s.pickups = s.pickups.filter((pk) => {
         const distA = Math.hypot(s.pA.x - pk.x, s.pA.y - pk.y);
         if (distA < 14) {
@@ -296,24 +334,22 @@ export default function MultiplayerDuel() {
         return true;
       });
 
-      // ─── f) Countdown timer
+      // Countdown timer
       if (!s.paused) {
         s.timer -= dt;
         if (s.timer <= 0) {
           s.timer = 0;
-          // Decide winner by health remaining
           if (s.pA.health > s.pB.health) s.winner = playerA;
           else if (s.pB.health > s.pA.health) s.winner = playerB;
-          else s.winner = ""; // draw if equal
+          else s.winner = "";
         }
       }
 
-      // ─── g) Check health => declare winner
+      // Check health
       if (s.pA.health <= 0 || s.pB.health <= 0) {
         s.winner = s.pA.health <= 0 ? playerB : playerA;
       }
 
-      // Write updated state back to Firestore
       updateDoc(gameDocRef, { state: s });
       setSharedState(s);
 
@@ -324,47 +360,48 @@ export default function MultiplayerDuel() {
     return () => cancelAnimationFrame(rafId);
   }, [sharedState, gameDocRef, playerA, playerB, user, isMobile]);
 
-  // ─── 5) DESKTOP KEYBOARD CONTROLS ─────────────────────────────────────
+  // ─── I) DESKTOP CONTROLS
   useEffect(() => {
-    const onKeyDown = e => {
+    const onKeyDown = (e) => {
       if (!sharedState || !sharedState.started || sharedState.paused || sharedState.winner) return;
       let dx = 0, dy = 0;
-      if (e.key === 'ArrowUp'    || /^[wW]$/.test(e.key)) dy = -1;
-      if (e.key === 'ArrowDown'  || /^[sS]$/.test(e.key)) dy =  1;
-      if (e.key === 'ArrowLeft'  || /^[aA]$/.test(e.key)) dx = -1;
-      if (e.key === 'ArrowRight' || /^[dD]$/.test(e.key)) dx =  1;
+      if (e.key === "ArrowUp" || /^[wW]$/.test(e.key)) dy = -1;
+      if (e.key === "ArrowDown" || /^[sS]$/.test(e.key)) dy = 1;
+      if (e.key === "ArrowLeft" || /^[aA]$/.test(e.key)) dx = -1;
+      if (e.key === "ArrowRight" || /^[dD]$/.test(e.key)) dx = 1;
 
       if (dx || dy) {
         const m = Math.hypot(dx, dy) || 1;
-        const newMove = { dx: dx/m, dy: dy/m };
-        // store desktop move vector in sharedState
+        const newMove = { dx: dx / m, dy: dy / m };
         const s = { ...sharedState, moveVecDesktop: newMove };
         updateDoc(gameDocRef, { state: s });
         setSharedState(s);
       }
-      if (e.key === 'p' || e.key === 'P') {
+      if (e.key === "p" || e.key === "P") {
         const s = { ...sharedState, paused: !sharedState.paused };
         updateDoc(gameDocRef, { state: s });
         setSharedState(s);
       }
     };
-    const onKeyUp = e => {
-      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'].includes(e.key)) {
+
+    const onKeyUp = (e) => {
+      if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","w","a","s","d","W","A","S","D"].includes(e.key)) {
         const s = { ...sharedState, moveVecDesktop: { dx: 0, dy: 0 } };
         updateDoc(gameDocRef, { state: s });
         setSharedState(s);
       }
     };
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup',   onKeyUp);
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
     return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup',   onKeyUp);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
     };
   }, [sharedState, gameDocRef]);
 
-  // ─── 6) MOBILE JOYSTICK HANDLERS ─────────────────────────────────────
-  const onLeftMove = e => {
+  // ─── J) MOBILE JOYSTICK
+  const onLeftMove = (e) => {
     e.preventDefault();
     const t = e.touches[0];
     const rect = e.currentTarget.getBoundingClientRect();
@@ -373,32 +410,33 @@ export default function MultiplayerDuel() {
     const m = Math.hypot(dx, dy) || 1;
     moveVecRef.current = { dx: dx / m, dy: dy / m };
   };
+
   const onLeftEnd = () => {
     moveVecRef.current = { dx: 0, dy: 0 };
   };
 
-  // ─── 7) SHOOT HANDLER ─────────────────────────────────────────────
+  // ─── K) SHOOT HANDLER
   const handleShoot = () => {
     if (!sharedState || !sharedState.started || sharedState.paused || sharedState.winner) return;
     const amA = user.uid === playerA;
     const s = { ...sharedState };
     const me = amA ? s.pA : s.pB;
-    if (me.ammo <= 0) return; // no ammo
-    // auto‐aim toward opponent
+    if (me.ammo <= 0) return;
+
     const opp = amA ? s.pB : s.pA;
     let dx0 = opp.x - me.x;
     let dy0 = opp.y - me.y;
     const m = Math.hypot(dx0, dy0) || 1;
     me.ammo -= 1;
-    const newBullet = { x: me.x, y: me.y, dx: dx0 / m, dy: dy0 / m };
-    if (amA) s.bulletsA.push(newBullet);
-    else     s.bulletsB.push(newBullet);
+    const bullet = { x: me.x, y: me.y, dx: dx0 / m, dy: dy0 / m };
+    if (amA) s.bulletsA.push(bullet);
+    else     s.bulletsB.push(bullet);
 
     updateDoc(gameDocRef, { state: s });
     setSharedState(s);
   };
 
-  // ─── 8) CHAT HANDLER ─────────────────────────────────────────────
+  // ─── L) CHAT
   const sendChat = async () => {
     if (!chatInput.trim() || !sharedState) return;
     const role = user.uid === playerA ? "PlayerA" : "PlayerB";
@@ -413,7 +451,7 @@ export default function MultiplayerDuel() {
     setChatInput("");
   };
 
-  // ─── 9) QUIT GAME ────────────────────────────────────────────────
+  // ─── M) QUIT GAME
   const handleQuit = async () => {
     if (!gameDocRef || !sharedState) {
       navigate("/dashboard");
@@ -431,13 +469,13 @@ export default function MultiplayerDuel() {
     if (leaves.includes(data.playerA) && leaves.includes(data.playerB)) {
       await deleteDoc(gameDocRef);
     } else {
-      const s = { ...data.state, leaving: leaves };
+      const s = { ...data.state, leaving };
       await updateDoc(gameDocRef, { state: s });
     }
     navigate("/dashboard");
   };
 
-  // ─── 10) DRAW LOOP ─────────────────────────────────────────────────
+  // ─── N) DRAW CANVAS
   useEffect(() => {
     if (!sharedState || !sharedState.started) return;
     const ctx = canvasRef.current.getContext("2d");
@@ -523,7 +561,34 @@ export default function MultiplayerDuel() {
     return () => cancelAnimationFrame(animId);
   }, [sharedState, playerA, playerB]);
 
-  // ─── 11) RENDER UI ───────────────────────────────────────────────────
+  // ─── O) RENDER: Challenge Screen vs Game Screen
+  if (!gameId) {
+    return (
+      <div className="duel-container">
+        <h2>Challenge a Friend to Duel Shots</h2>
+        <p className="explanation">
+          Select a friend and send a challenge. They’ll get a notification to join.
+        </p>
+        {friends.length === 0 ? (
+          <p>You have no friends to challenge.</p>
+        ) : (
+          friends.map(f => (
+            <div key={f.uid} className="friend-row">
+              <span>@{f.username}</span>
+              <button onClick={() => handleChallenge(f)}>Challenge</button>
+            </div>
+          ))
+        )}
+        {waitingId && (
+          <>
+            <p>Waiting for @{friends.find(f => f.uid === waitingId.split("_")[1])?.username} to accept…</p>
+            <button onClick={() => navigate("/dashboard")}>❌ Cancel</button>
+          </>
+        )}
+      </div>
+    );
+  }
+
   if (!sharedState) {
     return (
       <div className="duel-container">
@@ -532,7 +597,6 @@ export default function MultiplayerDuel() {
     );
   }
 
-  // If still pending (waiting for opponent)
   if (!sharedState.initted) {
     return (
       <div className="duel-container">
@@ -544,7 +608,7 @@ export default function MultiplayerDuel() {
     );
   }
 
-  // ACTIVE or FINISHED
+  // Active or finished game
   const s = sharedState;
   const amA = user.uid === playerA;
   const myState = amA ? s.pA : s.pB;
@@ -603,7 +667,7 @@ export default function MultiplayerDuel() {
         </button>
       </div>
 
-      {/* Mobile joystick for movement */}
+      {/* Mobile joystick */}
       {isMobile && !s.winner && !s.paused && (
         <div
           className="joystick left"
@@ -615,9 +679,12 @@ export default function MultiplayerDuel() {
         </div>
       )}
 
-      {/* Mobile shoot button */}
+      {/* Mobile shoot button (absolute, above chat) */}
       {isMobile && !s.winner && !s.paused && (
-        <button className="shoot-btn-mobile" onTouchStart={handleShoot}>
+        <button
+          className="shoot-btn-mobile"
+          onTouchStart={handleShoot}
+        >
           💥
         </button>
       )}
