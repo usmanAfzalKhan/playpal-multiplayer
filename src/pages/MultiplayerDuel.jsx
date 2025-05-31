@@ -16,20 +16,21 @@ import "./DuelGame.css";
 
 const ARENA_W        = 300;
 const ARENA_H        = 300;
-const PLAYER_SPEED   = 150;   // px/sec
-const SHOT_SPEED     = 200;   // px/sec
+// Sync speeds: player moves a bit faster; bullets a bit slower
+const PLAYER_SPEED   = 200;   // px/sec
+const SHOT_SPEED     = 150;   // px/sec
 const INITIAL_HEALTH = 5;
 const INITIAL_AMMO   = 10;
 const GAME_TIME      = 60;    // seconds
 const PICKUP_SIZE    = 12;    // px
-const PICKUP_INTERVAL = 5;    // seconds between spawning a new pickup
+const PICKUP_INTERVAL = 5;    // seconds
 
-// returns a random integer between min (inclusive) and max (exclusive)
+// helper: random integer [min, max)
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
-// checks if two rectangles overlap
+// helper: check rectangle overlap
 function rectsOverlap(r1, r2) {
   return (
     r1.x < r2.x + r2.w &&
@@ -39,11 +40,11 @@ function rectsOverlap(r1, r2) {
   );
 }
 
-// Generate 5 random non-overlapping obstacles at start
+// Generate 5 random obstacles that do not overlap spawn zones
 function generateObstacles() {
-  const newObs = [];
+  const arr = [];
   let attempts = 0;
-  while (newObs.length < 5 && attempts < 200) {
+  while (arr.length < 5 && attempts < 200) {
     attempts++;
     const ow = randInt(30, 60);
     const oh = randInt(20, 50);
@@ -51,13 +52,15 @@ function generateObstacles() {
     const oy = randInt(50, ARENA_H - oh - 50);
     const rect = { x: ox, y: oy, w: ow, h: oh };
 
-    const overlap = newObs.some((o) => rectsOverlap(o, rect)) ||
+    const overlap =
+      arr.some(o => rectsOverlap(o, rect)) ||
+      // avoid spawn zones: Player A spawn (center‐bottom), Player B spawn (center‐top)
       rectsOverlap(rect, { x: ARENA_W/2 - 15, y: ARENA_H - 30 - 15, w: 30, h: 30 }) ||
-      rectsOverlap(rect, { x: ARENA_W/2 - 15, y: 15, w: 30, h: 30 });
+      rectsOverlap(rect, { x: ARENA_W/2 - 15, y: 15,            w: 30, h: 30 });
 
-    if (!overlap) newObs.push(rect);
+    if (!overlap) arr.push(rect);
   }
-  return newObs;
+  return arr;
 }
 
 export default function MultiplayerDuel() {
@@ -65,371 +68,303 @@ export default function MultiplayerDuel() {
   const navigate   = useNavigate();
   const user       = auth.currentUser;
 
-  // ─── GUARD AGAINST MISSING gameId ───────────────────────────────
-  if (!gameId) {
-    return (
-      <div className="duel-container">
-        <h2>No Duel Game ID Found</h2>
-        <p>
-          It looks like you’re visiting <code>/duel/multiplayer</code> without a valid game ID.
-          Please create or accept a duel from the Dashboard first.
-        </p>
-        <button className="quit-btn" onClick={() => navigate("/dashboard")}>
-          ❌ Back to Dashboard
-        </button>
-      </div>
-    );
-  }
-
   const canvasRef  = useRef(null);
-  const moveVecRef = useRef({ dx: 0, dy: 0 });
+  const moveVecRef = useRef({ dx: 0, dy: 0 }); // mobile input
 
-  // ─── Shared Game Data from Firestore ─────────────────────────────────
-  const [gameDoc, setGameDoc]       = useState(null);
-  const [gameStatus, setGameStatus] = useState("pending"); // "pending" | "active" | "finished"
-  const [playerA, setPlayerA]       = useState("");
-  const [playerB, setPlayerB]       = useState("");
+  // Local mirror of Firestore’s state object
   const [sharedState, setSharedState] = useState(null);
+  const [gameDocRef,  setGameDocRef]  = useState(null);
+  const [playerA,     setPlayerA]     = useState("");
+  const [playerB,     setPlayerB]     = useState("");
 
-  // sharedState holds:
-  // { started, paused, timer, obstacles, lastPickupTime,
-  //   pAState: { x, y, health, ammo }, pBState: { x, y, health, ammo },
-  //   bulletsA: [], bulletsB: [], pickups: [], chat: [], status, winner, leaving, initted }
-
-  const [localState, setLocalState] = useState({
-    started: false,
-    paused:  false,
-    timer:   GAME_TIME,
-    obstacles: [],
-    lastPickupTime: Date.now() / 1000,
-    pAState: { x: ARENA_W / 2, y: ARENA_H - 30, health: INITIAL_HEALTH, ammo: INITIAL_AMMO },
-    pBState: { x: ARENA_W / 2, y: 30, health: INITIAL_HEALTH, ammo: INITIAL_AMMO },
-    bulletsA: [],
-    bulletsB: [],
-    pickups: [],
-    chat: [],
-    status: "pending",
-    winner: "",
-    leaving: [],
-    initted: false,
-    moveVecDesktop: { dx: 0, dy: 0 },
-  });
-
+  // Chat input
   const [chatInput, setChatInput] = useState("");
+
   const isMobile = window.innerWidth < 768;
 
-  // ─── 1) On mount: validate and/or create game doc ─────────────────────────
+  // ─── 1) Guard: missing gameId or not logged in → redirect
   useEffect(() => {
     if (!user) {
       navigate("/");
       return;
     }
+    if (!gameId) {
+      navigate("/dashboard");
+      return;
+    }
     const docRef = doc(db, "duelGames", gameId);
+    setGameDocRef(docRef);
 
+    // Fetch initial doc to see if it exists
     getDoc(docRef).then((snap) => {
       if (!snap.exists()) {
-        // No such game → redirect back
+        // invalid gameId
         navigate("/dashboard");
         return;
       }
       const data = snap.data();
-      setGameDoc(docRef);
-      setGameStatus(data.status);
       setPlayerA(data.playerA);
       setPlayerB(data.playerB);
 
-      // If this user is playerB and status is "pending", mark as "active"
+      // If this user is playerB and status still "pending", flip to "active"
       if (user.uid === data.playerB && data.status === "pending") {
         updateDoc(docRef, { status: "active" });
       }
     });
+  }, [user, gameId, navigate]);
 
-    // Subscribe to changes
-    const unsub = onSnapshot(docRef, (snap) => {
+  // ─── 2) Subscribe to Firestore doc
+  useEffect(() => {
+    if (!gameDocRef) return;
+    const unsub = onSnapshot(gameDocRef, (snap) => {
       if (!snap.exists()) {
-        // Game deleted → both players left
+        // Game was deleted (both players left)
         navigate("/dashboard");
         return;
       }
       const data = snap.data();
-      setGameStatus(data.status);
       setSharedState(data.state);
     });
-
-    // On unmount: mark leaving or delete if both left
-    const cleanup = () => {
-      getDoc(docRef).then((snap) => {
+    // On unload, mark this player as "leaving"
+    const cleanupOnExit = () => {
+      getDoc(gameDocRef).then((snap) => {
         if (!snap.exists()) return;
         const data = snap.data();
         const leaves = data.state.leaving || [];
-        if (!leaves.includes(user.uid)) {
-          leaves.push(user.uid);
-        }
+        if (!leaves.includes(user.uid)) leaves.push(user.uid);
+
         if (leaves.includes(data.playerA) && leaves.includes(data.playerB)) {
-          deleteDoc(docRef);
+          // both have left → delete game doc
+          deleteDoc(gameDocRef);
         } else {
-          const updated = { ...data.state, leaving };
-          updateDoc(docRef, { state: updated });
+          // otherwise, update "leaving" array
+          updateDoc(gameDocRef, { state: { ...data.state, leaving: leaves } });
         }
       });
     };
-    window.addEventListener("beforeunload", cleanup);
+    window.addEventListener("beforeunload", cleanupOnExit);
 
     return () => {
-      window.removeEventListener("beforeunload", cleanup);
-      cleanup();
+      window.removeEventListener("beforeunload", cleanupOnExit);
+      cleanupOnExit();
       unsub();
     };
-  }, [user, gameId, navigate]);
+  }, [gameDocRef, navigate, user]);
 
-  // ─── 2) Initialize shared state once Firestore doc activates ──────────────
+  // ─── 3) Initialize sharedState once Firestore's state arrives and initted is false
   useEffect(() => {
-    if (!sharedState) return;
+    if (!sharedState || !gameDocRef) return;
+    if (!sharedState.initted) {
+      // First time both players have joined → set up initial state
+      const initObs = generateObstacles();
+      const initTime = Date.now() / 1000;
 
-    if (!sharedState.initted && gameStatus === "active") {
-      // First activation: set up obstacles, etc.
-      const initObs     = generateObstacles();
-      const initPickups = [];
-      const initState = {
+      const initial = {
+        initted: true,
         started: true,
-        paused:  false,
-        timer:   GAME_TIME,
+        paused: false,
+        timer: GAME_TIME,
         obstacles: initObs,
-        lastPickupTime: Date.now() / 1000,
-        pAState: { x: ARENA_W / 2, y: ARENA_H - 30, health: INITIAL_HEALTH, ammo: INITIAL_AMMO },
-        pBState: { x: ARENA_W / 2, y: 30, health: INITIAL_HEALTH, ammo: INITIAL_AMMO },
+        lastPickupTime: initTime,
+        pA: { x: ARENA_W/2, y: ARENA_H - 30, health: INITIAL_HEALTH, ammo: INITIAL_AMMO },
+        pB: { x: ARENA_W/2, y: 30,            health: INITIAL_HEALTH, ammo: INITIAL_AMMO },
         bulletsA: [],
         bulletsB: [],
-        pickups: initPickups,
+        pickups: [],
         chat: [],
-        status: "active",
         winner: "",
-        leaving: [],
-        initted: true,
-        moveVecDesktop: { dx: 0, dy: 0 },
+        leaving: sharedState.leaving || [],
       };
-      setLocalState(initState);
-      updateDoc(gameDoc, { state: initState });
-    } else if (sharedState.initted) {
-      // Merge Firestore’s state into local
-      setLocalState(sharedState);
+      setSharedState(initial);
+      updateDoc(gameDocRef, { state: initial });
     }
-  }, [sharedState, gameStatus, gameDoc]);
+  }, [sharedState, gameDocRef]);
 
-  // ─── 3) Main game loop (60fps) ──────────────────────────────────────────
+  // ─── 4) Main game loop (60fps) ──────────────────────────────────────────
   useEffect(() => {
-    if (!localState.started || localState.paused || localState.status !== "active") return;
+    if (!sharedState || !sharedState.started || sharedState.paused || sharedState.winner) return;
+
     let last = performance.now();
     let rafId;
-
-    const computeAim = (fromX, fromY, toX, toY, obstacles) => {
-      let dx0 = toX - fromX;
-      let dy0 = toY - fromY;
-      const dist = Math.hypot(dx0, dy0) || 1;
-      const steps = Math.floor(dist / 5);
-      let blocked = false;
-      for (let i = 1; i < steps; i++) {
-        const ix = fromX + (dx0 / steps) * i;
-        const iy = fromY + (dy0 / steps) * i;
-        if (
-          obstacles.some(
-            (o) => ix > o.x && ix < o.x + o.w && iy > o.y && iy < o.y + o.h
-          )
-        ) {
-          blocked = true;
-          break;
-        }
-      }
-      if (blocked) {
-        dx0 += (Math.random() - 0.5) * 50;
-        dy0 += (Math.random() - 0.5) * 50;
-      }
-      const m = Math.hypot(dx0, dy0) || 1;
-      return { dx: dx0 / m, dy: dy0 / m };
-    };
 
     const gameLoop = (now) => {
       const dt = (now - last) / 1000;
       last = now;
 
-      const ns = { ...localState };
+      // Copy local slice of state
+      const s = JSON.parse(JSON.stringify(sharedState));
 
-      // ─── 3a) Move local player
-      const isA = user.uid === playerA;
-      const meKey = isA ? "pAState" : "pBState";
-      const vec = isMobile ? moveVecRef.current : localState.moveVecDesktop;
-      if (vec && (vec.dx || vec.dy)) {
-        const me = ns[meKey];
+      // Determine which player this user is
+      const amA = user.uid === playerA;
+      const meKey = amA ? "pA" : "pB";
+      const oppKey = amA ? "pB" : "pA";
+      const bulletsKey = amA ? "bulletsA" : "bulletsB";
+
+      // ─── a) Move this player's ship
+      const vec = isMobile ? moveVecRef.current : sharedState.moveVecDesktop || { dx: 0, dy: 0 };
+      if (vec.dx || vec.dy) {
+        const me = s[meKey];
         const nx = Math.max(0, Math.min(ARENA_W, me.x + vec.dx * PLAYER_SPEED * dt));
         const ny = Math.max(0, Math.min(ARENA_H, me.y + vec.dy * PLAYER_SPEED * dt));
-        let collision = false;
-        for (const o of ns.obstacles) {
+
+        // Check obstacle collision
+        let blocked = false;
+        for (const o of s.obstacles) {
           if (nx > o.x && nx < o.x + o.w && ny > o.y && ny < o.y + o.h) {
-            collision = true;
+            blocked = true;
             break;
           }
         }
-        if (!collision) {
+        if (!blocked) {
           me.x = nx;
           me.y = ny;
         }
       }
 
-      // ─── 3b) Update bulletsA
-      ns.bulletsA = ns.bulletsA.filter((b) => {
+      // ─── b) Update bulletsA
+      s.bulletsA = s.bulletsA.filter((b) => {
         b.x += b.dx * SHOT_SPEED * dt;
         b.y += b.dy * SHOT_SPEED * dt;
+        // out of bounds?
         if (b.x < 0 || b.x > ARENA_W || b.y < 0 || b.y > ARENA_H) return false;
-        for (const o of ns.obstacles) {
+        // obstacle collision?
+        for (const o of s.obstacles) {
           if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) {
             return false;
           }
         }
-        const target = ns.pBState;
-        if (Math.hypot(b.x - target.x, b.y - target.y) < 12) {
-          target.health = Math.max(0, target.health - 1);
+        // hit P_B?
+        const hitDist = Math.hypot(b.x - s.pB.x, b.y - s.pB.y);
+        if (hitDist < 12) {
+          s.pB.health = Math.max(0, s.pB.health - 1);
           return false;
         }
         return true;
       });
 
-      // ─── 3c) Update bulletsB
-      ns.bulletsB = ns.bulletsB.filter((b) => {
+      // ─── c) Update bulletsB
+      s.bulletsB = s.bulletsB.filter((b) => {
         b.x += b.dx * SHOT_SPEED * dt;
         b.y += b.dy * SHOT_SPEED * dt;
         if (b.x < 0 || b.x > ARENA_W || b.y < 0 || b.y > ARENA_H) return false;
-        for (const o of ns.obstacles) {
+        for (const o of s.obstacles) {
           if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) {
             return false;
           }
         }
-        const target = ns.pAState;
-        if (Math.hypot(b.x - target.x, b.y - target.y) < 12) {
-          target.health = Math.max(0, target.health - 1);
+        const hitDist = Math.hypot(b.x - s.pA.x, b.y - s.pA.y);
+        if (hitDist < 12) {
+          s.pA.health = Math.max(0, s.pA.health - 1);
           return false;
         }
         return true;
       });
 
-      // ─── 3d) Spawn pickups every PICKUP_INTERVAL
+      // ─── d) Spawn pickups every PICKUP_INTERVAL
       const nowSec = Date.now() / 1000;
-      if (nowSec - ns.lastPickupTime >= PICKUP_INTERVAL) {
+      if (nowSec - s.lastPickupTime >= PICKUP_INTERVAL) {
         let px, py, tries = 0;
         do {
           px = randInt(15, ARENA_W - 15);
           py = randInt(15, ARENA_H - 15);
           const rect = { x: px - PICKUP_SIZE / 2, y: py - PICKUP_SIZE / 2, w: PICKUP_SIZE, h: PICKUP_SIZE };
-          const collidesObs = ns.obstacles.some(o => rectsOverlap(o, rect));
-          const collidesPick = ns.pickups.some(pk => {
-            return Math.hypot(pk.x - px, pk.y - py) < PICKUP_SIZE;
-          });
-          if (!collidesObs && !collidesPick) break;
+          const collObs = s.obstacles.some(o => rectsOverlap(o, rect));
+          const collPick = s.pickups.some(pk => Math.hypot(pk.x - px, pk.y - py) < PICKUP_SIZE);
+          if (!collObs && !collPick) break;
           tries++;
         } while (tries < 50);
 
-        const nextType = ns.pickups.length % 2 === 0 ? "ammo" : "health";
-        ns.pickups.push({ x: px, y: py, type: nextType });
-        ns.lastPickupTime = nowSec;
+        const nextType = s.pickups.length % 2 === 0 ? "ammo" : "health";
+        s.pickups.push({ x: px, y: py, type: nextType });
+        s.lastPickupTime = nowSec;
       }
 
-      // ─── 3e) Check pickup collisions for both players
-      ns.pickups = ns.pickups.filter((pk) => {
-        const pa = ns.pAState;
-        const pb = ns.pBState;
-        const distA = Math.hypot(pa.x - pk.x, pa.y - pk.y);
+      // ─── e) Collect pickups
+      s.pickups = s.pickups.filter((pk) => {
+        const distA = Math.hypot(s.pA.x - pk.x, s.pA.y - pk.y);
         if (distA < 14) {
-          if (pk.type === "ammo") pa.ammo = Math.min(pa.ammo + 3, INITIAL_AMMO);
-          else pa.health = Math.min(pa.health + 1, INITIAL_HEALTH);
+          if (pk.type === "ammo") s.pA.ammo = Math.min(s.pA.ammo + 3, INITIAL_AMMO);
+          else s.pA.health = Math.min(s.pA.health + 1, INITIAL_HEALTH);
           return false;
         }
-        const distB = Math.hypot(pb.x - pk.x, pb.y - pk.y);
+        const distB = Math.hypot(s.pB.x - pk.x, s.pB.y - pk.y);
         if (distB < 14) {
-          if (pk.type === "ammo") pb.ammo = Math.min(pb.ammo + 3, INITIAL_AMMO);
-          else pb.health = Math.min(pb.health + 1, INITIAL_HEALTH);
+          if (pk.type === "ammo") s.pB.ammo = Math.min(s.pB.ammo + 3, INITIAL_AMMO);
+          else s.pB.health = Math.min(s.pB.health + 1, INITIAL_HEALTH);
           return false;
         }
         return true;
       });
 
-      // ─── 3f) Timer countdown
-      if (!ns.paused) {
-        ns.timer -= dt;
-        if (ns.timer <= 0) {
-          ns.timer = 0;
-          ns.winner = ns.pAState.health > ns.pBState.health ? playerA : playerB;
-          ns.status = "finished";
+      // ─── f) Countdown timer
+      if (!s.paused) {
+        s.timer -= dt;
+        if (s.timer <= 0) {
+          s.timer = 0;
+          // Decide winner by health remaining
+          if (s.pA.health > s.pB.health) s.winner = playerA;
+          else if (s.pB.health > s.pA.health) s.winner = playerB;
+          else s.winner = ""; // draw if equal
         }
       }
 
-      // ─── 3g) Check health zero
-      if (ns.pAState.health <= 0 || ns.pBState.health <= 0) {
-        ns.winner = ns.pAState.health <= 0 ? playerB : playerA;
-        ns.status = "finished";
+      // ─── g) Check health => declare winner
+      if (s.pA.health <= 0 || s.pB.health <= 0) {
+        s.winner = s.pA.health <= 0 ? playerB : playerA;
       }
 
-      // Save back to Firestore
-      updateDoc(gameDoc, { state: ns });
+      // Write updated state back to Firestore
+      updateDoc(gameDocRef, { state: s });
+      setSharedState(s);
 
-      setLocalState(ns);
       rafId = requestAnimationFrame(gameLoop);
     };
 
     rafId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(rafId);
-  }, [
-    localState.started,
-    localState.paused,
-    localState.status,
-    localState,
-    playerA,
-    playerB,
-    user,
-    gameDoc,
-    isMobile,
-  ]);
+  }, [sharedState, gameDocRef, playerA, playerB, user, isMobile]);
 
-  // ─── 4) Desktop keyboard controls ─────────────────────────────────────
+  // ─── 5) DESKTOP KEYBOARD CONTROLS ─────────────────────────────────────
   useEffect(() => {
-    const onKeyDown = (e) => {
-      if (!localState.started || localState.paused || localState.status !== "active") return;
+    const onKeyDown = e => {
+      if (!sharedState || !sharedState.started || sharedState.paused || sharedState.winner) return;
       let dx = 0, dy = 0;
-      if (e.key === "ArrowUp"    || /^[wW]$/.test(e.key)) dy = -1;
-      if (e.key === "ArrowDown"  || /^[sS]$/.test(e.key)) dy =  1;
-      if (e.key === "ArrowLeft"  || /^[aA]$/.test(e.key)) dx = -1;
-      if (e.key === "ArrowRight" || /^[dD]$/.test(e.key)) dx =  1;
+      if (e.key === 'ArrowUp'    || /^[wW]$/.test(e.key)) dy = -1;
+      if (e.key === 'ArrowDown'  || /^[sS]$/.test(e.key)) dy =  1;
+      if (e.key === 'ArrowLeft'  || /^[aA]$/.test(e.key)) dx = -1;
+      if (e.key === 'ArrowRight' || /^[dD]$/.test(e.key)) dx =  1;
 
       if (dx || dy) {
         const m = Math.hypot(dx, dy) || 1;
-        setLocalState((ls) => ({
-          ...ls,
-          moveVecDesktop: { dx: dx / m, dy: dy / m },
-        }));
+        const newMove = { dx: dx/m, dy: dy/m };
+        // store desktop move vector in sharedState
+        const s = { ...sharedState, moveVecDesktop: newMove };
+        updateDoc(gameDocRef, { state: s });
+        setSharedState(s);
       }
-      if (e.key === "p" || e.key === "P") {
-        setLocalState((ls) => {
-          const updated = { ...ls, paused: !ls.paused };
-          updateDoc(gameDoc, { state: updated });
-          return updated;
-        });
-      }
-    };
-    const onKeyUp = (e) => {
-      if (
-        ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","w","a","s","d","W","A","S","D"].includes(e.key)
-      ) {
-        setLocalState((ls) => ({ ...ls, moveVecDesktop: { dx: 0, dy: 0 } }));
+      if (e.key === 'p' || e.key === 'P') {
+        const s = { ...sharedState, paused: !sharedState.paused };
+        updateDoc(gameDocRef, { state: s });
+        setSharedState(s);
       }
     };
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
+    const onKeyUp = e => {
+      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'].includes(e.key)) {
+        const s = { ...sharedState, moveVecDesktop: { dx: 0, dy: 0 } };
+        updateDoc(gameDocRef, { state: s });
+        setSharedState(s);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup',   onKeyUp);
     return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup',   onKeyUp);
     };
-  }, [localState.started, localState.paused, localState.status, gameDoc]);
+  }, [sharedState, gameDocRef]);
 
-  // ─── 5) Mobile joystick handlers ─────────────────────────────────────
-  const onLeftMove = (e) => {
+  // ─── 6) MOBILE JOYSTICK HANDLERS ─────────────────────────────────────
+  const onLeftMove = e => {
     e.preventDefault();
     const t = e.touches[0];
     const rect = e.currentTarget.getBoundingClientRect();
@@ -442,145 +377,103 @@ export default function MultiplayerDuel() {
     moveVecRef.current = { dx: 0, dy: 0 };
   };
 
-  // ─── 6) Shoot handler (desktop & mobile) ─────────────────────────────
+  // ─── 7) SHOOT HANDLER ─────────────────────────────────────────────
   const handleShoot = () => {
-    if (!localState.started || localState.paused || localState.status !== "active") return;
-    const isA = user.uid === playerA;
-    const pKey = isA ? "pAState" : "pBState";
-    const bKey = isA ? "bulletsA" : "bulletsB";
-    const me = localState[pKey];
-    if (me.ammo <= 0) {
-      setLocalState((ls) => ({ ...ls, message: "❗ No Ammo" }));
-      return;
-    }
-    const opp = isA ? localState.pBState : localState.pAState;
-    const aim = computeAimForShoot(me.x, me.y, opp.x, opp.y, localState.obstacles);
-    const newBullet = { x: me.x, y: me.y, dx: aim.dx, dy: aim.dy };
-    const updatedState = {
-      ...localState,
-      [pKey]: { ...me, ammo: me.ammo - 1 },
-      [bKey]: [...localState[bKey], newBullet],
-    };
-    updateDoc(gameDoc, { state: updatedState });
-    setLocalState(updatedState);
-  };
-
-  const computeAimForShoot = (fromX, fromY, toX, toY, obstacles) => {
-    let dx0 = toX - fromX;
-    let dy0 = toY - fromY;
-    const dist = Math.hypot(dx0, dy0) || 1;
-    const steps = Math.floor(dist / 5);
-    let blocked = false;
-    for (let i = 1; i < steps; i++) {
-      const ix = fromX + (dx0 / steps) * i;
-      const iy = fromY + (dy0 / steps) * i;
-      if (
-        obstacles.some(
-          (o) => ix > o.x && ix < o.x + o.w && iy > o.y && iy < o.y + o.h
-        )
-      ) {
-        blocked = true;
-        break;
-      }
-    }
-    if (blocked) {
-      dx0 += (Math.random() - 0.5) * 50;
-      dy0 += (Math.random() - 0.5) * 50;
-    }
+    if (!sharedState || !sharedState.started || sharedState.paused || sharedState.winner) return;
+    const amA = user.uid === playerA;
+    const s = { ...sharedState };
+    const me = amA ? s.pA : s.pB;
+    if (me.ammo <= 0) return; // no ammo
+    // auto‐aim toward opponent
+    const opp = amA ? s.pB : s.pA;
+    let dx0 = opp.x - me.x;
+    let dy0 = opp.y - me.y;
     const m = Math.hypot(dx0, dy0) || 1;
-    return { dx: dx0 / m, dy: dy0 / m };
+    me.ammo -= 1;
+    const newBullet = { x: me.x, y: me.y, dx: dx0 / m, dy: dy0 / m };
+    if (amA) s.bulletsA.push(newBullet);
+    else     s.bulletsB.push(newBullet);
+
+    updateDoc(gameDocRef, { state: s });
+    setSharedState(s);
   };
 
-  // ─── 7) Send Chat ────────────────────────────────────────────────────
+  // ─── 8) CHAT HANDLER ─────────────────────────────────────────────
   const sendChat = async () => {
-    if (!chatInput.trim()) return;
-    const newMessage = {
-      sender:   localState.pAState.x === localState[playerA === user.uid ? "pAState" : "pBState"].x
-        ? "Player A"
-        : "Player B",
-      message:  chatInput,
+    if (!chatInput.trim() || !sharedState) return;
+    const role = user.uid === playerA ? "PlayerA" : "PlayerB";
+    const msgObj = {
+      sender: role,
+      message: chatInput,
       timestamp: Timestamp.now(),
     };
-    const updated = { ...localState, chat: [...localState.chat, newMessage] };
-    await updateDoc(gameDoc, { state: updated });
+    const s = { ...sharedState, chat: [...sharedState.chat, msgObj] };
+    await updateDoc(gameDocRef, { state: s });
+    setSharedState(s);
     setChatInput("");
   };
 
-  // ─── 8) Quit Game ────────────────────────────────────────────────────
+  // ─── 9) QUIT GAME ────────────────────────────────────────────────
   const handleQuit = async () => {
-    if (!gameDoc) {
+    if (!gameDocRef || !sharedState) {
       navigate("/dashboard");
       return;
     }
-    const snap = await getDoc(gameDoc);
+    const snap = await getDoc(gameDocRef);
     if (!snap.exists()) {
       navigate("/dashboard");
       return;
     }
     const data = snap.data();
     const leaves = data.state.leaving || [];
-    if (!leaves.includes(user.uid)) {
-      leaves.push(user.uid);
-    }
+    if (!leaves.includes(user.uid)) leaves.push(user.uid);
+
     if (leaves.includes(data.playerA) && leaves.includes(data.playerB)) {
-      await deleteDoc(gameDoc);
+      await deleteDoc(gameDocRef);
     } else {
-      const updated = { ...data.state, leaving };
-      await updateDoc(gameDoc, { state: updated });
+      const s = { ...data.state, leaving: leaves };
+      await updateDoc(gameDocRef, { state: s });
     }
     navigate("/dashboard");
   };
 
-  // ─── 9) Render Canvas ─────────────────────────────────────────────────
-  const renderGrid = () => {
-    return (
-      <canvas
-        ref={canvasRef}
-        width={ARENA_W}
-        height={ARENA_H}
-        className="duel-canvas"
-      />
-    );
-  };
-
-  // ─── 10) Draw Loop ────────────────────────────────────────────────────
+  // ─── 10) DRAW LOOP ─────────────────────────────────────────────────
   useEffect(() => {
-    if (!sharedState || sharedState.status !== "active") return;
+    if (!sharedState || !sharedState.started) return;
     const ctx = canvasRef.current.getContext("2d");
 
     const drawFrame = () => {
       const s = sharedState;
-      // background
       ctx.fillStyle = "#1e293b";
       ctx.fillRect(0, 0, ARENA_W, ARENA_H);
 
       // obstacles
       ctx.fillStyle = "#475569";
-      s.obstacles.forEach((o) => ctx.fillRect(o.x, o.y, o.w, o.h));
+      s.obstacles.forEach(o => ctx.fillRect(o.x, o.y, o.w, o.h));
 
       // pickups
-      s.pickups.forEach((pk) => {
+      s.pickups.forEach(pk => {
         ctx.fillStyle = pk.type === "ammo" ? "#22c55e" : "#f87171";
         ctx.beginPath();
         ctx.arc(pk.x, pk.y, PICKUP_SIZE / 2, 0, 2 * Math.PI);
         ctx.fill();
       });
 
-      // Player B
+      // Player B (magenta)
       ctx.fillStyle = "magenta";
       ctx.beginPath();
-      ctx.arc(s.pBState.x, s.pBState.y, 10, 0, 2 * Math.PI);
+      ctx.arc(s.pB.x, s.pB.y, 10, 0, 2 * Math.PI);
       ctx.fill();
 
-      // Player A
+      // Player A (cyan)
       ctx.fillStyle = "cyan";
       ctx.beginPath();
-      ctx.arc(s.pAState.x, s.pAState.y, 10, 0, 2 * Math.PI);
+      ctx.arc(s.pA.x, s.pA.y, 10, 0, 2 * Math.PI);
       ctx.fill();
 
       // bulletsA
       ctx.fillStyle = "white";
-      s.bulletsA.forEach((b) => {
+      s.bulletsA.forEach(b => {
         ctx.beginPath();
         ctx.arc(b.x, b.y, 4, 0, 2 * Math.PI);
         ctx.fill();
@@ -588,19 +481,11 @@ export default function MultiplayerDuel() {
 
       // bulletsB
       ctx.fillStyle = "yellow";
-      s.bulletsB.forEach((b) => {
+      s.bulletsB.forEach(b => {
         ctx.beginPath();
         ctx.arc(b.x, b.y, 4, 0, 2 * Math.PI);
         ctx.fill();
       });
-
-      // countdown overlay
-      if (!s.started) {
-        ctx.fillStyle = "white";
-        ctx.font = "30px sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText(s.countdown || "", ARENA_W / 2, ARENA_H / 2);
-      }
 
       // paused overlay
       if (s.paused) {
@@ -613,15 +498,19 @@ export default function MultiplayerDuel() {
       }
 
       // Game Over overlay
-      if (s.status === "finished") {
+      if (s.winner) {
         ctx.fillStyle = "rgba(0,0,0,0.7)";
         ctx.fillRect(0, 0, ARENA_W, ARENA_H);
         ctx.fillStyle = "white";
         ctx.font = "24px sans-serif";
         ctx.textAlign = "center";
-        const winnerLabel =
-          s.winner === playerA ? "Player A Wins!" : "Player B Wins!";
-        ctx.fillText(winnerLabel, ARENA_W / 2, ARENA_H / 2 - 10);
+        const label =
+          s.winner === playerA
+            ? "Player A Wins!"
+            : s.winner === playerB
+            ? "Player B Wins!"
+            : "Draw!";
+        ctx.fillText(label, ARENA_W / 2, ARENA_H / 2 - 10);
       }
     };
 
@@ -634,8 +523,8 @@ export default function MultiplayerDuel() {
     return () => cancelAnimationFrame(animId);
   }, [sharedState, playerA, playerB]);
 
-  // ─── 11) Render UI ───────────────────────────────────────────────────
-  if (!gameDoc || !sharedState) {
+  // ─── 11) RENDER UI ───────────────────────────────────────────────────
+  if (!sharedState) {
     return (
       <div className="duel-container">
         <h2>Loading Duel…</h2>
@@ -643,7 +532,8 @@ export default function MultiplayerDuel() {
     );
   }
 
-  if (localState.status === "pending") {
+  // If still pending (waiting for opponent)
+  if (!sharedState.initted) {
     return (
       <div className="duel-container">
         <h2>Waiting for opponent to join…</h2>
@@ -656,46 +546,56 @@ export default function MultiplayerDuel() {
 
   // ACTIVE or FINISHED
   const s = sharedState;
-  const isA = user.uid === playerA;
-  const myState = isA ? s.pAState : s.pBState;
+  const amA = user.uid === playerA;
+  const myState = amA ? s.pA : s.pB;
+  const oppState = amA ? s.pB : s.pA;
 
   return (
     <div className="duel-container">
       <h2>Multiplayer Duel Shots</h2>
       <p>
-        Use WASD/Arrows (desktop) or joystick (mobile) to move, 💥 to shoot, P
-        to pause.
+        Use WASD/Arrows (desktop) or joystick (mobile) to move, 💥 to shoot, P to pause.
       </p>
 
       <div className="status-bar-duel">
-        <span>❤️ {isA ? s.pAState.health : s.pBState.health}</span>
-        <span>Opponent ❤️ {isA ? s.pBState.health : s.pAState.health}</span>
+        <span>
+          {amA ? "You (A)" : "You (B)"} ❤️ {myState.health}
+        </span>
+        <span>
+          {amA ? "Opponent (B)" : "Opponent (A)"} ❤️ {oppState.health}
+        </span>
         <span>🔋 {myState.ammo}</span>
         <span>⏰ {Math.ceil(s.timer)}s</span>
       </div>
 
-      {renderGrid()}
+      <canvas
+        ref={canvasRef}
+        width={ARENA_W}
+        height={ARENA_H}
+        className="duel-canvas"
+      />
 
-      {/* Desktop Controls */}
       <div className="controls-row">
-        <button onClick={handleShoot} className="shoot-btn" disabled={s.status !== "active"}>
+        <button
+          onClick={handleShoot}
+          className="shoot-btn"
+          disabled={!!s.winner || s.paused}
+        >
           💥 Shoot
         </button>
-        {s.status === "active" ? (
+        {s.winner ? (
+          <button onClick={handleQuit} className="play-again">
+            ▶️ Back to Dashboard
+          </button>
+        ) : (
           <button
             onClick={() => {
-              const updated = { ...s, paused: !s.paused };
-              updateDoc(gameDoc, { state: updated });
+              const toggled = { ...s, paused: !s.paused };
+              updateDoc(gameDocRef, { state: toggled });
             }}
             className="pause-btn"
           >
             {s.paused ? "▶️ Resume" : "⏸️ Pause"}
-          </button>
-        ) : (
-          <button onClick={() => {
-            if (s.status === "finished") handleQuit();
-          }} className="play-again">
-            ▶️ Back to Dashboard
           </button>
         )}
         <button onClick={handleQuit} className="quit-btn">
@@ -703,10 +603,10 @@ export default function MultiplayerDuel() {
         </button>
       </div>
 
-      {/* Mobile Joystick */}
-      {isMobile && s.status === "active" && (
+      {/* Mobile joystick for movement */}
+      {isMobile && !s.winner && !s.paused && (
         <div
-          className="joystick"
+          className="joystick left"
           onTouchStart={onLeftMove}
           onTouchMove={onLeftMove}
           onTouchEnd={onLeftEnd}
@@ -715,14 +615,14 @@ export default function MultiplayerDuel() {
         </div>
       )}
 
-      {/* Mobile Shoot Button */}
-      {isMobile && s.status === "active" && (
+      {/* Mobile shoot button */}
+      {isMobile && !s.winner && !s.paused && (
         <button className="shoot-btn-mobile" onTouchStart={handleShoot}>
           💥
         </button>
       )}
 
-      {/* Chat Box */}
+      {/* Chat box */}
       <div className="chatbox" style={{ marginTop: "1rem" }}>
         <h4>Game Chat</h4>
         <div
@@ -741,7 +641,7 @@ export default function MultiplayerDuel() {
             </p>
           ))}
         </div>
-        {s.status === "active" && (
+        {!s.winner && (
           <div
             className="chat-input"
             style={{ display: "flex", marginTop: "0.5rem" }}
