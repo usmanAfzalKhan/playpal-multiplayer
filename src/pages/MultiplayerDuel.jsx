@@ -39,13 +39,7 @@ function rectsOverlap(r1, r2) {
   );
 }
 
-// Deep-copy a 2D array of objects
-function clone2D(arr) {
-  return arr.map(row => row.map(cell => ({ ...cell })));
-}
-
-// Generate an empty 2D array (300×300) for obstacles,
-// then randomly place 5 rectangles. Return array of { x,y,w,h }.
+// Generate 5 random non-overlapping obstacles at start
 function generateObstacles() {
   const newObs = [];
   let attempts = 0;
@@ -57,8 +51,7 @@ function generateObstacles() {
     const oy = randInt(50, ARENA_H - oh - 50);
     const rect = { x: ox, y: oy, w: ow, h: oh };
 
-    // ensure no overlap with existing or spawn zones
-    const overlap = newObs.some(o => rectsOverlap(o, rect)) ||
+    const overlap = newObs.some((o) => rectsOverlap(o, rect)) ||
       rectsOverlap(rect, { x: ARENA_W/2 - 15, y: ARENA_H - 30 - 15, w: 30, h: 30 }) ||
       rectsOverlap(rect, { x: ARENA_W/2 - 15, y: 15, w: 30, h: 30 });
 
@@ -67,30 +60,41 @@ function generateObstacles() {
   return newObs;
 }
 
-// Initialize pickups array empty
-// (clients will spawn locally but share the seed time to sync intervals)
-function seedPickups() {
-  return [];
-}
-
 export default function MultiplayerDuel() {
   const { gameId } = useParams();
   const navigate   = useNavigate();
   const user       = auth.currentUser;
 
+  // ─── GUARD AGAINST MISSING gameId ───────────────────────────────
+  if (!gameId) {
+    return (
+      <div className="duel-container">
+        <h2>No Duel Game ID Found</h2>
+        <p>
+          It looks like you’re visiting <code>/duel/multiplayer</code> without a valid game ID.
+          Please create or accept a duel from the Dashboard first.
+        </p>
+        <button className="quit-btn" onClick={() => navigate("/dashboard")}>
+          ❌ Back to Dashboard
+        </button>
+      </div>
+    );
+  }
+
   const canvasRef  = useRef(null);
   const moveVecRef = useRef({ dx: 0, dy: 0 });
 
-  // ─── Shared Game Data from Firestore ───────────────────────
+  // ─── Shared Game Data from Firestore ─────────────────────────────────
   const [gameDoc, setGameDoc]       = useState(null);
   const [gameStatus, setGameStatus] = useState("pending"); // "pending" | "active" | "finished"
   const [playerA, setPlayerA]       = useState("");
   const [playerB, setPlayerB]       = useState("");
   const [sharedState, setSharedState] = useState(null);
-  // sharedState will be an object holding:
+
+  // sharedState holds:
   // { started, paused, timer, obstacles, lastPickupTime,
   //   pAState: { x, y, health, ammo }, pBState: { x, y, health, ammo },
-  //   bulletsA: [], bulletsB: [], pickups: [] , chat: [] , currentTurn, winner }
+  //   bulletsA: [], bulletsB: [], pickups: [], chat: [], status, winner, leaving, initted }
 
   const [localState, setLocalState] = useState({
     started: false,
@@ -103,16 +107,18 @@ export default function MultiplayerDuel() {
     bulletsA: [],
     bulletsB: [],
     pickups: [],
-    currentTurn: "",     // uid whose turn it is (optional for turn-based logic)
-    winner: "",          // uid of winner once finished
-    chat: [],            // array of { sender, message, timestamp }
+    chat: [],
+    status: "pending",
+    winner: "",
+    leaving: [],
+    initted: false,
+    moveVecDesktop: { dx: 0, dy: 0 },
   });
 
   const [chatInput, setChatInput] = useState("");
-
   const isMobile = window.innerWidth < 768;
 
-  // ─── 1) On mount: validate and/or create game doc ───────────
+  // ─── 1) On mount: validate and/or create game doc ─────────────────────────
   useEffect(() => {
     if (!user) {
       navigate("/");
@@ -122,7 +128,7 @@ export default function MultiplayerDuel() {
 
     getDoc(docRef).then((snap) => {
       if (!snap.exists()) {
-        // If no such doc, redirect back
+        // No such game → redirect back
         navigate("/dashboard");
         return;
       }
@@ -150,22 +156,20 @@ export default function MultiplayerDuel() {
       setSharedState(data.state);
     });
 
-    // On unmount or page close, remove user from game or delete if both gone
+    // On unmount: mark leaving or delete if both left
     const cleanup = () => {
       getDoc(docRef).then((snap) => {
         if (!snap.exists()) return;
         const data = snap.data();
-        // Mark this user as having left
-        const leaves = data.leaving || [];
+        const leaves = data.state.leaving || [];
         if (!leaves.includes(user.uid)) {
           leaves.push(user.uid);
         }
         if (leaves.includes(data.playerA) && leaves.includes(data.playerB)) {
-          // both left → delete entire doc
           deleteDoc(docRef);
         } else {
-          // update leaving array
-          updateDoc(docRef, { leaving: leaves });
+          const updated = { ...data.state, leaving };
+          updateDoc(docRef, { state: updated });
         }
       });
     };
@@ -178,13 +182,14 @@ export default function MultiplayerDuel() {
     };
   }, [user, gameId, navigate]);
 
-  // ─── 2) When sharedState is first received, initialize local pieces ───
+  // ─── 2) Initialize shared state once Firestore doc activates ──────────────
   useEffect(() => {
     if (!sharedState) return;
-    // If state is null (just activated), set initial state
+
     if (!sharedState.initted && gameStatus === "active") {
-      const initObs       = generateObstacles();
-      const initPickups   = seedPickups();
+      // First activation: set up obstacles, etc.
+      const initObs     = generateObstacles();
+      const initPickups = [];
       const initState = {
         started: true,
         paused:  false,
@@ -197,37 +202,39 @@ export default function MultiplayerDuel() {
         bulletsB: [],
         pickups: initPickups,
         chat: [],
-        initted: true,
-        leaving: [],
+        status: "active",
         winner: "",
+        leaving: [],
+        initted: true,
+        moveVecDesktop: { dx: 0, dy: 0 },
       };
       setLocalState(initState);
       updateDoc(gameDoc, { state: initState });
     } else if (sharedState.initted) {
-      // Merge sharedState into localState
+      // Merge Firestore’s state into local
       setLocalState(sharedState);
     }
   }, [sharedState, gameStatus, gameDoc]);
 
-  // ─── 3) GAME LOOP ───────────────────────────────────────────
+  // ─── 3) Main game loop (60fps) ──────────────────────────────────────────
   useEffect(() => {
-    if (!localState.started || localState.paused || gameStatus !== "active") return;
+    if (!localState.started || localState.paused || localState.status !== "active") return;
     let last = performance.now();
     let rafId;
 
-    // Auto-aim compute
     const computeAim = (fromX, fromY, toX, toY, obstacles) => {
       let dx0 = toX - fromX;
       let dy0 = toY - fromY;
       const dist = Math.hypot(dx0, dy0) || 1;
-      // check obstacle collision along line
       const steps = Math.floor(dist / 5);
       let blocked = false;
       for (let i = 1; i < steps; i++) {
         const ix = fromX + (dx0 / steps) * i;
         const iy = fromY + (dy0 / steps) * i;
         if (
-          obstacles.some((o) => ix > o.x && ix < o.x + o.w && iy > o.y && iy < o.y + o.h)
+          obstacles.some(
+            (o) => ix > o.x && ix < o.x + o.w && iy > o.y && iy < o.y + o.h
+          )
         ) {
           blocked = true;
           break;
@@ -245,18 +252,16 @@ export default function MultiplayerDuel() {
       const dt = (now - last) / 1000;
       last = now;
 
-      const ns = { ...localState }; // copy
+      const ns = { ...localState };
 
       // ─── 3a) Move local player
       const isA = user.uid === playerA;
       const meKey = isA ? "pAState" : "pBState";
-      const youKey = isA ? "pBState" : "pAState";
       const vec = isMobile ? moveVecRef.current : localState.moveVecDesktop;
       if (vec && (vec.dx || vec.dy)) {
         const me = ns[meKey];
         const nx = Math.max(0, Math.min(ARENA_W, me.x + vec.dx * PLAYER_SPEED * dt));
         const ny = Math.max(0, Math.min(ARENA_H, me.y + vec.dy * PLAYER_SPEED * dt));
-        // check collisions
         let collision = false;
         for (const o of ns.obstacles) {
           if (nx > o.x && nx < o.x + o.w && ny > o.y && ny < o.y + o.h) {
@@ -270,7 +275,7 @@ export default function MultiplayerDuel() {
         }
       }
 
-      // ─── 3b) Update bullets A
+      // ─── 3b) Update bulletsA
       ns.bulletsA = ns.bulletsA.filter((b) => {
         b.x += b.dx * SHOT_SPEED * dt;
         b.y += b.dy * SHOT_SPEED * dt;
@@ -280,7 +285,6 @@ export default function MultiplayerDuel() {
             return false;
           }
         }
-        // hit B?
         const target = ns.pBState;
         if (Math.hypot(b.x - target.x, b.y - target.y) < 12) {
           target.health = Math.max(0, target.health - 1);
@@ -289,7 +293,7 @@ export default function MultiplayerDuel() {
         return true;
       });
 
-      // ─── 3c) Update bullets B
+      // ─── 3c) Update bulletsB
       ns.bulletsB = ns.bulletsB.filter((b) => {
         b.x += b.dx * SHOT_SPEED * dt;
         b.y += b.dy * SHOT_SPEED * dt;
@@ -299,7 +303,6 @@ export default function MultiplayerDuel() {
             return false;
           }
         }
-        // hit A?
         const target = ns.pAState;
         if (Math.hypot(b.x - target.x, b.y - target.y) < 12) {
           target.health = Math.max(0, target.health - 1);
@@ -308,11 +311,7 @@ export default function MultiplayerDuel() {
         return true;
       });
 
-      // ─── 3d) AI shooting for opponent
-      // If it's B's turn to shoot (when B is local user, do nothing here; if remote, we rely on remote actions)
-      // For simplicity, allow both to shoot at will—no turn-enforcement.
-
-      // ─── 3e) Spawn pickups every PICKUP_INTERVAL
+      // ─── 3d) Spawn pickups every PICKUP_INTERVAL
       const nowSec = Date.now() / 1000;
       if (nowSec - ns.lastPickupTime >= PICKUP_INTERVAL) {
         let px, py, tries = 0;
@@ -333,7 +332,7 @@ export default function MultiplayerDuel() {
         ns.lastPickupTime = nowSec;
       }
 
-      // ─── 3f) Check pickup collisions for both players
+      // ─── 3e) Check pickup collisions for both players
       ns.pickups = ns.pickups.filter((pk) => {
         const pa = ns.pAState;
         const pb = ns.pBState;
@@ -352,7 +351,7 @@ export default function MultiplayerDuel() {
         return true;
       });
 
-      // ─── 3g) Timer countdown
+      // ─── 3f) Timer countdown
       if (!ns.paused) {
         ns.timer -= dt;
         if (ns.timer <= 0) {
@@ -362,7 +361,7 @@ export default function MultiplayerDuel() {
         }
       }
 
-      // ─── 3h) Check health zero
+      // ─── 3g) Check health zero
       if (ns.pAState.health <= 0 || ns.pBState.health <= 0) {
         ns.winner = ns.pAState.health <= 0 ? playerB : playerA;
         ns.status = "finished";
@@ -380,7 +379,7 @@ export default function MultiplayerDuel() {
   }, [
     localState.started,
     localState.paused,
-    gameStatus,
+    localState.status,
     localState,
     playerA,
     playerB,
@@ -389,10 +388,10 @@ export default function MultiplayerDuel() {
     isMobile,
   ]);
 
-  // ─── 4) Desktop keyboard controls ───────────────────────────
+  // ─── 4) Desktop keyboard controls ─────────────────────────────────────
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (!localState.started || localState.paused || gameStatus !== "active") return;
+      if (!localState.started || localState.paused || localState.status !== "active") return;
       let dx = 0, dy = 0;
       if (e.key === "ArrowUp"    || /^[wW]$/.test(e.key)) dy = -1;
       if (e.key === "ArrowDown"  || /^[sS]$/.test(e.key)) dy =  1;
@@ -427,9 +426,9 @@ export default function MultiplayerDuel() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [localState.started, localState.paused, gameStatus, gameDoc]);
+  }, [localState.started, localState.paused, localState.status, gameDoc]);
 
-  // ─── 5) Mobile joystick handlers ────────────────────────────
+  // ─── 5) Mobile joystick handlers ─────────────────────────────────────
   const onLeftMove = (e) => {
     e.preventDefault();
     const t = e.touches[0];
@@ -443,9 +442,9 @@ export default function MultiplayerDuel() {
     moveVecRef.current = { dx: 0, dy: 0 };
   };
 
-  // ─── 6) Shoot handler (desktop & mobile) ───────────────────
+  // ─── 6) Shoot handler (desktop & mobile) ─────────────────────────────
   const handleShoot = () => {
-    if (!localState.started || localState.paused || gameStatus !== "active") return;
+    if (!localState.started || localState.paused || localState.status !== "active") return;
     const isA = user.uid === playerA;
     const pKey = isA ? "pAState" : "pBState";
     const bKey = isA ? "bulletsA" : "bulletsB";
@@ -454,11 +453,8 @@ export default function MultiplayerDuel() {
       setLocalState((ls) => ({ ...ls, message: "❗ No Ammo" }));
       return;
     }
-
-    // Auto-aim at opponent
     const opp = isA ? localState.pBState : localState.pAState;
     const aim = computeAimForShoot(me.x, me.y, opp.x, opp.y, localState.obstacles);
-
     const newBullet = { x: me.x, y: me.y, dx: aim.dx, dy: aim.dy };
     const updatedState = {
       ...localState,
@@ -469,7 +465,6 @@ export default function MultiplayerDuel() {
     setLocalState(updatedState);
   };
 
-  // Helper for computing aim
   const computeAimForShoot = (fromX, fromY, toX, toY, obstacles) => {
     let dx0 = toX - fromX;
     let dy0 = toY - fromY;
@@ -496,11 +491,13 @@ export default function MultiplayerDuel() {
     return { dx: dx0 / m, dy: dy0 / m };
   };
 
-  // ─── 7) Send Chat ───────────────────────────────────────────
+  // ─── 7) Send Chat ────────────────────────────────────────────────────
   const sendChat = async () => {
     if (!chatInput.trim()) return;
     const newMessage = {
-      sender:   localState.playerA === user.uid ? "Player A" : "Player B",
+      sender:   localState.pAState.x === localState[playerA === user.uid ? "pAState" : "pBState"].x
+        ? "Player A"
+        : "Player B",
       message:  chatInput,
       timestamp: Timestamp.now(),
     };
@@ -509,13 +506,12 @@ export default function MultiplayerDuel() {
     setChatInput("");
   };
 
-  // ─── 8) Quit Game ───────────────────────────────────────────
+  // ─── 8) Quit Game ────────────────────────────────────────────────────
   const handleQuit = async () => {
     if (!gameDoc) {
       navigate("/dashboard");
       return;
     }
-    // Add this user to leaving array
     const snap = await getDoc(gameDoc);
     if (!snap.exists()) {
       navigate("/dashboard");
@@ -529,15 +525,14 @@ export default function MultiplayerDuel() {
     if (leaves.includes(data.playerA) && leaves.includes(data.playerB)) {
       await deleteDoc(gameDoc);
     } else {
-      const updated = { ...data.state, leaving: leaves };
+      const updated = { ...data.state, leaving };
       await updateDoc(gameDoc, { state: updated });
     }
     navigate("/dashboard");
   };
 
-  // ─── 9) Render Functions ─────────────────────────────────────
+  // ─── 9) Render Canvas ─────────────────────────────────────────────────
   const renderGrid = () => {
-    // We only have one canvas for drawing both players, obstacles, bullets, pickups
     return (
       <canvas
         ref={canvasRef}
@@ -548,7 +543,7 @@ export default function MultiplayerDuel() {
     );
   };
 
-  // ─── 10) Draw Loop ───────────────────────────────────────────
+  // ─── 10) Draw Loop ────────────────────────────────────────────────────
   useEffect(() => {
     if (!sharedState || sharedState.status !== "active") return;
     const ctx = canvasRef.current.getContext("2d");
@@ -639,7 +634,7 @@ export default function MultiplayerDuel() {
     return () => cancelAnimationFrame(animId);
   }, [sharedState, playerA, playerB]);
 
-  // ─── 11) Render UI ──────────────────────────────────────────
+  // ─── 11) Render UI ───────────────────────────────────────────────────
   if (!gameDoc || !sharedState) {
     return (
       <div className="duel-container">
@@ -648,7 +643,7 @@ export default function MultiplayerDuel() {
     );
   }
 
-  if (gameStatus === "pending") {
+  if (localState.status === "pending") {
     return (
       <div className="duel-container">
         <h2>Waiting for opponent to join…</h2>
@@ -730,16 +725,27 @@ export default function MultiplayerDuel() {
       {/* Chat Box */}
       <div className="chatbox" style={{ marginTop: "1rem" }}>
         <h4>Game Chat</h4>
-        <div className="chat-messages" style={{ height: "120px", overflowY: "auto", background: "#1e293b", padding: "0.5rem", borderRadius: "4px" }}>
+        <div
+          className="chat-messages"
+          style={{
+            height: "120px",
+            overflowY: "auto",
+            background: "#1e293b",
+            padding: "0.5rem",
+            borderRadius: "4px",
+          }}
+        >
           {s.chat.map((m, i) => (
             <p key={i} style={{ margin: "0.25rem 0", color: "#cbd5e1" }}>
-              <strong style={{ color: "#fff" }}>{m.sender}:</strong>{" "}
-              {m.message}
+              <strong style={{ color: "#fff" }}>{m.sender}:</strong> {m.message}
             </p>
           ))}
         </div>
         {s.status === "active" && (
-          <div className="chat-input" style={{ display: "flex", marginTop: "0.5rem" }}>
+          <div
+            className="chat-input"
+            style={{ display: "flex", marginTop: "0.5rem" }}
+          >
             <input
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}

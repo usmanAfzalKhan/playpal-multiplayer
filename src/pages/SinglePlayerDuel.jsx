@@ -5,8 +5,9 @@ import './DuelGame.css';
 
 const ARENA_W        = 300;
 const ARENA_H        = 300;
-const PLAYER_SPEED   = 150;   // px/sec
-const SHOT_SPEED     = 200;   // px/sec
+// Adjusted speeds: player a bit faster, bullets a bit slower, so movement and shooting feel in sync
+const PLAYER_SPEED   = 200;   // px/sec (increased from 150)
+const SHOT_SPEED     = 150;   // px/sec (decreased from 200)
 const INITIAL_HEALTH = 5;
 const INITIAL_AMMO   = 10;
 const GAME_TIME      = 60;    // seconds
@@ -29,7 +30,7 @@ function rectsOverlap(r1, r2) {
 export default function SinglePlayerDuel() {
   const navigate       = useNavigate();
   const canvasRef      = useRef(null);
-  const moveVecRef     = useRef({ dx: 0, dy: 0 }); // mobile-only movement ref
+  const moveVecRef     = useRef({ dx: 0, dy: 0 }); // mobile movement
 
   // ─── Game State ─────────────────────────────────────────────
   const [countdown, setCountdown]    = useState(3);
@@ -46,13 +47,12 @@ export default function SinglePlayerDuel() {
   const [ammo,      setAmmo]         = useState(INITIAL_AMMO);
   const [timer,     setTimer]        = useState(GAME_TIME);
   const [moveVec,   setMoveVec]      = useState({ dx: 0, dy: 0 }); // desktop movement
-  const [shootVec,  setShootVec]     = useState(null);
 
   const [obstacles, setObstacles]    = useState([]);
   const [pickups,   setPickups]      = useState([]);
   const [lastPickupTime, setLastPickupTime] = useState(0);
 
-  // Detect mobile via viewport width (only show joystick/shoot-btn-mobile if <768px)
+  // Detect mobile via viewport width
   const isMobile = window.innerWidth < 768;
 
   // ─── 1) COUNTDOWN → START ────────────────────────────────────
@@ -191,7 +191,7 @@ export default function SinglePlayerDuel() {
       last = now;
 
       if (started && !paused && !gameOver) {
-        // ─── Move player smoothly (mobile uses ref, desktop uses state)
+        // ─── Move player (desktop: moveVec, mobile: moveVecRef) ───
         const vec = isMobile ? moveVecRef.current : moveVec;
         if (vec.dx || vec.dy) {
           setPlayer(p => {
@@ -199,14 +199,14 @@ export default function SinglePlayerDuel() {
             const ny = Math.max(0, Math.min(ARENA_H, p.y + vec.dy * PLAYER_SPEED * dt));
             for (const o of obstacles) {
               if (nx > o.x && nx < o.x + o.w && ny > o.y && ny < o.y + o.h) {
-                return p;
+                return p; // collision cancels move
               }
             }
             return { x: nx, y: ny };
           });
         }
 
-        // ─── Update bullets
+        // ─── Update bullets ────────────────────────────────────
         setBullets(bs =>
           bs.filter(b => {
             b.x += b.dx * SHOT_SPEED * dt;
@@ -225,7 +225,7 @@ export default function SinglePlayerDuel() {
           })
         );
 
-        // ─── Update AI shots
+        // ─── Update AI shots ─────────────────────────────────
         setAiShots(bs =>
           bs.filter(b => {
             b.x += b.dx * SHOT_SPEED * dt;
@@ -244,7 +244,7 @@ export default function SinglePlayerDuel() {
           })
         );
 
-        // ─── AI Movement
+        // ─── AI Movement ─────────────────────────────────────
         setAi(a => {
           let dodgeX = 0, dodgeY = 0;
           aiShots.forEach(s => {
@@ -271,8 +271,7 @@ export default function SinglePlayerDuel() {
           let vx = player.x - a.x;
           let vy = player.y - a.y;
           const dist = Math.hypot(vx, vy) || 1;
-          vx = vx / dist;
-          vy = vy / dist;
+          vx = vx / dist; vy = vy / dist;
           vx += (Math.random() - 0.5) * 0.2;
           vy += (Math.random() - 0.5) * 0.2;
           const m2 = Math.hypot(vx, vy) || 1;
@@ -287,13 +286,13 @@ export default function SinglePlayerDuel() {
           return { x: nx, y: ny };
         });
 
-        // ─── AI Shooting (auto-aim)
+        // ─── AI Shooting (auto-aim) ─────────────────────────
         if (Math.random() < 0.02) {
           const aim = computeAiAim();
           setAiShots(as => [...as, { x: ai.x, y: ai.y, dx: aim.dx, dy: aim.dy }]);
         }
 
-        // ─── Check pickups
+        // ─── Check pickups ───────────────────────────────────
         setPickups(ps =>
           ps.filter(pk => {
             const distP = Math.hypot(player.x - pk.x, player.y - pk.y);
@@ -395,12 +394,21 @@ export default function SinglePlayerDuel() {
     rafId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(rafId);
   }, [
-    started, paused, gameOver,
-    player, ai,
-    bullets, aiShots, countdown,
-    obstacles, pickups,
-    pHealth, aiHealth, timer,
-    isMobile // include only this flag, since moveVecRef is used internally
+    started,
+    paused,
+    gameOver,
+    player,
+    ai,
+    bullets,
+    aiShots,
+    countdown,
+    obstacles,
+    pickups,
+    pHealth,
+    aiHealth,
+    timer,
+    isMobile,
+    moveVec, // ensure desktop input affects movement
   ]);
 
   // ─── 7) SHOOT HANDLER (DESKTOP “Shoot” button / tap) ───────
@@ -458,7 +466,6 @@ export default function SinglePlayerDuel() {
     setMessage('');
     setMoveVec({ dx: 0, dy: 0 });
     moveVecRef.current = { dx: 0, dy: 0 };
-    setShootVec(null);
     setObstacles([]);
     setPickups([]);
     setLastPickupTime(Date.now() / 1000);
@@ -505,7 +512,7 @@ export default function SinglePlayerDuel() {
 
       {message && <p className="action-msg">{message}</p>}
 
-      {/* ─── On-screen joystick for movement (left) ───────────────── */}
+      {/* On-screen joystick for movement (mobile only) */}
       {isMobile && !gameOver && (
         <div
           className="joystick"
@@ -517,12 +524,9 @@ export default function SinglePlayerDuel() {
         </div>
       )}
 
-      {/* ─── Mobile-only Shoot button (bottom-right) ───────────────── */}
+      {/* Mobile-only Shoot button (bottom-right) */}
       {isMobile && !gameOver && (
-        <button
-          className="shoot-btn-mobile"
-          onTouchStart={handleShoot}
-        >
+        <button className="shoot-btn-mobile" onTouchStart={handleShoot}>
           💥
         </button>
       )}
