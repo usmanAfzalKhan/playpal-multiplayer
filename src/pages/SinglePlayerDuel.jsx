@@ -1,106 +1,62 @@
 // src/pages/SinglePlayerDuel.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate }             from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './DuelGame.css';
 
 const ARENA_W        = 300;
 const ARENA_H        = 300;
-// slowed down speeds for smoother play
-const PLAYER_SPEED   = 140;   // px/sec
-const SHOT_SPEED     = 160;   // px/sec
+const PLAYER_SPEED   = 150;   // px/sec
+const SHOT_SPEED     = 200;   // px/sec
 const INITIAL_HEALTH = 5;
 const INITIAL_AMMO   = 10;
-const GAME_TIME      = 60;
+const GAME_TIME      = 60;    // seconds
+const PICKUP_SIZE    = 12;    // px
+const PICKUP_INTERVAL = 5;    // seconds between spawning a new pickup
 
-// helper to get random number in [min, max]
-const rand = (min, max) => min + Math.random() * (max - min);
+// returns a random integer between min (inclusive) and max (exclusive)
+function randInt(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+
+// checks if two rectangles overlap
+function rectsOverlap(r1, r2) {
+  return (
+    r1.x < r2.x + r2.w &&
+    r1.x + r1.w > r2.x &&
+    r1.y < r2.y + r2.h &&
+    r1.y + r1.h > r2.y
+  );
+}
 
 export default function SinglePlayerDuel() {
-  const navigate       = useNavigate();
-  const canvasRef      = useRef(null);
+  const navigate   = useNavigate();
+  const canvasRef  = useRef(null);
 
-  // UI / control state
-  const [countdown, setCountdown] = useState(3);
-  const [started,   setStarted]   = useState(false);
-  const [paused,    setPaused]    = useState(false);
-  const [gameOver,  setGameOver]  = useState(false);
-  const [winner,    setWinner]    = useState(null);
-  const [pHealth,   setPHealth]   = useState(INITIAL_HEALTH);
-  const [aiHealth,  setAiHealth]  = useState(INITIAL_HEALTH);
-  const [ammo,      setAmmo]      = useState(INITIAL_AMMO);
-  const [aiAmmo,    setAiAmmo]    = useState(INITIAL_AMMO);
-  const [timer,     setTimer]     = useState(GAME_TIME);
-  const [msg,       setMsg]       = useState('');
+  // ─── Game State ─────────────────────────────────────────────
+  const [countdown, setCountdown]    = useState(3);
+  const [started,   setStarted]      = useState(false);
+  const [paused,    setPaused]       = useState(false);
+  const [gameOver,  setGameOver]     = useState(false);
+  const [message,   setMessage]      = useState('');
+  const [player,    setPlayer]       = useState({ x: ARENA_W/2, y: ARENA_H - 30 });
+  const [ai,        setAi]           = useState({ x: ARENA_W/2, y: 30 });
+  const [bullets,   setBullets]      = useState([]);
+  const [aiShots,   setAiShots]      = useState([]);
+  const [pHealth,   setPHealth]      = useState(INITIAL_HEALTH);
+  const [aiHealth,  setAiHealth]     = useState(INITIAL_HEALTH);
+  const [ammo,      setAmmo]         = useState(INITIAL_AMMO);
+  const [timer,     setTimer]        = useState(GAME_TIME);
+  const [moveVec,   setMoveVec]      = useState({ dx: 0, dy: 0 });
+  const [shootVec,  setShootVec]     = useState(null);
 
-  // key state for smooth diagonal movement
-  const keysDown = useRef({ up: false, down: false, left: false, right: false });
+  const [obstacles, setObstacles]    = useState([]);
+  const [pickups,   setPickups]      = useState([]); // array of { x, y, type: 'ammo'|'health' }
+  const [lastPickupTime, setLastPickupTime] = useState(0);
 
-  // refs for fast mutable game data
-  const playerRef    = useRef({ x: ARENA_W / 2, y: ARENA_H - 30 });
-  const aiRef        = useRef({ x: ARENA_W / 2, y: 30 });
-  const bulletsRef   = useRef([]); // player bullets
-  const shotsRef     = useRef([]); // AI bullets
-  const obstacles    = useRef([]); // will hold 5 random obstacles
-  const pickupsRef   = useRef([]); // array of { x, y, type }
+  // Detect mobile via viewport width (only show joystick/shoot-btn-mobile if <768px)
+  const isMobile = window.innerWidth < 768;
 
-  // Create 5 random obstacles at start or reset
-  const makeObstacles = () => {
-    const obs = [];
-    for (let i = 0; i < 5; i++) {
-      obs.push({
-        x: rand(20, ARENA_W - 80),
-        y: rand(20, ARENA_H - 80),
-        w: rand(30, 60),
-        h: rand(20, 40),
-      });
-    }
-    return obs;
-  };
-
-  // Spawn a pickup (ammo or health) at a location NOT inside any obstacle
-  const spawnValidPickup = (type) => {
-    let px, py, colliding;
-    let tries = 0;
-    do {
-      px = rand(20, ARENA_W - 20);
-      py = rand(20, ARENA_H - 20);
-      colliding = obstacles.current.some(o => 
-        px > o.x && px < o.x + o.w && py > o.y && py < o.y + o.h
-      );
-      tries++;
-    } while (colliding && tries < 50);
-    return { x: px, y: py, type };
-  };
-
-  // reset game state (called on mount and when resetting)
-  const resetGame = () => {
-    setCountdown(3);
-    setStarted(false);
-    setPaused(false);
-    setGameOver(false);
-    setWinner(null);
-    setPHealth(INITIAL_HEALTH);
-    setAiHealth(INITIAL_HEALTH);
-    setAmmo(INITIAL_AMMO);
-    setAiAmmo(INITIAL_AMMO);
-    setTimer(GAME_TIME);
-    setMsg('');
-
-    playerRef.current = { x: ARENA_W / 2, y: ARENA_H - 30 };
-    aiRef.current     = { x: ARENA_W / 2, y: 30 };
-    bulletsRef.current = [];
-    shotsRef.current   = [];
-    obstacles.current  = makeObstacles();
-    // spawn one ammo and one health at start
-    pickupsRef.current = [
-      spawnValidPickup('ammo'),
-      spawnValidPickup('health')
-    ];
-    keysDown.current   = { up: false, down: false, left: false, right: false };
-  };
-  useEffect(resetGame, []);
-
-  // countdown effect
+  // ─── 1) COUNTDOWN → START ────────────────────────────────────
   useEffect(() => {
     if (countdown <= 0) {
       setStarted(true);
@@ -110,321 +66,320 @@ export default function SinglePlayerDuel() {
     return () => clearTimeout(id);
   }, [countdown]);
 
-  // game timer effect
+  // ─── 2) GAME TIMER ──────────────────────────────────────────
   useEffect(() => {
     if (!started || paused || gameOver) return;
-    const tid = setInterval(() => {
+    const id = setInterval(() => {
       setTimer(t => {
         if (t <= 1) {
-          // decide winner on time up
-          if (pHealth > aiHealth) setWinner('player');
-          else if (aiHealth > pHealth) setWinner('ai');
-          else setWinner('draw');
+          clearInterval(id);
           setGameOver(true);
+          return 0;
         }
         return t - 1;
       });
     }, 1000);
-    return () => clearInterval(tid);
-  }, [started, paused, gameOver, pHealth, aiHealth]);
+    return () => clearInterval(id);
+  }, [started, paused, gameOver]);
 
-  // keyboard input for movement & pause
+  // ─── 3) RANDOMIZE OBSTACLES ONCE AT START ───────────────────
   useEffect(() => {
-    const down = (e) => {
+    if (!started) return;
+    const newObs = [];
+    let attempts = 0;
+    while (newObs.length < 5 && attempts < 200) {
+      attempts++;
+      const ow = randInt(30, 60);
+      const oh = randInt(20, 50);
+      const ox = randInt(10, ARENA_W - ow - 10);
+      const oy = randInt(50, ARENA_H - oh - 50);
+      const rect = { x: ox, y: oy, w: ow, h: oh };
+
+      // ensure no overlap with existing obstacles or spawn area (player/AI zones)
+      const overlap = newObs.some(o => rectsOverlap(o, rect)) ||
+        rectsOverlap(rect, { x: player.x - 15, y: player.y - 15, w: 30, h: 30 }) ||
+        rectsOverlap(rect, { x: ai.x - 15, y: ai.y - 15, w: 30, h: 30 });
+
+      if (!overlap) newObs.push(rect);
+    }
+    setObstacles(newObs);
+  }, [started]);
+
+  // ─── 4) SPAWN PICKUPS PERIODICALLY ──────────────────────────
+  useEffect(() => {
+    if (!started || paused || gameOver) return;
+    const now = Date.now() / 1000;
+    if (now - lastPickupTime >= PICKUP_INTERVAL) {
+      // find a random spawn location that doesn't overlap obstacles or other pickups
+      let px, py, tries = 0;
+      do {
+        px = randInt(15, ARENA_W - 15);
+        py = randInt(15, ARENA_H - 15);
+        const rect = { x: px - PICKUP_SIZE/2, y: py - PICKUP_SIZE/2, w: PICKUP_SIZE, h: PICKUP_SIZE };
+        const collidesObs = obstacles.some(o => rectsOverlap(o, rect));
+        const collidesPick = pickups.some(pk => rectsOverlap(pk, rect));
+        if (!collidesObs && !collidesPick) break;
+        tries++;
+      } while (tries < 50);
+
+      const nextType = pickups.length % 2 === 0 ? 'ammo' : 'health';
+      setPickups(ps => [...ps, { x: px, y: py, type: nextType }]);
+      setLastPickupTime(now);
+    }
+    // dummy timeout to force effect dependencies
+    const id = setTimeout(() => {}, 1000);
+    return () => clearTimeout(id);
+  }, [started, paused, gameOver, pickups, lastPickupTime, obstacles]);
+
+  // ─── 5) KEYBOARD CONTROLS (DESKTOP) ──────────────────────────
+  useEffect(() => {
+    const onKeyDown = e => {
       if (!started || paused || gameOver) return;
-      switch (e.key) {
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-          keysDown.current.up = true; break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-          keysDown.current.down = true; break;
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          keysDown.current.left = true; break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          keysDown.current.right = true; break;
-        case 'p':
-        case 'P':
-          setPaused(p => !p); break;
-        default: return;
-      }
-      e.preventDefault();
-    };
+      let dx = 0, dy = 0;
+      if (e.key === 'ArrowUp'    || /^[wW]$/.test(e.key)) dy = -1;
+      if (e.key === 'ArrowDown'  || /^[sS]$/.test(e.key)) dy =  1;
+      if (e.key === 'ArrowLeft'  || /^[aA]$/.test(e.key)) dx = -1;
+      if (e.key === 'ArrowRight' || /^[dD]$/.test(e.key)) dx =  1;
 
-    const up = (e) => {
-      switch (e.key) {
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-          keysDown.current.up = false; break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-          keysDown.current.down = false; break;
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          keysDown.current.left = false; break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          keysDown.current.right = false; break;
-        default: return;
+      if (dx || dy) {
+        const m = Math.hypot(dx, dy) || 1;
+        setMoveVec({ dx: dx/m, dy: dy/m });
       }
-      e.preventDefault();
+      if (e.key === 'p' || e.key === 'P') {
+        setPaused(p => !p);
+      }
     };
-
-    window.addEventListener('keydown', down);
-    window.addEventListener('keyup',   up);
+    const onKeyUp = e => {
+      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'].includes(e.key)) {
+        setMoveVec({ dx: 0, dy: 0 });
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup',   onKeyUp);
     return () => {
-      window.removeEventListener('keydown', down);
-      window.removeEventListener('keyup',   up);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup',   onKeyUp);
     };
   }, [started, paused, gameOver]);
 
-  // spawn a new pickup every 8 seconds, alternating types
+  // ─── 6) MAIN GAME LOOP (60fps) ──────────────────────────────
   useEffect(() => {
-    let spawnCount = 0;
-    const interval = setInterval(() => {
-      if (!started || paused || gameOver) return;
-      const type = (spawnCount % 2 === 0) ? 'ammo' : 'health';
-      pickupsRef.current.push(spawnValidPickup(type));
-      spawnCount++;
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [started, paused, gameOver]);
-
-  // main RAF loop: physics & rendering
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
     let last = performance.now();
-    let rafID;
+    let rafId;
 
-    const loop = (now) => {
-      const dt = (now - last) / 1000;
+    // AI chooses auto-aim: if an obstacle is blocking direct line, it will zig-zag slightly.
+    const computeAiAim = () => {
+      let dx0 = player.x - ai.x;
+      let dy0 = player.y - ai.y;
+      const dist = Math.hypot(dx0, dy0) || 1;
+
+      // Check if any obstacle blocks the straight line
+      const steps = Math.floor(dist / 5);
+      let blocked = false;
+      for (let i = 1; i < steps; i++) {
+        const ix = ai.x + (dx0/steps) * i;
+        const iy = ai.y + (dy0/steps) * i;
+        if (obstacles.some(o => ix > o.x && ix < o.x + o.w && iy > o.y && iy < o.y + o.h)) {
+          blocked = true;
+          break;
+        }
+      }
+      // If blocked, introduce a slight random offset to dodge around obstacle
+      if (blocked) {
+        dx0 += (Math.random() - 0.5) * 50;
+        dy0 += (Math.random() - 0.5) * 50;
+      }
+      const m = Math.hypot(dx0, dy0) || 1;
+      return { dx: dx0 / m, dy: dy0 / m };
+    };
+
+    const gameLoop = now => {
+      const dt = (now - last) / 1000; // delta time in seconds
       last = now;
 
       if (started && !paused && !gameOver) {
-        // 1) Move player using keysDown
-        let dx = 0, dy = 0;
-        if (keysDown.current.up)    dy -= 1;
-        if (keysDown.current.down)  dy += 1;
-        if (keysDown.current.left)  dx -= 1;
-        if (keysDown.current.right) dx += 1;
-        if (dx !== 0 || dy !== 0) {
-          const m = Math.hypot(dx, dy) || 1;
-          let px = playerRef.current.x + (dx / m) * PLAYER_SPEED * dt;
-          let py = playerRef.current.y + (dy / m) * PLAYER_SPEED * dt;
-          // clamp to arena
-          px = Math.max(0, Math.min(ARENA_W, px));
-          py = Math.max(0, Math.min(ARENA_H, py));
-          // obstacle collision
-          let blocked = false;
-          for (let o of obstacles.current) {
-            if (px > o.x && px < o.x + o.w && py > o.y && py < o.y + o.h) {
-              blocked = true;
-              break;
+        // ─── Move player smoothly
+        if (moveVec.dx || moveVec.dy) {
+          setPlayer(p => {
+            const nx = Math.max(0, Math.min(ARENA_W, p.x + moveVec.dx * PLAYER_SPEED * dt));
+            const ny = Math.max(0, Math.min(ARENA_H, p.y + moveVec.dy * PLAYER_SPEED * dt));
+            // check obstacle collision
+            for (const o of obstacles) {
+              if (nx > o.x && nx < o.x + o.w && ny > o.y && ny < o.y + o.h) {
+                return p; // cancel move if overlap
+              }
             }
-          }
-          if (!blocked) {
-            playerRef.current.x = px;
-            playerRef.current.y = py;
-          }
+            return { x: nx, y: ny };
+          });
         }
 
-        // 2) Update player bullets
-        bulletsRef.current = bulletsRef.current.filter(b => {
-          b.x += b.dx * SHOT_SPEED * dt;
-          b.y += b.dy * SHOT_SPEED * dt;
-          if (b.x < 0 || b.x > ARENA_W || b.y < 0 || b.y > ARENA_H) return false;
-          // obstacle collision
-          for (let o of obstacles.current) {
-            if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) {
+        // ─── Update existing bullets
+        setBullets(bs =>
+          bs.filter(b => {
+            b.x += b.dx * SHOT_SPEED * dt;
+            b.y += b.dy * SHOT_SPEED * dt;
+            // out of bounds?
+            if (b.x < 0 || b.x > ARENA_W || b.y < 0 || b.y > ARENA_H) return false;
+            // obstacle collision?
+            for (const o of obstacles) {
+              if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) {
+                return false;
+              }
+            }
+            // hit AI?
+            if (Math.hypot(b.x - ai.x, b.y - ai.y) < 12) {
+              setAiHealth(aH => Math.max(0, aH - 1));
               return false;
             }
-          }
-          // AI hit detection
-          if (Math.hypot(b.x - aiRef.current.x, b.y - aiRef.current.y) < 14) {
-            setAiHealth(h => {
-              const nh = h - 1;
-              if (nh <= 0) {
-                setWinner('player');
-                setGameOver(true);
-              }
-              return Math.max(0, nh);
-            });
-            return false;
-          }
-          return true;
-        });
+            return true;
+          })
+        );
 
-        // 3) Update AI bullets
-        shotsRef.current = shotsRef.current.filter(b => {
-          b.x += b.dx * SHOT_SPEED * dt;
-          b.y += b.dy * SHOT_SPEED * dt;
-          if (b.x < 0 || b.x > ARENA_W || b.y < 0 || b.y > ARENA_H) return false;
-          // obstacle collision
-          for (let o of obstacles.current) {
-            if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) {
+        // ─── Update AI shots
+        setAiShots(bs =>
+          bs.filter(b => {
+            b.x += b.dx * SHOT_SPEED * dt;
+            b.y += b.dy * SHOT_SPEED * dt;
+            if (b.x < 0 || b.x > ARENA_W || b.y < 0 || b.y > ARENA_H) return false;
+            for (const o of obstacles) {
+              if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) {
+                return false;
+              }
+            }
+            if (Math.hypot(b.x - player.x, b.y - player.y) < 12) {
+              setPHealth(pH => Math.max(0, pH - 1));
               return false;
             }
-          }
-          // player hit detection
-          if (Math.hypot(b.x - playerRef.current.x, b.y - playerRef.current.y) < 14) {
-            setPHealth(h => {
-              const nh = h - 1;
-              if (nh <= 0) {
-                setWinner('ai');
-                setGameOver(true);
-              }
-              return Math.max(0, nh);
-            });
-            return false;
-          }
-          return true;
-        });
+            return true;
+          })
+        );
 
-        // 4) AI movement (smarter dodge + chase)
-        {
-          let ax = aiRef.current.x, ay = aiRef.current.y;
-
-          // find nearest incoming bullet
-          let nearestBullet = null;
-          let nearestDist   = Infinity;
-          bulletsRef.current.forEach(b => {
-            const d = Math.hypot(b.x - ax, b.y - ay);
-            if (d < nearestDist) {
-              nearestDist   = d;
-              nearestBullet = b;
+        // ─── AI Movement: dodge near shots, otherwise pursue with jitter
+        setAi(a => {
+          let dodgeX = 0, dodgeY = 0;
+          aiShots.forEach(s => {
+            const dist = Math.hypot(a.x - s.x, a.y - s.y);
+            if (dist < 50) {
+              const ang = Math.atan2(a.y - s.y, a.x - s.x);
+              dodgeX += Math.cos(ang);
+              dodgeY += Math.sin(ang);
             }
           });
-
-          let vx = 0, vy = 0;
-          if (nearestBullet && nearestDist < 100) {
-            // dodge: move away from the bullet vector
-            let awayX = ax - nearestBullet.x;
-            let awayY = ay - nearestBullet.y;
-            const m0 = Math.hypot(awayX, awayY) || 1;
-            vx = (awayX / m0) * 1.2;
-            vy = (awayY / m0) * 1.2;
-          } else {
-            // chase the player
-            const dx0 = playerRef.current.x - ax;
-            const dy0 = playerRef.current.y - ay;
-            const m1  = Math.hypot(dx0, dy0) || 1;
-            vx = dx0 / m1;
-            vy = dy0 / m1;
+          if (Math.hypot(dodgeX, dodgeY) > 0.5) {
+            const m = Math.hypot(dodgeX, dodgeY);
+            dodgeX /= m; dodgeY /= m;
+            const nx = Math.max(0, Math.min(ARENA_W, a.x + dodgeX * PLAYER_SPEED * dt));
+            const ny = Math.max(0, Math.min(ARENA_H, a.y + dodgeY * PLAYER_SPEED * dt));
+            for (const o of obstacles) {
+              if (nx > o.x && nx < o.x + o.w && ny > o.y && ny < o.y + o.h) {
+                return a; // if dodge path blocked, stay
+              }
+            }
+            return { x: nx, y: ny };
           }
 
-          // add slight randomness
-          vx += (Math.random() - 0.5) * 0.1;
-          vy += (Math.random() - 0.5) * 0.1;
-
-          // update AI position
-          let nx = ax + vx * PLAYER_SPEED * dt;
-          let ny = ay + vy * PLAYER_SPEED * dt;
-          // clamp
-          nx = Math.max(0, Math.min(ARENA_W, nx));
-          ny = Math.max(0, Math.min(ARENA_H, ny));
-          // obstacle block
-          let blocked = false;
-          for (let o of obstacles.current) {
+          let vx = player.x - a.x;
+          let vy = player.y - a.y;
+          const dist = Math.hypot(vx, vy) || 1;
+          vx = vx / dist;
+          vy = vy / dist;
+          vx += (Math.random() - 0.5) * 0.2;
+          vy += (Math.random() - 0.5) * 0.2;
+          const m2 = Math.hypot(vx, vy) || 1;
+          vx /= m2; vy /= m2;
+          const nx = Math.max(0, Math.min(ARENA_W, a.x + vx * PLAYER_SPEED * dt));
+          const ny = Math.max(0, Math.min(ARENA_H, a.y + vy * PLAYER_SPEED * dt));
+          for (const o of obstacles) {
             if (nx > o.x && nx < o.x + o.w && ny > o.y && ny < o.y + o.h) {
-              blocked = true;
-              break;
+              return a; // if blocked, stay
             }
           }
-          if (!blocked) {
-            aiRef.current.x = nx;
-            aiRef.current.y = ny;
-          }
-        }
-
-        // 5) AI shooting (auto-aim, uses aiAmmo)
-        if (aiAmmo > 0 && Math.random() < 0.04) {
-          setAiAmmo(a => a - 1);
-          const { x: ax, y: ay } = aiRef.current;
-          const dx = playerRef.current.x - ax;
-          const dy = playerRef.current.y - ay;
-          const m  = Math.hypot(dx, dy) || 1;
-          shotsRef.current.push({ x: ax, y: ay, dx: dx / m, dy: dy / m });
-        }
-
-        // 6) Check pickups
-        pickupsRef.current = pickupsRef.current.filter(p => {
-          const dist = Math.hypot(p.x - playerRef.current.x, p.y - playerRef.current.y);
-          if (dist < 14) {
-            if (p.type === 'ammo') {
-              setAmmo(a => a + 5);
-              setMsg('⚡ Ammo +5');
-            } else {
-              setPHealth(h => Math.min(INITIAL_HEALTH, h + 1));
-              setMsg('❤️ Health +1');
-            }
-            return false;
-          }
-          return true;
+          return { x: nx, y: ny };
         });
+
+        // ─── AI Shooting (auto-aim)
+        if (Math.random() < 0.02) {
+          const aim = computeAiAim();
+          setAiShots(as => [...as, { x: ai.x, y: ai.y, dx: aim.dx, dy: aim.dy }]);
+        }
+
+        // ─── Check for picking up ammo/health
+        setPickups(ps =>
+          ps.filter(pk => {
+            const distP = Math.hypot(player.x - pk.x, player.y - pk.y);
+            if (distP < 14) {
+              if (pk.type === 'ammo') setAmmo(a => a + 3);
+              if (pk.type === 'health') setPHealth(h => Math.min(INITIAL_HEALTH, h + 1));
+              return false;
+            }
+            const distA = Math.hypot(ai.x - pk.x, ai.y - pk.y);
+            if (distA < 14) {
+              if (pk.type === 'health') {
+                setAiHealth(h => Math.min(INITIAL_HEALTH, h + 1));
+              }
+              return false;
+            }
+            return true;
+          })
+        );
       }
 
-      // ----- DRAW EVERYTHING -----
+      drawFrame();
+      rafId = requestAnimationFrame(gameLoop);
+    };
+
+    // ─── DRAWING FUNCTION (per frame) ─────────────────────────
+    const drawFrame = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      // background
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(0, 0, ARENA_W, ARENA_H);
 
-      // draw obstacles
+      // obstacles
       ctx.fillStyle = '#475569';
-      obstacles.current.forEach(o => ctx.fillRect(o.x, o.y, o.w, o.h));
+      obstacles.forEach(o => ctx.fillRect(o.x, o.y, o.w, o.h));
 
-      // draw pickups
-      pickupsRef.current.forEach(p => {
-        if (p.type === 'ammo') {
-          ctx.fillStyle = '#10b981';
-          ctx.fillRect(p.x - 6, p.y - 6, 12, 12);
-        } else {
-          ctx.fillStyle = '#ef4444';
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
-          ctx.fill();
-        }
+      // pickups
+      pickups.forEach(pk => {
+        if (pk.type === 'ammo') ctx.fillStyle = '#22c55e'; // green
+        else ctx.fillStyle = '#f87171'; // red for health
+        ctx.beginPath();
+        ctx.arc(pk.x, pk.y, PICKUP_SIZE / 2, 0, 2 * Math.PI);
+        ctx.fill();
       });
 
-      // draw AI
+      // AI
       ctx.fillStyle = 'magenta';
       ctx.beginPath();
-      ctx.arc(aiRef.current.x, aiRef.current.y, 10, 0, Math.PI * 2);
+      ctx.arc(ai.x, ai.y, 10, 0, 2 * Math.PI);
       ctx.fill();
 
-      // draw player
+      // player
       ctx.fillStyle = 'cyan';
       ctx.beginPath();
-      ctx.arc(playerRef.current.x, playerRef.current.y, 10, 0, Math.PI * 2);
+      ctx.arc(player.x, player.y, 10, 0, 2 * Math.PI);
       ctx.fill();
 
-      // draw player bullets
+      // bullets
       ctx.fillStyle = 'white';
-      bulletsRef.current.forEach(b => {
+      bullets.forEach(b => {
         ctx.beginPath();
-        ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+        ctx.arc(b.x, b.y, 4, 0, 2 * Math.PI);
         ctx.fill();
       });
 
-      // draw AI shots
+      // AI shots
       ctx.fillStyle = 'yellow';
-      shotsRef.current.forEach(b => {
+      aiShots.forEach(b => {
         ctx.beginPath();
-        ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+        ctx.arc(b.x, b.y, 4, 0, 2 * Math.PI);
         ctx.fill();
       });
 
-      // draw countdown overlay
+      // countdown overlay
       if (!started) {
         ctx.fillStyle = 'white';
         ctx.font = '30px sans-serif';
@@ -432,9 +387,9 @@ export default function SinglePlayerDuel() {
         ctx.fillText(countdown, ARENA_W / 2, ARENA_H / 2);
       }
 
-      // draw paused overlay
+      // paused overlay
       if (paused) {
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(0, 0, ARENA_W, ARENA_H);
         ctx.fillStyle = 'white';
         ctx.font = '20px sans-serif';
@@ -442,50 +397,101 @@ export default function SinglePlayerDuel() {
         ctx.fillText('PAUSED', ARENA_W / 2, ARENA_H / 2);
       }
 
-      // draw game over overlay
+      // Game Over overlay
       if (gameOver) {
         ctx.fillStyle = 'rgba(0,0,0,0.7)';
         ctx.fillRect(0, 0, ARENA_W, ARENA_H);
         ctx.fillStyle = 'white';
         ctx.font = '24px sans-serif';
         ctx.textAlign = 'center';
-        let text;
-        if (winner === 'player') text = 'You Win!';
-        else if (winner === 'ai') text = 'You Lose!';
-        else text = 'Draw!';
-        ctx.fillText(text, ARENA_W / 2, ARENA_H / 2 - 10);
+        if (pHealth <= 0 && aiHealth <= 0) {
+          ctx.fillText(`Draw!`, ARENA_W / 2, ARENA_H / 2 - 10);
+        } else if (pHealth <= 0) {
+          ctx.fillText(`You Lose!`, ARENA_W / 2, ARENA_H / 2 - 10);
+        } else {
+          ctx.fillText(`You Win!`, ARENA_W / 2, ARENA_H / 2 - 10);
+        }
       }
-
-      rafID = requestAnimationFrame(loop);
     };
 
-    rafID = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(rafID);
+    rafId = requestAnimationFrame(gameLoop);
+    return () => cancelAnimationFrame(rafId);
   }, [
     started, paused, gameOver,
-    countdown, timer,
-    pHealth, aiHealth, aiAmmo,
+    moveVec, player, ai,
+    bullets, aiShots, countdown,
+    obstacles, pickups,
+    pHealth, aiHealth, timer
   ]);
 
-  // handle player shooting (auto-aim)
+  // ─── 7) SHOOT HANDLER (DESKTOP “Shoot” button / tap) ───────
   const handleShoot = () => {
     if (!started || paused || gameOver) return;
     if (ammo <= 0) {
-      setMsg('❗ No Ammo');
+      setMessage('❗ No Ammo');
       return;
     }
+    // auto-aim toward AI
+    const dx0 = ai.x - player.x;
+    const dy0 = ai.y - player.y;
+    const m = Math.hypot(dx0, dy0) || 1;
     setAmmo(a => a - 1);
-    const px = playerRef.current.x, py = playerRef.current.y;
-    const ax = aiRef.current.x, ay = aiRef.current.y;
-    const dx = ax - px, dy = ay - py;
-    const m  = Math.hypot(dx, dy) || 1;
-    bulletsRef.current.push({ x: px, y: py, dx: dx / m, dy: dy / m });
+    setBullets(bs => [
+      ...bs,
+      { x: player.x, y: player.y, dx: dx0 / m, dy: dy0 / m }
+    ]);
+  };
+
+  // ─── 8) MOBILE JOYSTICK (LEFT) ─────────────────────────────
+  const onLeftMove = e => {
+    e.preventDefault();
+    const t = e.touches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    let dx = (t.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
+    let dy = (t.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
+    const m = Math.hypot(dx, dy) || 1;
+    setMoveVec({ dx: dx / m, dy: dy / m });
+  };
+  const onLeftEnd = () => {
+    setMoveVec({ dx: 0, dy: 0 });
+  };
+
+  // ─── 9) END-OF-GAME CHECK ────────────────────────────────────
+  useEffect(() => {
+    if (pHealth <= 0 || aiHealth <= 0 || timer <= 0) {
+      setGameOver(true);
+    }
+  }, [pHealth, aiHealth, timer]);
+
+  // ─── 10) RESET & RENDER UI ──────────────────────────────────
+  const resetGame = () => {
+    setCountdown(3);
+    setStarted(false);
+    setPaused(false);
+    setGameOver(false);
+    setPlayer({ x: ARENA_W / 2, y: ARENA_H - 30 });
+    setAi({ x: ARENA_W / 2, y: 30 });
+    setBullets([]);
+    setAiShots([]);
+    setPHealth(INITIAL_HEALTH);
+    setAiHealth(INITIAL_HEALTH);
+    setAmmo(INITIAL_AMMO);
+    setTimer(GAME_TIME);
+    setMessage('');
+    setMoveVec({ dx: 0, dy: 0 });
+    setShootVec(null);
+    setObstacles([]);
+    setPickups([]);
+    setLastPickupTime(Date.now() / 1000);
   };
 
   return (
     <div className="duel-container">
       <h2>Duel Shots: Single Player</h2>
-      <p>Use WASD/Arrows to move (diagonals work), 🔫 Shoot auto-aims. P to pause.</p>
+      <p>
+        Use WASD/Arrows to move (diagonals work), 💥 to shoot (auto-aim), P to pause.
+      </p>
+
       <div className="status-bar-duel">
         <span>❤️ {pHealth}</span>
         <span>AI ❤️ {aiHealth}</span>
@@ -497,23 +503,50 @@ export default function SinglePlayerDuel() {
         ref={canvasRef}
         width={ARENA_W}
         height={ARENA_H}
+        className="duel-canvas"
       />
 
-      <div className="button-row">
+      <div className="controls-row">
+        <button onClick={handleShoot} className="shoot-btn">
+          💥 Shoot
+        </button>
         {gameOver ? (
-          <button onClick={resetGame} className="play-again">▶️ Play Again</button>
+          <button onClick={resetGame} className="play-again">
+            ▶️ Play Again
+          </button>
         ) : (
-          <>
-            <button onClick={handleShoot} className="shoot-btn">🔫 Shoot</button>
-            <button onClick={() => setPaused(p => !p)} className="pause-btn">
-              {paused ? '▶️ Resume' : '⏸️ Pause'}
-            </button>
-          </>
+          <button onClick={() => setPaused(p => !p)} className="pause-btn">
+            {paused ? '▶️ Resume' : '⏸️ Pause'}
+          </button>
         )}
-        <button onClick={() => navigate('/dashboard')} className="quit-btn">❌ Quit</button>
+        <button onClick={() => navigate('/dashboard')} className="quit-btn">
+          ❌ Quit
+        </button>
       </div>
 
-      {msg && <p className="action-msg">{msg}</p>}
+      {message && <p className="action-msg">{message}</p>}
+
+      {/* ─── On-screen joystick for movement (left) ───────────────── */}
+      {isMobile && !gameOver && (
+        <div
+          className="joystick"
+          onTouchStart={onLeftMove}
+          onTouchMove={onLeftMove}
+          onTouchEnd={onLeftEnd}
+        >
+          <div className="knob" />
+        </div>
+      )}
+
+      {/* ─── Mobile-only Shoot button (bottom-right) ───────────────── */}
+      {isMobile && !gameOver && (
+        <button
+          className="shoot-btn-mobile"
+          onTouchStart={handleShoot}
+        >
+          💥
+        </button>
+      )}
     </div>
   );
 }
