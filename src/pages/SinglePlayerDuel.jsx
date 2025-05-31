@@ -13,12 +13,10 @@ const GAME_TIME      = 60;    // seconds
 const PICKUP_SIZE    = 12;    // px
 const PICKUP_INTERVAL = 5;    // seconds between spawning a new pickup
 
-// returns a random integer between min (inclusive) and max (exclusive)
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
-// checks if two rectangles overlap
 function rectsOverlap(r1, r2) {
   return (
     r1.x < r2.x + r2.w &&
@@ -29,8 +27,9 @@ function rectsOverlap(r1, r2) {
 }
 
 export default function SinglePlayerDuel() {
-  const navigate   = useNavigate();
-  const canvasRef  = useRef(null);
+  const navigate       = useNavigate();
+  const canvasRef      = useRef(null);
+  const moveVecRef     = useRef({ dx: 0, dy: 0 }); // mobile-only movement ref
 
   // ─── Game State ─────────────────────────────────────────────
   const [countdown, setCountdown]    = useState(3);
@@ -46,11 +45,11 @@ export default function SinglePlayerDuel() {
   const [aiHealth,  setAiHealth]     = useState(INITIAL_HEALTH);
   const [ammo,      setAmmo]         = useState(INITIAL_AMMO);
   const [timer,     setTimer]        = useState(GAME_TIME);
-  const [moveVec,   setMoveVec]      = useState({ dx: 0, dy: 0 });
+  const [moveVec,   setMoveVec]      = useState({ dx: 0, dy: 0 }); // desktop movement
   const [shootVec,  setShootVec]     = useState(null);
 
   const [obstacles, setObstacles]    = useState([]);
-  const [pickups,   setPickups]      = useState([]); // array of { x, y, type: 'ammo'|'health' }
+  const [pickups,   setPickups]      = useState([]);
   const [lastPickupTime, setLastPickupTime] = useState(0);
 
   // Detect mobile via viewport width (only show joystick/shoot-btn-mobile if <768px)
@@ -95,7 +94,6 @@ export default function SinglePlayerDuel() {
       const oy = randInt(50, ARENA_H - oh - 50);
       const rect = { x: ox, y: oy, w: ow, h: oh };
 
-      // ensure no overlap with existing obstacles or spawn area (player/AI zones)
       const overlap = newObs.some(o => rectsOverlap(o, rect)) ||
         rectsOverlap(rect, { x: player.x - 15, y: player.y - 15, w: 30, h: 30 }) ||
         rectsOverlap(rect, { x: ai.x - 15, y: ai.y - 15, w: 30, h: 30 });
@@ -110,7 +108,6 @@ export default function SinglePlayerDuel() {
     if (!started || paused || gameOver) return;
     const now = Date.now() / 1000;
     if (now - lastPickupTime >= PICKUP_INTERVAL) {
-      // find a random spawn location that doesn't overlap obstacles or other pickups
       let px, py, tries = 0;
       do {
         px = randInt(15, ARENA_W - 15);
@@ -126,7 +123,6 @@ export default function SinglePlayerDuel() {
       setPickups(ps => [...ps, { x: px, y: py, type: nextType }]);
       setLastPickupTime(now);
     }
-    // dummy timeout to force effect dependencies
     const id = setTimeout(() => {}, 1000);
     return () => clearTimeout(id);
   }, [started, paused, gameOver, pickups, lastPickupTime, obstacles]);
@@ -167,13 +163,11 @@ export default function SinglePlayerDuel() {
     let last = performance.now();
     let rafId;
 
-    // AI chooses auto-aim: if an obstacle is blocking direct line, it will zig-zag slightly.
     const computeAiAim = () => {
       let dx0 = player.x - ai.x;
       let dy0 = player.y - ai.y;
       const dist = Math.hypot(dx0, dy0) || 1;
 
-      // Check if any obstacle blocks the straight line
       const steps = Math.floor(dist / 5);
       let blocked = false;
       for (let i = 1; i < steps; i++) {
@@ -184,7 +178,6 @@ export default function SinglePlayerDuel() {
           break;
         }
       }
-      // If blocked, introduce a slight random offset to dodge around obstacle
       if (blocked) {
         dx0 += (Math.random() - 0.5) * 50;
         dy0 += (Math.random() - 0.5) * 50;
@@ -194,39 +187,36 @@ export default function SinglePlayerDuel() {
     };
 
     const gameLoop = now => {
-      const dt = (now - last) / 1000; // delta time in seconds
+      const dt = (now - last) / 1000;
       last = now;
 
       if (started && !paused && !gameOver) {
-        // ─── Move player smoothly
-        if (moveVec.dx || moveVec.dy) {
+        // ─── Move player smoothly (mobile uses ref, desktop uses state)
+        const vec = isMobile ? moveVecRef.current : moveVec;
+        if (vec.dx || vec.dy) {
           setPlayer(p => {
-            const nx = Math.max(0, Math.min(ARENA_W, p.x + moveVec.dx * PLAYER_SPEED * dt));
-            const ny = Math.max(0, Math.min(ARENA_H, p.y + moveVec.dy * PLAYER_SPEED * dt));
-            // check obstacle collision
+            const nx = Math.max(0, Math.min(ARENA_W, p.x + vec.dx * PLAYER_SPEED * dt));
+            const ny = Math.max(0, Math.min(ARENA_H, p.y + vec.dy * PLAYER_SPEED * dt));
             for (const o of obstacles) {
               if (nx > o.x && nx < o.x + o.w && ny > o.y && ny < o.y + o.h) {
-                return p; // cancel move if overlap
+                return p;
               }
             }
             return { x: nx, y: ny };
           });
         }
 
-        // ─── Update existing bullets
+        // ─── Update bullets
         setBullets(bs =>
           bs.filter(b => {
             b.x += b.dx * SHOT_SPEED * dt;
             b.y += b.dy * SHOT_SPEED * dt;
-            // out of bounds?
             if (b.x < 0 || b.x > ARENA_W || b.y < 0 || b.y > ARENA_H) return false;
-            // obstacle collision?
             for (const o of obstacles) {
               if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) {
                 return false;
               }
             }
-            // hit AI?
             if (Math.hypot(b.x - ai.x, b.y - ai.y) < 12) {
               setAiHealth(aH => Math.max(0, aH - 1));
               return false;
@@ -254,7 +244,7 @@ export default function SinglePlayerDuel() {
           })
         );
 
-        // ─── AI Movement: dodge near shots, otherwise pursue with jitter
+        // ─── AI Movement
         setAi(a => {
           let dodgeX = 0, dodgeY = 0;
           aiShots.forEach(s => {
@@ -272,7 +262,7 @@ export default function SinglePlayerDuel() {
             const ny = Math.max(0, Math.min(ARENA_H, a.y + dodgeY * PLAYER_SPEED * dt));
             for (const o of obstacles) {
               if (nx > o.x && nx < o.x + o.w && ny > o.y && ny < o.y + o.h) {
-                return a; // if dodge path blocked, stay
+                return a;
               }
             }
             return { x: nx, y: ny };
@@ -291,7 +281,7 @@ export default function SinglePlayerDuel() {
           const ny = Math.max(0, Math.min(ARENA_H, a.y + vy * PLAYER_SPEED * dt));
           for (const o of obstacles) {
             if (nx > o.x && nx < o.x + o.w && ny > o.y && ny < o.y + o.h) {
-              return a; // if blocked, stay
+              return a;
             }
           }
           return { x: nx, y: ny };
@@ -303,7 +293,7 @@ export default function SinglePlayerDuel() {
           setAiShots(as => [...as, { x: ai.x, y: ai.y, dx: aim.dx, dy: aim.dy }]);
         }
 
-        // ─── Check for picking up ammo/health
+        // ─── Check pickups
         setPickups(ps =>
           ps.filter(pk => {
             const distP = Math.hypot(player.x - pk.x, player.y - pk.y);
@@ -328,42 +318,34 @@ export default function SinglePlayerDuel() {
       rafId = requestAnimationFrame(gameLoop);
     };
 
-    // ─── DRAWING FUNCTION (per frame) ─────────────────────────
     const drawFrame = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
 
-      // background
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(0, 0, ARENA_W, ARENA_H);
 
-      // obstacles
       ctx.fillStyle = '#475569';
       obstacles.forEach(o => ctx.fillRect(o.x, o.y, o.w, o.h));
 
-      // pickups
       pickups.forEach(pk => {
-        if (pk.type === 'ammo') ctx.fillStyle = '#22c55e'; // green
-        else ctx.fillStyle = '#f87171'; // red for health
+        ctx.fillStyle = pk.type === 'ammo' ? '#22c55e' : '#f87171';
         ctx.beginPath();
         ctx.arc(pk.x, pk.y, PICKUP_SIZE / 2, 0, 2 * Math.PI);
         ctx.fill();
       });
 
-      // AI
       ctx.fillStyle = 'magenta';
       ctx.beginPath();
       ctx.arc(ai.x, ai.y, 10, 0, 2 * Math.PI);
       ctx.fill();
 
-      // player
       ctx.fillStyle = 'cyan';
       ctx.beginPath();
       ctx.arc(player.x, player.y, 10, 0, 2 * Math.PI);
       ctx.fill();
 
-      // bullets
       ctx.fillStyle = 'white';
       bullets.forEach(b => {
         ctx.beginPath();
@@ -371,7 +353,6 @@ export default function SinglePlayerDuel() {
         ctx.fill();
       });
 
-      // AI shots
       ctx.fillStyle = 'yellow';
       aiShots.forEach(b => {
         ctx.beginPath();
@@ -379,7 +360,6 @@ export default function SinglePlayerDuel() {
         ctx.fill();
       });
 
-      // countdown overlay
       if (!started) {
         ctx.fillStyle = 'white';
         ctx.font = '30px sans-serif';
@@ -387,7 +367,6 @@ export default function SinglePlayerDuel() {
         ctx.fillText(countdown, ARENA_W / 2, ARENA_H / 2);
       }
 
-      // paused overlay
       if (paused) {
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(0, 0, ARENA_W, ARENA_H);
@@ -397,7 +376,6 @@ export default function SinglePlayerDuel() {
         ctx.fillText('PAUSED', ARENA_W / 2, ARENA_H / 2);
       }
 
-      // Game Over overlay
       if (gameOver) {
         ctx.fillStyle = 'rgba(0,0,0,0.7)';
         ctx.fillRect(0, 0, ARENA_W, ARENA_H);
@@ -418,10 +396,11 @@ export default function SinglePlayerDuel() {
     return () => cancelAnimationFrame(rafId);
   }, [
     started, paused, gameOver,
-    moveVec, player, ai,
+    player, ai,
     bullets, aiShots, countdown,
     obstacles, pickups,
-    pHealth, aiHealth, timer
+    pHealth, aiHealth, timer,
+    isMobile // include only this flag, since moveVecRef is used internally
   ]);
 
   // ─── 7) SHOOT HANDLER (DESKTOP “Shoot” button / tap) ───────
@@ -431,7 +410,6 @@ export default function SinglePlayerDuel() {
       setMessage('❗ No Ammo');
       return;
     }
-    // auto-aim toward AI
     const dx0 = ai.x - player.x;
     const dy0 = ai.y - player.y;
     const m = Math.hypot(dx0, dy0) || 1;
@@ -450,10 +428,10 @@ export default function SinglePlayerDuel() {
     let dx = (t.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
     let dy = (t.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
     const m = Math.hypot(dx, dy) || 1;
-    setMoveVec({ dx: dx / m, dy: dy / m });
+    moveVecRef.current = { dx: dx / m, dy: dy / m };
   };
   const onLeftEnd = () => {
-    setMoveVec({ dx: 0, dy: 0 });
+    moveVecRef.current = { dx: 0, dy: 0 };
   };
 
   // ─── 9) END-OF-GAME CHECK ────────────────────────────────────
@@ -479,6 +457,7 @@ export default function SinglePlayerDuel() {
     setTimer(GAME_TIME);
     setMessage('');
     setMoveVec({ dx: 0, dy: 0 });
+    moveVecRef.current = { dx: 0, dy: 0 };
     setShootVec(null);
     setObstacles([]);
     setPickups([]);
