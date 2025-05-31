@@ -95,7 +95,7 @@ button {
 
 .joystick.left {
   left: 16px;
-  bottom: 180px; /* Raised so it doesn’t overlap chat input */
+  bottom: 200px; /* Raised above chat input */
 }
 
 .joystick .knob {
@@ -111,7 +111,7 @@ button {
 
 .shoot-btn-mobile {
   position: absolute;
-  bottom: 180px; /* Above chat input */
+  bottom: 200px; /* Raised above chat input */
   right: 16px;
   width: 56px;
   height: 56px;
