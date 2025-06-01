@@ -1,3 +1,5 @@
+/* src/pages/AuthPage.css */
+
 .auth-container {
   height: 100vh;
   width: 100vw;
@@ -6,26 +8,27 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  text-align: center;
   padding: 2rem;
   box-sizing: border-box;
 }
 
+.auth-logo-wrapper {
+  margin-bottom: 1.5rem;
+}
+
 .auth-logo {
-  display: block;
   width: 140px;
   height: 140px;
   border-radius: 50%;
   object-fit: cover;
-  margin-bottom: 2rem;
   transition: transform 0.2s, box-shadow 0.3s ease;
+  cursor: pointer;
 }
 
 .auth-logo:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 20px 4px #38bdf8aa; /* ✨ light blue glow */
+  box-shadow: 0 0 20px 4px rgba(56, 189, 248, 0.5);
 }
-
 
 .auth-box {
   background-color: #0f172a;
@@ -35,10 +38,12 @@
   max-width: 400px;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
   box-sizing: border-box;
+  text-align: center;
 }
 
 .auth-box h2 {
   margin-bottom: 1rem;
+  color: #f1f5f9;
 }
 
 .auth-box form {
@@ -54,9 +59,15 @@
   border-radius: 6px;
   font-size: 1rem;
   box-sizing: border-box;
+  background-color: #334155;
+  color: #f1f5f9;
 }
 
-.auth-box button {
+.auth-box input::placeholder {
+  color: #cbd5e1;
+}
+
+.auth-submit-button {
   width: 100%;
   padding: 0.75rem;
   border: none;
@@ -69,12 +80,31 @@
   transition: background-color 0.2s;
 }
 
-.auth-box button:hover {
+.auth-submit-button:hover {
   background-color: #0ea5e9;
+}
+
+.forgot-password {
+  margin-top: 0.75rem;
+  color: #38bdf8;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.auth-error {
+  color: #f87171;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
 }
 
 .switch-mode {
   margin-top: 1rem;
   font-size: 0.9rem;
-  color: #ccc;
+  color: #cbd5e1;
+}
+
+.toggle-link {
+  color: #38bdf8;
+  cursor: pointer;
+  text-decoration: underline;
 }
