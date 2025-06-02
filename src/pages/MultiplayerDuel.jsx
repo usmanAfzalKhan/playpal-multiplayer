@@ -143,7 +143,6 @@ export default function MultiplayerDuel() {
   };
 
   // ─── D) Wait for “status” → “active” (Player A’s side) ───
-  // If status flips to “active,” then navigate into /duel/multiplayer/<gameId>
   useEffect(() => {
     if (!waitingId) return;
     const docRef = doc(db, "duelGames", waitingId);
