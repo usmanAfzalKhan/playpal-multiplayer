@@ -18,16 +18,15 @@ import { useNavigate } from 'react-router-dom';
 import { FaBell } from 'react-icons/fa';
 
 export default function Profile() {
-  const [username, setUsername]                = useState('');
-  const [friends, setFriends]                  = useState([]);
-  const [blocked, setBlocked]                  = useState([]);
-  const [notifications, setNotifications]      = useState([]);
+  const [username, setUsername]                  = useState('');
+  const [friends, setFriends]                    = useState([]);
+  const [blocked, setBlocked]                    = useState([]);
+  const [notifications, setNotifications]        = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [requests, setRequests]                = useState([]);
+  const [requests, setRequests]                  = useState([]);
 
   const navigate = useNavigate();
 
-  // ─── Load profile data + subscribe to notifications ───
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return navigate('/');
@@ -62,7 +61,6 @@ export default function Profile() {
     return () => unsub();
   }, [navigate]);
 
-  // ─── Friend request handlers ───
   const handleAcceptRequest = async (requestUid, requestUsername) => {
     const currentUid = auth.currentUser.uid;
 
@@ -113,36 +111,35 @@ export default function Profile() {
     setBlocked(blocked.filter(user => user.uid !== blockedUid));
   };
 
-  // ─── Notification helpers ───
-  const markNotificationRead = async (notifId) => {
-    const currentUid = auth.currentUser.uid;
-    await deleteDoc(doc(db, `users/${currentUid}/notifications/${notifId}`));
+  // ─── Remove a notification ─────────────────────────────────
+  const removeNotification = async (notifId) => {
+    await deleteDoc(doc(db, `users/${auth.currentUser.uid}/notifications/${notifId}`));
   };
 
-  // ─── Accept game invites (exactly like Dashboard.jsx) ───
+  // ─── Accept game invites ──────────────────────────────────
   const acceptHangmanInvite = async notif => {
     await updateDoc(doc(db, `hangman_games/${notif.gameId}`), { status: 'active' });
-    markNotificationRead(notif.id);
+    removeNotification(notif.id);
     navigate(`/hangman/multiplayer/${notif.gameId}`);
   };
   const acceptTicTacToeInvite = async notif => {
     await updateDoc(doc(db, `tictactoe_games/${notif.gameId}`), { status: 'active' });
-    markNotificationRead(notif.id);
+    removeNotification(notif.id);
     navigate(`/tictactoe/multiplayer/${notif.gameId}`);
   };
   const acceptConnectFourInvite = async notif => {
     await updateDoc(doc(db, `connect4_games/${notif.gameId}`), { status: 'active' });
-    markNotificationRead(notif.id);
+    removeNotification(notif.id);
     navigate(`/connect4/multiplayer/${notif.gameId}`);
   };
   const acceptBattleshipInvite = async notif => {
     await updateDoc(doc(db, `battleship_games/${notif.gameId}`), { status: 'active' });
-    markNotificationRead(notif.id);
+    removeNotification(notif.id);
     navigate(`/battleship/multiplayer/${notif.gameId}`);
   };
   const acceptDuelInvite = async notif => {
     await updateDoc(doc(db, `duelGames/${notif.gameId}`), { status: 'active' });
-    markNotificationRead(notif.id);
+    removeNotification(notif.id);
     navigate(`/duel/multiplayer/${notif.gameId}`);
   };
 
@@ -166,7 +163,6 @@ export default function Profile() {
             Dashboard
           </button>
 
-          {/* ─── Notification Bell (identical to Dashboard.jsx) ─── */}
           <div className="notif-container">
             <FaBell
               className="notif-bell"
@@ -182,38 +178,59 @@ export default function Profile() {
                   <p>No new notifications.</p>
                 ) : (
                   notifications.map(notif => (
-                    <div key={notif.id} className="notif-item">
-                      <p>{notif.message}</p>
+                    <div key={notif.id} className="notif-item" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+                      <p style={{ margin: 0 }}>{notif.message}</p>
+
+                      {notif.type === 'message' && (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => {
+                              navigate(`/messages/${notif.senderUid}`);
+                              removeNotification(notif.id);
+                            }}
+                          >
+                            Open Message
+                          </button>
+                          <button onClick={() => removeNotification(notif.id)}>
+                            Remove
+                          </button>
+                        </div>
+                      )}
 
                       {notif.type === 'hangman_invite' && (
-                        <button onClick={() => acceptHangmanInvite(notif)}>
-                          Join Hangman
-                        </button>
-                      )}
-                      {notif.type === 'tictactoe_invite' && (
-                        <button onClick={() => acceptTicTacToeInvite(notif)}>
-                          Join Tic-Tac-Toe
-                        </button>
-                      )}
-                      {notif.type === 'connect4_invite' && (
-                        <button onClick={() => acceptConnectFourInvite(notif)}>
-                          Join Connect Four
-                        </button>
-                      )}
-                      {notif.type === 'battleship_invite' && (
-                        <button onClick={() => acceptBattleshipInvite(notif)}>
-                          Join Battleship
-                        </button>
-                      )}
-                      {notif.type === 'duel_invite' && (
-                        <button onClick={() => acceptDuelInvite(notif)}>
-                          Join Duel Shots
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => acceptHangmanInvite(notif)}>Join Hangman</button>
+                          <button onClick={() => removeNotification(notif.id)}>Remove</button>
+                        </div>
                       )}
 
-                      <button onClick={() => markNotificationRead(notif.id)}>
-                        Mark as Read
-                      </button>
+                      {notif.type === 'tictactoe_invite' && (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => acceptTicTacToeInvite(notif)}>Join Tic-Tac-Toe</button>
+                          <button onClick={() => removeNotification(notif.id)}>Remove</button>
+                        </div>
+                      )}
+
+                      {notif.type === 'connect4_invite' && (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => acceptConnectFourInvite(notif)}>Join Connect Four</button>
+                          <button onClick={() => removeNotification(notif.id)}>Remove</button>
+                        </div>
+                      )}
+
+                      {notif.type === 'battleship_invite' && (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => acceptBattleshipInvite(notif)}>Join Battleship</button>
+                          <button onClick={() => removeNotification(notif.id)}>Remove</button>
+                        </div>
+                      )}
+
+                      {notif.type === 'duel_invite' && (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => acceptDuelInvite(notif)}>Join Duel Shots</button>
+                          <button onClick={() => removeNotification(notif.id)}>Remove</button>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -288,8 +305,7 @@ export default function Profile() {
           className="footer-link"
         >
           Usman Khan
-        </a>
-        .
+        </a>.
       </footer>
     </div>
   );

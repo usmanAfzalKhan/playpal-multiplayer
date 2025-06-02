@@ -13,9 +13,16 @@ import singleDuelImg          from '../assets/singleplayerduelshots.png';
 import { useEffect, useState } from 'react';
 import { auth, db }            from '../firebase-config';
 import {
-  doc, getDoc, getDocs, collection,
-  query, where, onSnapshot,
-  updateDoc, deleteDoc, setDoc,
+  doc,
+  getDoc,
+  getDocs,
+  collection,
+  query,
+  where,
+  onSnapshot,
+  updateDoc,
+  deleteDoc,
+  setDoc,
 } from 'firebase/firestore';
 import { useNavigate }         from 'react-router-dom';
 import { FaSearch, FaBell }    from 'react-icons/fa';
@@ -32,7 +39,7 @@ export default function Dashboard() {
 
   const navigate = useNavigate();
 
-  // load user info + subscribe to notifications
+  // ─── Load user info + subscribe to notifications ───
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return navigate('/');
@@ -42,6 +49,8 @@ export default function Dashboard() {
       const fSnap = await getDocs(collection(db, `users/${user.uid}/friends`));
       setFriendsList(fSnap.docs.map(d => d.id));
     })();
+
+    // Subscribe to notifications under "users/{uid}/notifications"
     const unsub = onSnapshot(
       collection(db, `users/${auth.currentUser.uid}/notifications`),
       snap => setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })))
@@ -49,7 +58,7 @@ export default function Dashboard() {
     return () => unsub();
   }, [navigate]);
 
-  // friend search
+  // ─── Friend search ────────────────────────────────────────
   const handleSearchChange = async e => {
     const q = e.target.value;
     setSearchQuery(q);
@@ -69,7 +78,7 @@ export default function Dashboard() {
     setSuggestions(res);
   };
 
-  // send friend request
+  // ─── Send friend request ───────────────────────────────────
   const handleSendRequest = async u => {
     try {
       const me = auth.currentUser.uid;
@@ -95,35 +104,35 @@ export default function Dashboard() {
     }
   };
 
-  // mark notification read
-  const markNotificationRead = async id => {
-    await deleteDoc(doc(db, `users/${auth.currentUser.uid}/notifications/${id}`));
+  // ─── Remove a notification ─────────────────────────────────
+  const removeNotification = async (notifId) => {
+    await deleteDoc(doc(db, `users/${auth.currentUser.uid}/notifications/${notifId}`));
   };
 
-  // invite accept handlers
+  // ─── Accept game invites ──────────────────────────────────
   const acceptHangmanInvite = async notif => {
     await updateDoc(doc(db, `hangman_games/${notif.gameId}`), { status: 'active' });
-    markNotificationRead(notif.id);
+    removeNotification(notif.id);
     navigate(`/hangman/multiplayer/${notif.gameId}`);
   };
   const acceptTicTacToeInvite = async notif => {
     await updateDoc(doc(db, `tictactoe_games/${notif.gameId}`), { status: 'active' });
-    markNotificationRead(notif.id);
+    removeNotification(notif.id);
     navigate(`/tictactoe/multiplayer/${notif.gameId}`);
   };
   const acceptConnectFourInvite = async notif => {
     await updateDoc(doc(db, `connect4_games/${notif.gameId}`), { status: 'active' });
-    markNotificationRead(notif.id);
+    removeNotification(notif.id);
     navigate(`/connect4/multiplayer/${notif.gameId}`);
   };
   const acceptBattleshipInvite = async notif => {
     await updateDoc(doc(db, `battleship_games/${notif.gameId}`), { status: 'active' });
-    markNotificationRead(notif.id);
+    removeNotification(notif.id);
     navigate(`/battleship/multiplayer/${notif.gameId}`);
   };
   const acceptDuelInvite = async notif => {
     await updateDoc(doc(db, `duelGames/${notif.gameId}`), { status: 'active' });
-    markNotificationRead(notif.id);
+    removeNotification(notif.id);
     navigate(`/duel/multiplayer/${notif.gameId}`);
   };
 
@@ -169,28 +178,63 @@ export default function Dashboard() {
                 {notifications.length === 0
                   ? <p>No new notifications.</p>
                   : notifications.map(notif => (
-                      <div key={notif.id} className="notif-item">
-                        <p>{notif.message}</p>
+                      <div key={notif.id} className="notif-item" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+                        <p style={{ margin: 0 }}>{notif.message}</p>
+
+                        {notif.type === 'message' && (
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button
+                              onClick={() => {
+                                navigate(`/messages/${notif.senderUid}`);
+                                removeNotification(notif.id);
+                              }}
+                            >
+                              Open Message
+                            </button>
+                            <button onClick={() => removeNotification(notif.id)}>
+                              Remove
+                            </button>
+                          </div>
+                        )}
 
                         {notif.type === 'hangman_invite' && (
-                          <button onClick={() => acceptHangmanInvite(notif)}>Join Hangman</button>
-                        )}
-                        {notif.type === 'tictactoe_invite' && (
-                          <button onClick={() => acceptTicTacToeInvite(notif)}>Join Tic-Tac-Toe</button>
-                        )}
-                        {notif.type === 'connect4_invite' && (
-                          <button onClick={() => acceptConnectFourInvite(notif)}>Join Connect Four</button>
-                        )}
-                        {notif.type === 'battleship_invite' && (
-                          <button onClick={() => acceptBattleshipInvite(notif)}>Join Battleship</button>
-                        )}
-                        {notif.type === 'duel_invite' && (
-                          <button onClick={() => acceptDuelInvite(notif)}>Join Duel Shots</button>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button onClick={() => acceptHangmanInvite(notif)}>Join Hangman</button>
+                            <button onClick={() => removeNotification(notif.id)}>Remove</button>
+                          </div>
                         )}
 
-                        <button onClick={() => markNotificationRead(notif.id)}>Mark as Read</button>
+                        {notif.type === 'tictactoe_invite' && (
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button onClick={() => acceptTicTacToeInvite(notif)}>Join Tic-Tac-Toe</button>
+                            <button onClick={() => removeNotification(notif.id)}>Remove</button>
+                          </div>
+                        )}
+
+                        {notif.type === 'connect4_invite' && (
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button onClick={() => acceptConnectFourInvite(notif)}>Join Connect Four</button>
+                            <button onClick={() => removeNotification(notif.id)}>Remove</button>
+                          </div>
+                        )}
+
+                        {notif.type === 'battleship_invite' && (
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button onClick={() => acceptBattleshipInvite(notif)}>Join Battleship</button>
+                            <button onClick={() => removeNotification(notif.id)}>Remove</button>
+                          </div>
+                        )}
+
+                        {notif.type === 'duel_invite' && (
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button onClick={() => acceptDuelInvite(notif)}>Join Duel Shots</button>
+                            <button onClick={() => removeNotification(notif.id)}>Remove</button>
+                          </div>
+                        )}
+
                       </div>
-                    ))}
+                    ))
+                }
               </div>
             )}
           </div>
