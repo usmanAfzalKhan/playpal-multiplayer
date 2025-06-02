@@ -1,22 +1,24 @@
+/* MultiplayerHangman.css */
+
 /* ─── Container around the whole game/chat ───────────────────────────────────────── */
 .multiplayer-container {
-  /* Full‐height, dark background */
+  /* Full-height dark background to fill the viewport */
   min-height: 100vh;
   background-color: #1e293b;
   color: white;
 
-  /* Flexbox centering */
+  /* Center everything vertically and horizontally using Flexbox */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
 
-  /* Padding around everything (desktop only) */
-  padding: 2rem;  
+  /* Padding around content on desktop */
+  padding: 2rem;
   text-align: center;
 }
 
-/* ─── Any <input> or <button> under .multiplayer-container stays as before ─── */
+/* Any <input> inside .multiplayer-container */
 .multiplayer-container input {
   padding: 0.5rem;
   font-size: 1rem;
@@ -25,6 +27,7 @@
   border: none;
 }
 
+/* Any <button> inside .multiplayer-container */
 .multiplayer-container button {
   padding: 0.5rem 1rem;
   margin: 0.3rem;
@@ -42,22 +45,22 @@
 
 /* ─── Chatbox styling ───────────────────────────────────────────────────────────── */
 
-/* Instead of “margin-top: 1.5rem” we let Flexbox center it, so remove top margin. */
+/* Container for the chat area */
 .chatbox {
   background-color: #0f172a;
   padding: 1rem;
   border-radius: 8px;
 
-  /* Horizontal centering: auto side margins + a max width */
+  /* Center chatbox horizontally with a max width */
   max-width: 400px;
-  width: 100%;          /* allow shrink/grow */
-  margin: 0 auto;       /* horizontally center */
+  width: 100%;
+  margin: 0 auto;
 
-  /* Box‐shadow neon “glow” if you want: */
+  /* Subtle neon glow effect */
   box-shadow: 0 0 10px rgba(0, 200, 255, 0.2);
 }
 
-/* Make sure messages stack top→bottom and scroll if too tall */
+/* Make chat messages scrollable if they exceed the max height */
 .chat-messages {
   max-height: 200px;
   overflow-y: auto;
@@ -69,7 +72,7 @@
   margin-bottom: 0.3rem;
 }
 
-/* Input + button row */
+/* Input field inside the chatbox */
 .chatbox input {
   width: 70%;
   padding: 0.4rem;
@@ -77,31 +80,36 @@
   border: none;
 }
 
+/* Send button inside the chatbox */
 .chatbox button {
   padding: 0.4rem 1rem;
 }
 
 /* ─── Responsive breakpoints ──────────────────────────────────────────────────── */
+
+/* On tablets and small desktops */
 @media (max-width: 600px) {
   .chatbox {
-    /* Make it slightly narrower on phones (90% of parent width) */
+    /* Make chatbox slightly narrower */
     width: 90%;
     max-width: none;
   }
 }
 
+/* On very small phones */
 @media (max-width: 400px) {
   .chatbox {
-    /* On very small phones, take nearly full width */
+    /* Stretch to nearly full width and reduce padding */
     width: 100%;
     padding: 0.75rem;
   }
   .chatbox input {
-    /* Shrink the text‐field on tiny screens */
+    /* Shrink the text field on tiny screens */
     width: 65%;
     font-size: 0.9rem;
   }
   .chatbox button {
+    /* Smaller padding and font on tiny screens */
     padding: 0.35rem 0.8rem;
     font-size: 0.9rem;
   }

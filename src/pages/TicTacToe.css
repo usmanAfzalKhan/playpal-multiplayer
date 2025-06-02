@@ -1,109 +1,248 @@
 /* src/pages/TicTacToe.css */
 
+/* 
+  Container for the entire Tic-Tac-Toe game UI.
+  - Uses Flexbox to center content vertically and horizontally.
+  - Dark background (#1e293b) and white text for high contrast.
+  - Padding around the container for spacing.
+  - Ensures the container covers the full viewport height.
+*/
 .ttt-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2rem;
-  background: #1e293b;
-  color: white;
-  min-height: 100vh;
+  display: flex; /* Use Flexbox layout */
+  flex-direction: column; /* Stack children vertically */
+  align-items: center; /* Center children horizontally */
+  padding: 2rem; /* Add padding around content */
+  background: #1e293b; /* Dark navy background */
+  color: white; /* White text color */
+  min-height: 100vh; /* Full viewport height */
 }
 
-/* Status text */
+/* 
+  Status text area (e.g., "Player X's turn" or "X wins!").
+  - Adds bottom margin to separate from the board.
+  - Slightly larger font size (1.2rem) for visibility.
+*/
 .ttt-status {
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
+  margin-bottom: 1rem; /* Space below status text */
+  font-size: 1.2rem; /* Increase font size */
 }
 
-/* Board grid & border */
+/* 
+  The Tic-Tac-Toe board grid container.
+  - Relatively positioned to allow absolutely positioned strike lines.
+  - Defines a 3×3 grid using CSS Grid (each row/column is an equal fraction).
+  - Fixed width and height of 300px (3 cells × 100px each).
+  - Blue border (#38bdf8) of 4px thickness around the entire grid.
+  - Uses box-sizing: border-box so that borders are included in the overall dimensions.
+*/
 .ttt-board {
-  position: relative;
-  display: grid;
-  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
-  width: 300px;       /* 3 cells × 100px */
-  height: 300px;
-  margin: 1rem 0;
-  border: 4px solid #38bdf8;
-  box-sizing: border-box;
+  position: relative; /* Allow child absolute positioning */
+  display: grid; /* Enable CSS Grid layout */
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr); /* 3 rows × 3 columns, each 1fr */
+  width: 300px; /* Total width (3 cells × 100px) */
+  height: 300px; /* Total height (3 cells × 100px) */
+  margin: 1rem 0; /* Vertical margin around the board */
+  border: 4px solid #38bdf8; /* Solid blue border around grid */
+  box-sizing: border-box; /* Include border in width/height */
 }
 
-/* Each cell */
+/* 
+  Individual Tic-Tac-Toe cell styling.
+  - Each cell is 100px × 100px.
+  - Large font size (2.5rem) for X/O.
+  - Dark background (#0f172a) inside cells.
+  - Blue text color (#38bdf8) to match the board’s border.
+  - Cursor pointer to indicate clickability.
+  - Removes default button border; uses flex to center symbol.
+  - No outline on focus to prevent default browser styling.
+*/
 .ttt-cell {
-  box-sizing: border-box;         /* include borders in cell size */
-  width: 100px; height: 100px;
-  font-size: 2.5rem;
-  background: #0f172a;
-  color: #38bdf8;
-  cursor: pointer;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  outline: none;                  /* remove focus outline */
+  box-sizing: border-box; /* Include padding/border in cell size */
+  width: 100px; /* Cell width */
+  height: 100px; /* Cell height */
+  font-size: 2.5rem; /* Large font for X or O */
+  background: #0f172a; /* Dark cell background */
+  color: #38bdf8; /* Blue text for symbols */
+  cursor: pointer; /* Pointer cursor on hover */
+  border: none; /* Remove default border */
+  display: flex; /* Use Flexbox for centering content */
+  align-items: center; /* Center content vertically */
+  justify-content: center; /* Center content horizontally */
+  outline: none; /* Remove default focus outline */
 }
 
-/* internal grid lines */
+/* 
+  Add vertical grid lines between cells.
+  - For cells that are not the third in each row (i.e., not every 3rd cell), add a right border.
+  - The border is 2px solid blue (#38bdf8).
+*/
 .ttt-cell:not(:nth-child(3n)) {
-  border-right: 2px solid #38bdf8;
-}
-.ttt-cell:nth-child(-n+3),
-.ttt-cell:nth-child(n+4):nth-child(-n+6) {
-  border-bottom: 2px solid #38bdf8;
+  border-right: 2px solid #38bdf8; /* Vertical line between columns */
 }
 
-/* strike-through line base */
+/* 
+  Add horizontal grid lines between rows.
+  - For the first three cells (top row), add a bottom border.
+  - For cells 4–6 (second row), also add a bottom border.
+  - The border is 2px solid blue (#38bdf8).
+*/
+.ttt-cell:nth-child(-n + 3),
+.ttt-cell:nth-child(n + 4):nth-child(-n + 6) {
+  border-bottom: 2px solid #38bdf8; /* Horizontal line between rows */
+}
+
+/* ────────────────────────────────────────────────────────────────────────────────
+   Strike-through line styling (for when a player wins)
+   These lines are absolutely positioned atop the board to indicate a winning line,
+   whether horizontal, vertical, or diagonal.
+──────────────────────────────────────────────────────────────────────────────── */
+
+/* 
+  Base style for any strike-through line:
+  - Positioned absolutely within the board (.ttt-board is relative).
+  - Red background (#ef4444) to indicate a winning line.
+  - z-index: 1 ensures lines appear above cells but below other overlays if needed.
+*/
 .strike-line {
-  position: absolute;
-  background: #ef4444;
-  z-index: 1;
+  position: absolute; /* Position relative to .ttt-board */
+  background: #ef4444; /* Red line color */
+  z-index: 1; /* Appear above cells */
 }
 
-/* horizontal strikes */
-.strike-row-1, .strike-row-2, .strike-row-3 {
-  width: 100%;
-  height: 4px;
-  left: 0;
-}
-.strike-row-1 { top: calc(100px / 2); }
-.strike-row-2 { top: calc(100px * 1.5); }
-.strike-row-3 { top: calc(100px * 2.5); }
+/* ─── Horizontal Strike Lines ───────────────────────────────────────────────── */
 
-/* vertical strikes */
-.strike-col-1, .strike-col-2, .strike-col-3 {
-  width: 4px;
-  height: 100%;
-  top: 0;
+/* 
+  Common properties for all horizontal strike lines (rows 1–3):
+  - Full width of the board (100%).
+  - Height of 4px to match border thickness.
+  - Positioned at left: 0 to span entire width.
+*/
+.strike-row-1,
+.strike-row-2,
+.strike-row-3 {
+  width: 100%; /* Full board width */
+  height: 4px; /* Line thickness */
+  left: 0; /* Align to left edge */
 }
-.strike-col-1 { left: calc(100px / 2); }
-.strike-col-2 { left: calc(100px * 1.5); }
-.strike-col-3 { left: calc(100px * 2.5); }
 
-/* diagonal strikes */
-.strike-diag-main, .strike-diag-anti {
-  width: 424px;   /* √(300²+300²) ≈ 424 */
-  height: 4px;
-  top: 50%;
-  left: calc((300px - 424px) / 2);
+/* 
+  Specific vertical positioning for each horizontal row:
+  - Row 1 is centered at half of cell height (100px / 2).
+  - Row 2 is centered at 1.5 cell heights (100px * 1.5).
+  - Row 3 is centered at 2.5 cell heights (100px * 2.5).
+*/
+.strike-row-1 {
+  top: calc(100px / 2);
+} /* Horizontal line through middle of first row */
+.strike-row-2 {
+  top: calc(100px * 1.5);
+} /* Middle of second row */
+.strike-row-3 {
+  top: calc(100px * 2.5);
+} /* Middle of third row */
+
+/* ─── Vertical Strike Lines ─────────────────────────────────────────────────── */
+
+/* 
+  Common properties for all vertical strike lines (columns 1–3):
+  - Width of 4px to match line thickness.
+  - Full height of the board (100%).
+  - top: 0 to span entire board height.
+*/
+.strike-col-1,
+.strike-col-2,
+.strike-col-3 {
+  width: 4px; /* Line thickness */
+  height: 100%; /* Full board height */
+  top: 0; /* Align to top edge */
 }
-.strike-diag-main { transform: rotate(45deg); }
-.strike-diag-anti { transform: rotate(-45deg); }
 
-/* Reset/Quit buttons */
+/* 
+  Specific horizontal positioning for each vertical column:
+  - Column 1 line is centered at half of cell width (100px / 2).
+  - Column 2 at 1.5 cell widths.
+  - Column 3 at 2.5 cell widths.
+*/
+.strike-col-1 {
+  left: calc(100px / 2);
+} /* Center column 1 line */
+.strike-col-2 {
+  left: calc(100px * 1.5);
+} /* Center column 2 line */
+.strike-col-3 {
+  left: calc(100px * 2.5);
+} /* Center column 3 line */
+
+/* ─── Diagonal Strike Lines ─────────────────────────────────────────────────── */
+
+/* 
+  Common properties for both diagonal lines:
+  - Length calculated as the diagonal of a 300×300 square: √(300² + 300²) ≈ 424px.
+  - Height (thickness) of 4px.
+  - Positioned vertically at 50% down the board.
+  - Left positioned such that the line is centered horizontally: (300px - 424px) / 2.
+*/
+.strike-diag-main,
+.strike-diag-anti {
+  width: 424px; /* Diagonal line length */
+  height: 4px; /* Line thickness */
+  top: 50%; /* Vertically center in board */
+  left: calc((300px - 424px) / 2); /* Center line horizontally */
+}
+
+/* 
+  Rotate the diagonal lines:
+  - Main diagonal (\) at 45 degrees.
+  - Anti-diagonal (/) at -45 degrees.
+*/
+.strike-diag-main {
+  transform: rotate(45deg);
+}
+.strike-diag-anti {
+  transform: rotate(-45deg);
+}
+
+/* ────────────────────────────────────────────────────────────────────────────────
+   Action Buttons (Reset/Quit)
+   These buttons appear below the board for "Rematch" or "Quit" functionality.
+──────────────────────────────────────────────────────────────────────────────── */
+
+/* 
+  Container for action buttons:
+  - Uses Flexbox in row direction.
+  - Gap of 1rem between buttons.
+*/
 .ttt-actions {
-  display: flex;
-  gap: 1rem;
+  display: flex; /* Flex layout for buttons */
+  gap: 1rem; /* Space between buttons */
 }
+
+/* 
+  Button styling inside the .ttt-actions container:
+  - Padding for comfortable click area.
+  - Blue background (#38bdf8) matching board border.
+  - No border outline.
+  - Rounded corners for a smooth look.
+  - Bold text for emphasis.
+  - Black text color for contrast.
+  - Pointer cursor on hover.
+  - Slight scale transform on hover for a "pop" effect.
+*/
 .ttt-actions button {
-  padding: 0.6rem 1.2rem;
-  background: #38bdf8;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  color: black;
-  cursor: pointer;
-  transition: transform 0.1s;
+  padding: 0.6rem 1.2rem; /* Vertical/horizontal padding */
+  background: #38bdf8; /* Bright blue background */
+  border: none; /* Remove default border */
+  border-radius: 6px; /* Rounded corners */
+  font-weight: bold; /* Emphasize text */
+  color: black; /* Black text on blue background */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: transform 0.1s; /* Smooth scaling on hover */
 }
+
+/* 
+  Hover effect for action buttons:
+  - Slightly scale up to 1.05× for a subtle “pop” feedback.
+*/
 .ttt-actions button:hover {
-  transform: scale(1.05);
+  transform: scale(1.05); /* Slightly enlarge on hover */
 }

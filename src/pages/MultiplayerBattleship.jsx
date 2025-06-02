@@ -138,7 +138,13 @@ export default function MultiplayerBattleship() {
     const unsub = onSnapshot(doc(db, "battleship_games", gameId), (snap) => {
       setGameData(snap.exists() ? { id: snap.id, ...snap.data() } : null);
     });
-    return unsub;
+
+    // Cleanup: unsubscribe and delete the game if user leaves without clicking Quit
+    return () => {
+      unsub();
+      deleteDoc(doc(db, "battleship_games", gameId))
+        .catch(() => { /* ignore if already deleted */ });
+    };
   }, [gameId]);
 
   // helper to count remaining ship cells

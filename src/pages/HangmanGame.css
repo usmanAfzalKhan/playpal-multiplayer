@@ -1,34 +1,67 @@
+/* HangmanGame.css */
+
+/* 
+  Container for the Hangman room/page.
+  - Padding around content.
+  - Dark background to match app theme.
+  - White text color for readability.
+  - Ensures the container fills at least full viewport height.
+  - Uses Flexbox to stack elements vertically and center them horizontally.
+*/
 .hangman-room {
-  padding: 1rem;
-  background-color: #1e293b;
-  color: white;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  padding: 1rem; /* Inner spacing around content */
+  background-color: #1e293b; /* Dark navy-blue background */
+  color: white; /* White text color */
+  min-height: 100vh; /* Minimum height = full viewport */
+  display: flex; /* Flex layout for children */
+  flex-direction: column; /* Stack children vertically */
+  align-items: center; /* Center children horizontally */
 }
 
+/* 
+  Container for the Hangman drawing (e.g., gallows and figure).
+  - Adds vertical margin to separate drawing from other elements.
+*/
 .hangman-drawing {
-  margin: 1rem 0;
+  margin: 1rem 0; /* 1rem top and bottom margin, 0 left/right */
 }
 
+/* 
+  Chatbox area (for in-game chat or messages).
+  - Full width of its container, but limited to 400px max.
+  - Dark background for contrast.
+  - Rounded corners for a smooth look.
+  - Padding for inner spacing.
+  - Top margin to separate from above content.
+*/
 .chatbox {
-  width: 100%;
-  max-width: 400px;
-  background: #0f172a;
-  border-radius: 8px;
-  padding: 0.5rem;
-  margin-top: 1rem;
+  width: 100%; /* Full width of parent, up to max-width */
+  max-width: 400px; /* Restricts width to 400px on larger screens */
+  background: #0f172a; /* Dark background for chat area */
+  border-radius: 8px; /* Rounded corners */
+  padding: 0.5rem; /* Padding inside chatbox */
+  margin-top: 1rem; /* Space above chatbox */
 }
 
+/* 
+  Style for input field inside chatbox.
+  - Occupies 70% of chatbox width for typing area.
+  - Padding for comfortable click/tap area.
+*/
 .chatbox input {
-  width: 70%;
-  padding: 0.3rem;
+  width: 70%; /* 70% width of chatbox container */
+  padding: 0.3rem; /* Inner padding for text input */
 }
 
+/* 
+  Style for button inside chatbox (e.g., "Send" button).
+  - Padding to create a clickable area.
+  - Bright color background to stand out.
+  - No border and rounded corners for consistency.
+*/
 .chatbox button {
-  padding: 0.3rem 1rem;
-  background-color: #38bdf8;
-  border: none;
-  border-radius: 6px;
+  padding: 0.3rem 1rem; /* Vertical 0.3rem, horizontal 1rem padding */
+  background-color: #38bdf8; /* Bright cyan-blue background */
+  border: none; /* Remove default border */
+  border-radius: 6px; /* Rounded corners for button */
 }

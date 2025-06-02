@@ -1,4 +1,8 @@
+/* Profile.css */
+
+/* ─── Container & Layout ───────────────────────────────────────────────── */
 .profile-container {
+  /* Full viewport height, vertical flex layout, dark background */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -6,7 +10,9 @@
   color: white;
 }
 
+/* ─── Header Styles ──────────────────────────────────────────────────────── */
 .dashboard-header {
+  /* Horizontal header with space-between alignment */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -15,16 +21,18 @@
 }
 
 .header-logo {
+  /* Logo size and hover effect */
   height: 50px;
   transition: transform 0.2s, box-shadow 0.3s ease;
   cursor: pointer;
 }
-
 .header-logo:hover {
+  /* Slight scale up and glow on hover */
   transform: scale(1.1);
   box-shadow: 0 0 20px 4px #38bdf8aa;
 }
 
+/* Button in header to navigate back to dashboard */
 .dashboard-button {
   background-color: #38bdf8;
   border: none;
@@ -35,34 +43,37 @@
   font-weight: bold;
   transition: background-color 0.3s, transform 0.2s;
 }
-
 .dashboard-button:hover {
+  /* Lighter blue and slight grow on hover */
   background-color: #0ea5e9;
   transform: scale(1.05);
 }
 
 .header-actions {
+  /* Container for actions (dashboard button + notifications) */
   display: flex;
   align-items: center;
   gap: 1rem;
   position: relative;
 }
 
+/* ─── Notification Bell & Dropdown ───────────────────────────────────────── */
 .notif-container {
   position: relative;
   cursor: pointer;
 }
 
 .notif-bell {
+  /* Bell icon size and hover effect */
   font-size: 1.5rem;
   color: #facc15;
   transition: transform 0.2s ease;
 }
-
 .notif-bell:hover {
-  transform: scale(1.2);
+  transform: scale(1.2); /* Enlarge on hover */
 }
 
+/* Red badge showing count of unread notifications */
 .notif-count {
   position: absolute;
   top: -5px;
@@ -75,6 +86,7 @@
   font-weight: bold;
 }
 
+/* Dropdown box for notification items */
 .notif-dropdown {
   position: absolute;
   top: 30px;
@@ -83,20 +95,22 @@
   padding: 1rem;
   border-radius: 8px;
   width: 250px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   z-index: 100;
 }
 
+/* Individual notification entry */
 .notif-item {
   margin-bottom: 0.5rem;
   padding: 0.3rem;
   border-bottom: 1px solid #38bdf8;
 }
-
 .notif-item:last-child {
+  /* Remove bottom border on last item */
   border-bottom: none;
 }
 
+/* Buttons inside each notification (e.g., "Join", "Remove") */
 .notif-item button {
   background-color: #38bdf8;
   border: none;
@@ -108,11 +122,13 @@
   font-weight: bold;
 }
 
+/* ─── Main Profile Content ───────────────────────────────────────────────── */
 .profile-main {
-  flex: 1;
-  padding: 2rem;
+  flex: 1; /* Fill remaining vertical space */
+  padding: 2rem; /* Spacing around content */
 }
 
+/* User info section: avatar icon + username */
 .profile-info {
   display: flex;
   flex-direction: column;
@@ -121,6 +137,7 @@
 }
 
 .profile-icon {
+  /* Large user icon */
   font-size: 3rem;
 }
 
@@ -130,6 +147,7 @@
   text-align: center;
 }
 
+/* Each profile section (requests, friends, blocked) */
 .profile-section {
   background-color: #0f172a;
   padding: 1rem;
@@ -137,7 +155,7 @@
   margin-bottom: 1.5rem;
 }
 
-/* Scope these button styles ONLY to .friend-item */
+/* ─── Friend & Blocked User Item ─────────────────────────────────────────── */
 .friend-item {
   display: flex;
   justify-content: space-between;
@@ -149,14 +167,16 @@
   flex-wrap: nowrap;
 }
 
+/* Username text inside friend/blocked item */
 .friend-item > span {
-  flex: 1;
+  flex: 1; /* Take up as much space as possible */
   font-size: 0.9rem;
-  overflow: hidden;
+  overflow: hidden; /* Truncate long names */
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Buttons inside each friend/blocked item */
 .friend-item button {
   margin: 0 0.2rem;
   padding: 0.2rem 0.4rem;
@@ -169,21 +189,37 @@
   color: black;
   transition: background-color 0.3s, transform 0.2s ease;
 }
-
 .friend-item button:hover {
   background-color: #0ea5e9;
   transform: scale(1.05);
 }
 
-.friend-item button:nth-child(2) { background-color: #4ade80; }
-.friend-item button:nth-child(2):hover { background-color: #22c55e; }
+/* Specific button colors based on position/order */
+/* 2nd button style (e.g., "Accept" or "Message") */
+.friend-item button:nth-child(2) {
+  background-color: #4ade80;
+}
+.friend-item button:nth-child(2):hover {
+  background-color: #22c55e;
+}
 
-.friend-item button:nth-child(3) { background-color: #f87171; }
-.friend-item button:nth-child(3):hover { background-color: #ef4444; }
+/* 3rd button style (e.g., "Unfriend" or "Decline") */
+.friend-item button:nth-child(3) {
+  background-color: #f87171;
+}
+.friend-item button:nth-child(3):hover {
+  background-color: #ef4444;
+}
 
-.friend-item button:nth-child(4) { background-color: #facc15; }
-.friend-item button:nth-child(4):hover { background-color: #fbbf24; }
+/* 4th button style (e.g., "Block" or "Unblock") */
+.friend-item button:nth-child(4) {
+  background-color: #facc15;
+}
+.friend-item button:nth-child(4):hover {
+  background-color: #fbbf24;
+}
 
+/* ─── Responsive Tweaks for Small Screens ───────────────────────────────── */
 @media (max-width: 480px) {
   .friend-item {
     padding: 0.2rem 0.4rem;
@@ -199,6 +235,7 @@
   }
 }
 
+/* ─── Footer Styles ─────────────────────────────────────────────────────── */
 .dashboard-footer {
   padding: 1rem;
   text-align: center;
@@ -211,7 +248,6 @@
   text-decoration: none;
   font-weight: 600;
 }
-
 .footer-link:hover {
   text-decoration: underline;
 }

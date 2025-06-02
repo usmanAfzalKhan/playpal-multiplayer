@@ -1,36 +1,48 @@
+/* src/pages/SingleHangman.css */
+
+/* ─── Container ──────────────────────────────────────────────── */
+/* Full‐screen dark background, centered text for the SinglePlayer Hangman page */
 .single-container {
-  min-height: 100vh;
-  background-color: #1e293b;
-  color: white;
-  padding: 2rem;
-  text-align: center;
+  min-height: 100vh; /* Fill entire viewport height */
+  background-color: #1e293b; /* Dark blue-gray background */
+  color: white; /* White text for high contrast */
+  padding: 2rem; /* Spacing around content */
+  text-align: center; /* Center all text inside */
 }
 
+/* ─── Input Field ───────────────────────────────────────────── */
+/* Style for the letter‐input box where user types a guess */
 .single-container input {
-  padding: 0.5rem;
-  font-size: 1rem;
-  margin: 0.5rem;
-  border-radius: 6px;
-  border: none;
+  padding: 0.5rem; /* Space inside the input */
+  font-size: 1rem; /* Readable font size */
+  margin: 0.5rem; /* Space around the input */
+  border-radius: 6px; /* Rounded corners */
+  border: none; /* No default browser border */
 }
 
+/* ─── Buttons ───────────────────────────────────────────────── */
+/* General styling for buttons (Guess, Rematch, Quit) */
 .single-container button {
-  padding: 0.5rem 1rem;
-  margin: 0.3rem;
-  background-color: #38bdf8;
-  border: none;
-  border-radius: 6px;
-  color: black;
-  font-weight: bold;
-  cursor: pointer;
+  padding: 0.5rem 1rem; /* Vertical and horizontal padding */
+  margin: 0.3rem; /* Space around each button */
+  background-color: #38bdf8; /* Light cyan background */
+  border: none; /* Remove default border */
+  border-radius: 6px; /* Rounded corners */
+  color: black; /* Black text for contrast */
+  font-weight: bold; /* Bold text for emphasis */
+  cursor: pointer; /* Pointer cursor on hover */
 }
 
+/* ─── Button Hover State ───────────────────────────────────── */
+/* Slightly darker background when the user hovers over a button */
 .single-container button:hover {
-  background-color: #0ea5e9;
+  background-color: #0ea5e9; /* Darker cyan on hover */
 }
 
+/* ─── Responsive Input Width ─────────────────────────────────️ */
+/* For narrower screens (mobile), make input take up more width */
 @media (max-width: 600px) {
   .single-container input {
-    width: 60%;
+    width: 60%; /* Input spans 60% of container width */
   }
 }

@@ -1,159 +1,258 @@
 /* DuelGame.css */
 
-/* Container around the entire duel UI */
+/* 
+  Container around the entire duel UI
+  - Positions relatively so child elements (like joystick) can be absolutely positioned.
+  - Limits width to 360px for a compact, centered game area.
+  - Applies margin to center vertically on the page and padding inside the box.
+  - Dark background to match the app’s theme and white text for readability.
+  - Rounded corners and a subtle shadow to elevate it visually.
+*/
 .duel-container {
-  position: relative;
-  max-width: 360px;
-  margin: 2rem auto;
-  padding: 1rem;
-  background: #0f172a;
-  color: #fff;
-  text-align: center;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  position: relative; /* Allow absolute positioning of child elements */
+  max-width: 360px; /* Restrict maximum width to 360px */
+  margin: 2rem auto; /* Center horizontally, add top/bottom margin */
+  padding: 1rem; /* Inner padding */
+  background: #0f172a; /* Very dark navy background */
+  color: #fff; /* White text color */
+  text-align: center; /* Center text within container */
+  border-radius: 8px; /* Slightly rounded corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); /* Subtle drop shadow for depth */
 }
 
+/* 
+  Heading (h2) inside the duel container
+  - Adds a small bottom margin to separate from subsequent text/content.
+*/
 .duel-container h2 {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.5rem; /* Space below the heading */
 }
 
+/* 
+  Paragraphs (p) inside the duel container
+  - Adds a bottom margin for spacing from the next element.
+  - Slightly reduced font size for explanatory text.
+  - Lighter gray color to distinguish from main text.
+*/
 .duel-container p {
-  margin-bottom: 0.8rem;
-  font-size: 0.95rem;
-  color: #cbd5e1;
+  margin-bottom: 0.8rem; /* Space below paragraphs */
+  font-size: 0.95rem; /* Slightly smaller than default text */
+  color: #cbd5e1; /* Light gray color for secondary text */
 }
 
-/* Status bar showing health, ammo, timer */
+/* 
+  Status bar area displaying health, ammo, and timer
+  - Adds a bottom margin for spacing from the canvas.
+*/
 .status-bar-duel {
-  margin-bottom: 0.8rem;
+  margin-bottom: 0.8rem; /* Space below the status bar */
 }
 
+/* 
+  Each span inside the status bar
+  - Horizontal margin between status items.
+  - Slightly large font size for readability.
+  - Vertical-align middle to keep icons/text aligned.
+*/
 .status-bar-duel span {
-  margin: 0 0.5rem;
-  font-size: 1.1rem;
-  vertical-align: middle;
+  margin: 0 0.5rem; /* Left and right margin */
+  font-size: 1.1rem; /* Larger font for clarity */
+  vertical-align: middle; /* Vertically center content */
 }
 
-/* The actual canvas where the game is drawn */
+/* 
+  The actual <canvas> element where the game is drawn
+  - Block display to take full width available and be centered.
+  - Adds bottom margin for spacing.
+  - Dark background and border to frame the game area.
+  - Slightly rounded corners.
+*/
 .duel-canvas {
-  display: block;
-  margin: 0 auto 1rem;
-  background: #1e293b;
-  border: 2px solid #334155;
-  border-radius: 4px;
+  display: block; /* Block-level to occupy full parent width */
+  margin: 0 auto 1rem; /* Center horizontally, 1rem bottom margin */
+  background: #1e293b; /* Dark navy background for the canvas */
+  border: 2px solid #334155; /* Medium gray border around the canvas */
+  border-radius: 4px; /* Slightly rounded corners */
 }
 
-/* Row of buttons (Shoot / Pause / Quit) */
+/* 
+  Row of buttons (Shoot / Pause / Quit) below the canvas
+  - Flex container to lay out buttons horizontally.
+  - Centers them and adds a small gap between each.
+  - Allows wrapping on smaller screens and adds bottom margin.
+*/
 .controls-row {
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.8rem;
+  display: flex; /* Flex layout for button row */
+  justify-content: center; /* Center buttons horizontally */
+  gap: 0.5rem; /* 0.5rem space between buttons */
+  flex-wrap: wrap; /* Wrap buttons to next line if needed */
+  margin-bottom: 0.8rem; /* Space below the control row */
 }
 
-/* Generic button styles */
+/* 
+  Generic button styles applied to all <button> elements
+  - Padding for comfortable click/tap area.
+  - No border for a clean look.
+  - Rounded corners for consistency.
+  - Sets a base font size and cursor as pointer.
+*/
 button {
-  padding: 0.5rem 0.9rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
+  padding: 0.5rem 0.9rem; /* Vertical 0.5rem, horizontal 0.9rem */
+  border: none; /* Remove default border */
+  border-radius: 4px; /* Rounded corners */
+  font-size: 1rem; /* Standard button font size */
+  cursor: pointer; /* Pointer cursor on hover */
 }
 
-/* Specific button colors */
+/* 
+  Button with class "shoot-btn" (desktop shoot button)
+  - Green background and dark text for a "go" action.
+*/
 .shoot-btn {
-  background: #22c55e;
-  color: #0f172a;
+  background: #22c55e; /* Bright green background */
+  color: #0f172a; /* Dark text for contrast */
 }
 
+/* 
+  Button with class "pause-btn"
+  - Blue background and white text to represent pause/resume.
+*/
 .pause-btn {
-  background: #3b82f6;
-  color: #fff;
+  background: #3b82f6; /* Medium blue background */
+  color: #fff; /* White text */
 }
 
+/* 
+  Button with class "play-again" (shown after game over)
+  - Lighter blue background and white text for "Play Again".
+*/
 .play-again {
-  background: #0ea5e9;
-  color: #fff;
+  background: #0ea5e9; /* Light cyan-blue background */
+  color: #fff; /* White text */
 }
 
+/* 
+  Button with class "quit-btn"
+  - Red background to indicate quitting or canceling.
+*/
 .quit-btn {
-  background: #ef4444;
-  color: #fff;
+  background: #ef4444; /* Bright red background */
+  color: #fff; /* White text */
 }
 
-/* Message text (e.g. “No Ammo” warning) */
+/* 
+  Message text displayed for actions such as “No Ammo”
+  - Yellow color to stand out (warning color).
+  - Top margin to separate from buttons.
+  - Bold font to emphasize.
+*/
 .action-msg {
-  color: #facc15;
-  margin-top: 0.4rem;
-  font-weight: bold;
+  color: #facc15; /* Yellow warning color */
+  margin-top: 0.4rem; /* Space above message text */
+  font-weight: bold; /* Bold text */
 }
 
 /* ─── MOBILE JOYSTICK & SHOOT BUTTON ─────────────────────────────────── */
-/* The translucent circle behind the joystick knob */
+
+/* 
+  Joystick container (translucent circle) behind the knob
+  - Absolutely positioned relative to .duel-container.
+  - Fixed size of 100px × 100px.
+  - Semi-transparent gray background.
+  - Circular shape via 50% border-radius.
+  - Prevent default touch behaviors (scrolling) inside this area.
+  - High z-index to overlay on top of the canvas and chat.
+*/
 .joystick {
-  position: absolute;
-  width: 100px;
-  height: 100px;
-  background: rgba(71, 85, 105, 0.4);
-  border-radius: 50%;
-  touch-action: none; /* prevent default scrolling when you move your finger */
-  z-index: 10;
+  position: absolute; /* Position relative to parent container */
+  width: 100px; /* Fixed width */
+  height: 100px; /* Fixed height */
+  background: rgba(71, 85, 105, 0.4); /* Semi-transparent gray-blue */
+  border-radius: 50%; /* Fully circular */
+  touch-action: none; /* Disable default scrolling on touch */
+  z-index: 10; /* Above most elements */
 }
 
-/* Position the joystick at bottom-left */
+/* 
+  Position the joystick container at bottom-left of the duel container
+  - Left margin of 16px from container edge.
+  - Bottom margin of 200px to raise it above the chat input area.
+*/
 .joystick.left {
-  left: 16px;
-  bottom: 200px; /* raised above chat/input area */
+  left: 16px; /* 16px from left */
+  bottom: 200px; /* 200px from bottom (above chat) */
 }
 
-/* The smaller “knob” inside the joystick */
+/* 
+  Joystick knob (inner circle)
+  - Absolutely positioned inside the joystick container.
+  - 50px × 50px size, centered within the 100px container.
+  - Slightly darker semi-transparent background.
+  - Circular shape via border-radius.
+  - pointer-events: none so touches pass through to outer joystick.
+*/
 .joystick .knob {
-  position: absolute;
-  left: 25px;
-  top: 25px;
-  width: 50px;
-  height: 50px;
-  background: rgba(100, 116, 139, 0.8);
-  border-radius: 50%;
-  pointer-events: none; /* so we don’t block touch events on the outer circle */
+  position: absolute; /* Positioned relative to .joystick */
+  left: 25px; /* 25px from left => centers horizontally */
+  top: 25px; /* 25px from top => centers vertically */
+  width: 50px; /* Knob width */
+  height: 50px; /* Knob height */
+  background: rgba(100, 116, 139, 0.8); /* Darker semi-transparent background */
+  border-radius: 50%; /* Circular knob */
+  pointer-events: none; /* Allow touches to pass through */
 }
 
-/* Mobile “Shoot” button: a round button at bottom-right */
+/* 
+  Mobile “Shoot” button (round) displayed at bottom-right
+  - Absolutely positioned relative to .duel-container.
+  - Bottom margin of 200px to raise above chat area.
+  - Right margin of 16px from container edge.
+  - 56px × 56px circle with green background.
+  - Larger font-size for the “💥” emoji.
+  - High z-index so it floats above other elements.
+*/
 .shoot-btn-mobile {
-  position: absolute;
-  bottom: 200px; /* raised above chat/input */
-  right: 16px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  font-size: 1.5rem;
-  background: #22c55e;
-  color: #0f172a;
-  border: none;
-  z-index: 10;
+  position: absolute; /* Absolute positioning */
+  bottom: 200px; /* 200px from bottom */
+  right: 16px; /* 16px from right */
+  width: 56px; /* 56px wide */
+  height: 56px; /* 56px tall */
+  border-radius: 50%; /* Fully circular button */
+  font-size: 1.5rem; /* Larger emoji/button icon */
+  background: #22c55e; /* Bright green background */
+  color: #0f172a; /* Dark text (if any) */
+  border: none; /* No border */
+  z-index: 10; /* Float above other UI */
 }
 
-/* Hide joystick & mobile shoot on desktop */
+/* 
+  Hide joystick and mobile shoot button on desktop screens (width ≥ 768px)
+  - Ensures those mobile controls are only visible on smaller devices.
+*/
 @media (min-width: 768px) {
   .joystick,
   .shoot-btn-mobile {
-    display: none;
+    display: none; /* Hide on desktop/larger viewports */
   }
 }
 
-/* Minor tweaks for very small viewports */
+/* 
+  Minor responsive tweaks for very small viewports (≤ 360px)
+  - Reduce outer container margin and padding to fit small screens.
+  - Decrease font size and spacing in status bar for readability.
+  - Adjust button padding and font-size to maintain usability on tiny screens.
+*/
 @media (max-width: 360px) {
   .duel-container {
-    margin: 1rem;
-    padding: 0.75rem;
+    margin: 1rem; /* Smaller outer margin */
+    padding: 0.75rem; /* Smaller inner padding */
   }
   .status-bar-duel span {
-    font-size: 1rem;
-    margin: 0 0.3rem;
+    font-size: 1rem; /* Slightly smaller status text */
+    margin: 0 0.3rem; /* Reduced horizontal margin */
   }
   .controls-row button {
-    padding: 0.4rem 0.7rem;
-    font-size: 0.9rem;
+    padding: 0.4rem 0.7rem; /* Reduced button padding */
+    font-size: 0.9rem; /* Slightly smaller font on buttons */
   }
 }

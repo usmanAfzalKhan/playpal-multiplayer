@@ -1,270 +1,428 @@
 /* Messaging.css */
 
-/* ─── Container ───────────────────────────────────────── */
+/* 
+  Container for the entire messaging UI.
+  - Deep dark background (#1e1e2f) for a cyberpunk vibe.
+  - Light gray text (#e0e0e0) for readability.
+  - Padding around content and rounded corners.
+  - Maximum width of 600px, centered horizontally with auto margins.
+  - Neon-cyan box-shadow for a subtle glow effect.
+  - 'Orbitron' font family for a futuristic look.
+  - Flexbox layout in column direction with a 1rem gap between child elements.
+*/
 .messaging-container {
-  background-color: #1e1e2f; /* Deep dark background for cyberpunk */
-  color: #e0e0e0;
-  padding: 1rem;
-  border-radius: 12px;
-  max-width: 600px;
-  margin: 2rem auto;
-  box-shadow: 0 2px 12px rgba(0, 255, 255, 0.2); /* Neon glow */
-  font-family: 'Orbitron', sans-serif; /* Optional: cyberpunk font */
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  background-color: #1e1e2f; /* Dark background color */
+  color: #e0e0e0; /* Light gray text color */
+  padding: 1rem; /* Inner padding */
+  border-radius: 12px; /* Rounded corners */
+  max-width: 600px; /* Limit width to 600px */
+  margin: 2rem auto; /* Center container with top/bottom margin */
+  box-shadow: 0 2px 12px rgba(0, 255, 255, 0.2); /* Neon cyan glow */
+  font-family: "Orbitron", sans-serif; /* Futuristic "cyberpunk" font */
+  display: flex; /* Enable Flexbox layout */
+  flex-direction: column; /* Stack children vertically */
+  gap: 1rem; /* Space between flex items */
 }
 
-/* Heading + back button */
+/* 
+  Heading (h2) at the top of the messaging container.
+  - Centered text.
+  - No default margin.
+  - Slightly larger font size (1.25rem) for prominence.
+  - Neon cyan color (#00ffff) to stand out.
+*/
 .messaging-container h2 {
-  text-align: center;
-  margin: 0;
-  font-size: 1.25rem;
-  color: #00ffff; /* Neon cyan */
+  text-align: center; /* Center heading text */
+  margin: 0; /* Remove default margin */
+  font-size: 1.25rem; /* Larger font size */
+  color: #00ffff; /* Neon cyan color */
 }
 
-/* Back button styling (just a plain link or button) */
+/* 
+  Back button (or link) immediately following the heading.
+  - Plain button/link style (no background or border).
+  - Neon cyan text to match heading.
+  - Slightly smaller font (0.9rem).
+  - Cursor pointer on hover.
+  - Aligned to flex-start so it appears on the left.
+  - Small padding and rounded corners.
+  - Hover effect changes background to translucent cyan (#00ffff10).
+*/
 .messaging-container > button {
-  background: none;
-  border: none;
-  color: #00ffff;
-  font-size: 0.9rem;
-  cursor: pointer;
-  align-self: flex-start;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  background: none; /* No background by default */
+  border: none; /* No border */
+  color: #00ffff; /* Neon cyan text color */
+  font-size: 0.9rem; /* Slightly smaller font */
+  cursor: pointer; /* Pointer cursor on hover */
+  align-self: flex-start; /* Align button to left */
+  padding: 0.2rem 0.5rem; /* Small padding */
+  border-radius: 4px; /* Rounded corners */
+  transition: background-color 0.2s; /* Smooth background change on hover */
 }
+
+/* 
+  Hover effect for the back button.
+  - Light translucent cyan background on hover for feedback.
+*/
 .messaging-container > button:hover {
-  background-color: rgba(0, 255, 255, 0.1);
+  background-color: rgba(0, 255, 255, 0.1); /* Translucent cyan on hover */
 }
 
-/* Subtext below heading */
+/* 
+  Subtext paragraph below heading (optional description).
+  - Centered text.
+  - Small font size (0.8rem).
+  - No margin.
+  - Light gray color (#a0a0a0) for less emphasis.
+*/
 .messaging-container p.subtext {
-  text-align: center;
-  font-size: 0.8rem;
-  margin: 0;
-  color: #a0a0a0;
+  text-align: center; /* Center text */
+  font-size: 0.8rem; /* Smaller font size */
+  margin: 0; /* Remove default margin */
+  color: #a0a0a0; /* Light gray color */
 }
 
-/* ─── Messages List ───────────────────────────────────── */
+/* 
+  Container for the list of messages.
+  - Flexbox in column direction with 0.5rem gap between messages.
+  - Maximum height 400px, scrollable vertically if overflow.
+  - Padding for inner spacing.
+  - Dark background (#2a2a3f) distinctly darker than container.
+  - Rounded corners and inset box-shadow for a subtle glow inside.
+*/
 .messages-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-height: 400px;
-  overflow-y: auto;
-  padding: 1rem;
-  background-color: #2a2a3f; /* Dark message area */
-  border-radius: 12px;
-  box-shadow: inset 0 0 8px rgba(0, 255, 255, 0.1); /* Subtle glow */
+  display: flex; /* Flex container */
+  flex-direction: column; /* Stack messages vertically */
+  gap: 0.5rem; /* Space between messages */
+  max-height: 400px; /* Limit height to 400px */
+  overflow-y: auto; /* Vertical scrollbar if content overflows */
+  padding: 1rem; /* Inner padding */
+  background-color: #2a2a3f; /* Darker background for message area */
+  border-radius: 12px; /* Rounded corners */
+  box-shadow: inset 0 0 8px rgba(0, 255, 255, 0.1); /* Subtle inner cyan glow */
 }
 
-/* Individual message bubbles */
+/* 
+  Individual message bubble container.
+  - Bottom margin of 0.25rem.
+  - Padding for inner spacing.
+  - Rounded corners (16px) for pill shape.
+  - Max-width 75% to prevent overly wide bubbles.
+  - Wrap text to avoid overflow.
+  - Slightly smaller font (0.95rem).
+  - Border with translucent cyan (#00ffff4D) for outline.
+  - Relative positioning (allows positioning child elements if needed).
+  - Dark background (#3b3b4f) for each bubble.
+  - Light gray text (#e0e0e0).
+  - Box-shadow for subtle cyan glow around each bubble.
+  - Flex column layout for stacking header, content, timestamp, etc.
+*/
 .message {
-  margin-bottom: 0.25rem;
-  padding: 0.6rem 1rem;
-  border-radius: 16px;
-  max-width: 75%;
-  word-wrap: break-word;
-  font-size: 0.95rem;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  position: relative;
-  background-color: #3b3b4f; /* Subtle dark background */
-  color: #e0e0e0;
-  box-shadow: 0 1px 3px rgba(0, 255, 255, 0.2);
-  display: flex;
-  flex-direction: column;
+  margin-bottom: 0.25rem; /* Small space below each message */
+  padding: 0.6rem 1rem; /* Vertical/horizontal padding */
+  border-radius: 16px; /* Rounded bubble corners */
+  max-width: 75%; /* Limit width to 75% of container */
+  word-wrap: break-word; /* Wrap long words */
+  font-size: 0.95rem; /* Slightly smaller font */
+  border: 1px solid rgba(0, 255, 255, 0.3); /* Translucent cyan border */
+  position: relative; /* For absolute positioning child elements */
+  background-color: #3b3b4f; /* Slightly lighter dark background */
+  color: #e0e0e0; /* Light gray text */
+  box-shadow: 0 1px 3px rgba(0, 255, 255, 0.2); /* Subtle cyan glow */
+  display: flex; /* Flex container for child elements */
+  flex-direction: column; /* Stack header, text, timestamp vertically */
 }
 
-/* Align sent vs received */
+/* 
+  If message has class "sent", align it to the right and give a neon cyan tinted background.
+  - Background: translucent cyan (#00ffff30).
+  - align-self: flex-end to push to the right side of the container.
+*/
 .message.sent {
-  background-color: #00ffff30; /* Neon cyan for sent */
-  align-self: flex-end;
+  background-color: #00ffff30; /* Translucent cyan for sent messages */
+  align-self: flex-end; /* Align bubble to right */
 }
 
+/* 
+  If message has class "received", align to the left and give a neon magenta tinted background.
+  - Background: translucent magenta (#ff00ff30).
+  - align-self: flex-start to push to the left side.
+*/
 .message.received {
-  background-color: #ff00ff30; /* Neon magenta for received */
-  align-self: flex-start;
+  background-color: #ff00ff30; /* Translucent magenta for received messages */
+  align-self: flex-start; /* Align bubble to left */
 }
 
-/* Highlight saved messages */
+/* 
+  If message has class "saved" (user clicked/toggled save),
+  highlight it with a translucent neon yellow background (#ffcc0030).
+*/
 .message.saved {
-  background-color: #ffcc0030; /* Neon yellow highlight */
+  background-color: #ffcc0030; /* Translucent yellow highlight */
 }
 
-/* Header inside each message (username) */
+/* 
+  Header text at the top of each message bubble, usually showing the sender's username.
+  - Smaller font size (0.8rem).
+  - Bold font weight.
+  - Bottom margin to separate from message content.
+  - Neon cyan color (#00ffff) to stand out.
+*/
 .message-header {
-  font-size: 0.8rem;
-  font-weight: bold;
-  margin-bottom: 0.25rem;
-  color: #00ffff; /* Cyan for header */
+  font-size: 0.8rem; /* Smaller header text */
+  font-weight: bold; /* Bold text */
+  margin-bottom: 0.25rem; /* Space below header */
+  color: #00ffff; /* Neon cyan color */
 }
 
-/* Timestamp text */
+/* 
+  Timestamp text inside each message bubble.
+  - Display block so it appears on its own line.
+  - Very small font (0.65rem).
+  - Right-aligned.
+  - Light gray color (#ccc).
+*/
 .message span {
-  display: block;
-  font-size: 0.65rem;
-  text-align: right;
-  color: #ccc;
+  display: block; /* Block-level for its own line */
+  font-size: 0.65rem; /* Very small font */
+  text-align: right; /* Align timestamp to right */
+  color: #ccc; /* Lighter gray color */
 }
 
-/* Seen indicator (small check) */
+/* 
+  "Seen" indicator (e.g., check mark) for messages that have been seen.
+  - Very small font (0.65rem).
+  - Neon green color (#00ff00).
+  - Right-aligned.
+  - Top margin to separate from the timestamp.
+*/
 .message .seen-indicator {
-  font-size: 0.65rem;
-  color: #00ff00; /* Neon green for seen */
-  text-align: right;
-  margin-top: 0.2rem;
+  font-size: 0.65rem; /* Very small font */
+  color: #00ff00; /* Neon green color */
+  text-align: right; /* Align to right */
+  margin-top: 0.2rem; /* Small space above indicator */
 }
 
-/* ─── Input Area ─────────────────────────────────────── */
+/* ─── Input Area ─────────────────────────────────────────── */
+
+/* 
+  Container for the message input area at the bottom.
+  - Flex layout in row direction with a gap between input and button.
+  - Padding around input area for spacing.
+  - Dark background (#2a2a3f) for input bar.
+  - Rounded corners and subtle magenta glow (box-shadow).
+*/
 .message-input {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  background-color: #2a2a3f;
-  border-radius: 12px;
+  display: flex; /* Flex layout for input + button */
+  gap: 0.5rem; /* Space between input and button */
+  padding: 0.5rem; /* Inner padding */
+  background-color: #2a2a3f; /* Dark input bar background */
+  border-radius: 12px; /* Rounded corners */
   box-shadow: 0 1px 5px rgba(255, 0, 255, 0.3); /* Magenta glow */
 }
 
-/* Text input field */
+/* 
+  Text input field inside the message-input container.
+  - Grows to fill available space (flex:1).
+  - Padding for comfort.
+  - Rounded corners (20px).
+  - Border with translucent cyan (#00ffff80) for neon effect.
+  - Background color (#1e1e2f) to match container.
+  - Light gray text (#e0e0e0).
+  - Transition on border and shadow for focus effect.
+*/
 .message-input input {
-  flex: 1;
-  padding: 0.7rem;
-  border-radius: 20px;
-  border: 1px solid rgba(0, 255, 255, 0.5);
-  font-size: 1rem;
-  background-color: #1e1e2f;
-  color: #e0e0e0;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  flex: 1; /* Fill remaining width */
+  padding: 0.7rem; /* Inner padding */
+  border-radius: 20px; /* Rounded pill shape */
+  border: 1px solid rgba(0, 255, 255, 0.5); /* Translucent cyan border */
+  font-size: 1rem; /* Standard font size */
+  background-color: #1e1e2f; /* Dark background */
+  color: #e0e0e0; /* Light gray text */
+  transition: border-color 0.2s, box-shadow 0.2s; /* Smooth focus transition */
 }
 
+/* 
+  Placeholder text styling for the input.
+  - Slightly darker gray (#666) so placeholder is visible but not too prominent.
+*/
 .message-input input::placeholder {
-  color: #666;
+  color: #666; /* Dark gray placeholder */
 }
 
-/* Focus state for input */
+/* 
+  Focused state for the input field.
+  - Border color changes to neon magenta (#ff00ff).
+  - Box-shadow glow in neon magenta.
+  - Removes default outline.
+*/
 .message-input input:focus {
-  border-color: #ff00ff;
-  box-shadow: 0 0 6px rgba(255, 0, 255, 0.5);
-  outline: none;
+  border-color: #ff00ff; /* Neon magenta border on focus */
+  box-shadow: 0 0 6px rgba(255, 0, 255, 0.5); /* Neon magenta glow */
+  outline: none; /* Remove default focus outline */
 }
 
-/* Send button */
+/* 
+  Send button next to the input field.
+  - Padding for comfortable click area.
+  - Magenta background (#ff00ff) for a bold contrast.
+  - White text for readability.
+  - Rounded corners (20px).
+  - Bold font weight.
+  - Cursor pointer on hover.
+  - Transition on background-color for hover effect.
+*/
 .message-input button {
-  padding: 0.7rem 1.2rem;
-  background-color: #ff00ff; /* Magenta */
-  color: white;
-  border: none;
-  border-radius: 20px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  padding: 0.7rem 1.2rem; /* Vertical/horizontal padding */
+  background-color: #ff00ff; /* Magenta background */
+  color: white; /* White text */
+  border: none; /* No border */
+  border-radius: 20px; /* Rounded corners */
+  font-weight: bold; /* Bold text */
+  cursor: pointer; /* Pointer cursor */
+  transition: background-color 0.2s; /* Smooth hover transition */
 }
 
+/* 
+  Button hover state:
+  - Darker magenta (#e000e0) to indicate interactivity.
+*/
 .message-input button:hover {
-  background-color: #e000e0;
+  background-color: #e000e0; /* Darker magenta on hover */
 }
 
-/* ─── Scrollbar Styling ─────────────────────────────── */
+/* ─── Scrollbar Styling ───────────────────────────────────── */
+
+/* 
+  Custom styling for the vertical scrollbar inside .messages-list.
+  - Width of scrollbar track set to 6px.
+*/
 .messages-list::-webkit-scrollbar {
-  width: 6px;
+  width: 6px; /* Narrow scrollbar width */
 }
 
+/* 
+  Styling for the scrollbar track (background area).
+  - Matches the messages-list background (#2a2a3f).
+  - Rounded corners on the track.
+*/
 .messages-list::-webkit-scrollbar-track {
-  background: #2a2a3f;
-  border-radius: 3px;
+  background: #2a2a3f; /* Dark track background */
+  border-radius: 3px; /* Slightly rounded corners */
 }
 
+/* 
+  Styling for the scrollbar thumb (draggable part).
+  - Translucent cyan (#00ffff66) for visibility.
+  - Rounded corners (3px) to match track.
+*/
 .messages-list::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 255, 255, 0.4);
-  border-radius: 3px;
+  background-color: rgba(0, 255, 255, 0.4); /* Translucent cyan thumb */
+  border-radius: 3px; /* Rounded corners on thumb */
 }
 
-/* ─── Responsive Tweaks ─────────────────────────────── */
+/* ─── Responsive Tweaks for Medium Screens ───────────────────── */
+
+/* 
+  Adjust styling for screens narrower than 600px.
+  - Reduce margins and padding on .messaging-container.
+  - Slightly smaller heading font.
+  - Restrict messages-list height and padding.
+  - Smaller font for messages and headers.
+  - Wrap input and button layout in message-input for narrower screens.
+*/
 @media (max-width: 600px) {
   .messaging-container {
-    margin: 1rem;
-    padding: 0.75rem;
+    margin: 1rem; /* Smaller container margin */
+    padding: 0.75rem; /* Smaller container padding */
   }
 
   .messaging-container h2 {
-    font-size: 1.1rem;
+    font-size: 1.1rem; /* Slightly smaller heading */
   }
 
   .messages-list {
-    max-height: 300px;
-    padding: 0.75rem;
+    max-height: 300px; /* Reduce height for smaller screens */
+    padding: 0.75rem; /* Less padding */
   }
 
   .message {
-    font-size: 0.9rem;
-    max-width: 80%;
+    font-size: 0.9rem; /* Smaller message font */
+    max-width: 80%; /* Wider relative width for balloons */
   }
 
   .message-header {
-    font-size: 0.75rem;
+    font-size: 0.75rem; /* Smaller header text */
   }
 
   .message-input {
-    flex-wrap: wrap;
-    gap: 0.25rem;
+    flex-wrap: wrap; /* Allow wrap of input + button */
+    gap: 0.25rem; /* Less gap between input and button */
   }
 
   .message-input input {
-    font-size: 0.9rem;
-    padding: 0.6rem;
+    font-size: 0.9rem; /* Smaller input font */
+    padding: 0.6rem; /* Less padding */
   }
 
   .message-input button {
-    padding: 0.6rem 1rem;
-    font-size: 0.9rem;
+    padding: 0.6rem 1rem; /* Smaller button padding */
+    font-size: 0.9rem; /* Smaller button text */
   }
 }
 
+/* ─── Responsive Tweaks for Extra-Small Screens ───────────────── */
+
+/* 
+  Further adjust styling for screens narrower than 360px (very small phones).
+  - Reduce container margins and padding further.
+  - Even smaller heading and message text.
+  - Tighter padding and reduced widths for message bubbles.
+  - Column layout for message-input to stack input and button.
+*/
 @media (max-width: 360px) {
   .messaging-container {
-    margin: 0.5rem;
-    padding: 0.5rem;
+    margin: 0.5rem; /* Minimal container margin */
+    padding: 0.5rem; /* Minimal container padding */
   }
 
   .messaging-container h2 {
-    font-size: 1rem;
+    font-size: 1rem; /* Smaller heading text */
   }
 
   .messages-list {
-    max-height: 250px;
-    padding: 0.5rem;
+    max-height: 250px; /* Further reduced height */
+    padding: 0.5rem; /* Smaller padding */
   }
 
   .message {
-    font-size: 0.85rem;
-    max-width: 90%;
-    padding: 0.5rem 0.8rem;
+    font-size: 0.85rem; /* Smaller message text */
+    max-width: 90%; /* Almost full width for balloons */
+    padding: 0.5rem 0.8rem; /* Smaller bubble padding */
   }
 
   .message-header {
-    font-size: 0.7rem;
+    font-size: 0.7rem; /* Smaller header text */
   }
 
   .message span,
   .message .seen-indicator {
-    font-size: 0.6rem;
+    font-size: 0.6rem; /* Smaller timestamp and seen indicator */
   }
 
   .message-input {
-    flex-direction: column;
-    gap: 0.25rem;
+    flex-direction: column; /* Stack input and button vertically */
+    gap: 0.25rem; /* Minimal gap */
   }
 
   .message-input input {
-    font-size: 0.85rem;
-    padding: 0.5rem;
+    font-size: 0.85rem; /* Smaller input font */
+    padding: 0.5rem; /* Smaller padding */
   }
 
   .message-input button {
-    width: 100%;
-    padding: 0.5rem;
-    font-size: 0.85rem;
+    width: 100%; /* Full width button */
+    padding: 0.5rem; /* Smaller padding */
+    font-size: 0.85rem; /* Smaller button text */
   }
 }

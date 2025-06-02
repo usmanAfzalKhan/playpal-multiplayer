@@ -1,164 +1,284 @@
 /* src/components/Battleship.css */
 
+/* 
+  Container for the Battleship game page.
+  - Centers text and applies padding.
+  - Light text color (#f1f5f9) to stand out on dark background.
+*/
 .battleship-container {
-  text-align: center;
-  padding: 1rem;
-  color: #f1f5f9;
+  text-align: center;     /* Center text horizontally */
+  padding: 1rem;          /* Padding around the container */
+  color: #f1f5f9;         /* Light gray/white text */
 }
 
+/* 
+  Explanatory text and instructions sections.
+  - Small vertical margin for spacing.
+  - Slightly lighter gray color (#cbd5e1) for secondary text.
+*/
 .explanation,
 .instructions {
-  margin: 0.5rem 0;
-  color: #cbd5e1;
+  margin: 0.5rem 0;       /* Vertical margin: 0.5rem top & bottom */
+  color: #cbd5e1;         /* Pale gray text for explanations/instructions */
 }
 
+/* 
+  Status text displayed to player (e.g., "Player A's turn").
+  - Bold font to emphasize status messages.
+  - Bottom margin to separate from next element.
+*/
 .status {
-  font-weight: bold;
-  margin-bottom: 1rem;
+  font-weight: bold;      /* Bold text */
+  margin-bottom: 1rem;    /* Space below status text */
 }
 
+/* 
+  Status bar layout (e.g., showing hits_remaining vs misses_remaining).
+  - Uses Flexbox to center child elements with a gap between them.
+*/
 .status-bar {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  margin: 1rem 0;
+  display: flex;          /* Flex layout */
+  justify-content: center;/* Center items horizontally */
+  gap: 2rem;              /* 2rem space between status items */
+  margin: 1rem 0;         /* Vertical margin around status bar */
 }
 
+/* 
+  Wrapper that holds both player's boards.
+  - Enables horizontal scrolling if boards overflow the viewport width.
+  - Full width of parent container.
+  - Padding on bottom to avoid content cut-off when scrolling.
+*/
 .boards-wrapper {
-  overflow-x: auto;
-  width: 100%;
-  padding-bottom: 1rem;
+  overflow-x: auto;       /* Enable horizontal scroll if needed */
+  width: 100%;            /* Full width */
+  padding-bottom: 1rem;   /* Bottom padding for safe scrolling */
 }
 
+/* 
+  Layout for the two Battleship grids side-by-side.
+  - Uses Flexbox; wraps on smaller screens.
+  - Centers boards and adds gap between them.
+*/
 .battleship-boards {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 2rem;
+  display: flex;          /* Flex layout for boards */
+  flex-wrap: wrap;        /* Wrap boards to next line if needed */
+  justify-content: center;/* Center boards horizontally */
+  gap: 2rem;              /* Space between boards */
 }
 
+/* 
+  Individual Battleship grid styling.
+  - 10×10 grid with fixed cell size (2rem × 2rem).
+  - 2px gap between cells for visual separation.
+*/
 .battleship-grid {
-  display: grid;
-  grid-template-columns: repeat(10, 2rem);
-  grid-template-rows:    repeat(10, 2rem);
-  gap: 2px;
+  display: grid;                                          /* CSS Grid layout */
+  grid-template-columns: repeat(10, 2rem);                /* 10 columns, each 2rem wide */
+  grid-template-rows:    repeat(10, 2rem);                /* 10 rows, each 2rem tall */
+  gap: 2px;                                               /* 2px gap between cells */
 }
 
+/* 
+  Styling for cells that have not yet been clicked.
+  - Darker background to match container.
+  - Cursor pointer to indicate clickable.
+*/
 .battleship-grid .unclicked {
-  background-color: #1e293b;
-  cursor: pointer;
+  background-color: #1e293b;  /* Dark navy background */
+  cursor: pointer;            /* Pointer cursor to show clickability */
 }
 
+/* 
+  Styling for cells that register a “hit” on an opponent's ship.
+  - Red background (#dc2626) to indicate a hit.
+*/
 .battleship-grid .hit {
-  background-color: #dc2626; /* red for hits */
+  background-color: #dc2626;   /* Red background for hits */
 }
 
+/* 
+  Styling for cells that register a “miss” (water).
+  - Blue background (#2563eb) to indicate miss.
+*/
 .battleship-grid .miss {
-  background-color: #2563eb; /* blue for misses */
+  background-color: #2563eb;   /* Blue background for misses */
 }
 
+/* 
+  Styling to show the player's own ships on their grid.
+  - Outline with blue border (#2563eb) to differentiate ship cells.
+*/
 .battleship-grid .ship {
-  outline: 1px solid #2563eb; /* show your ships */
+  outline: 1px solid #2563eb;  /* Blue outline around ship cells */
 }
 
-/* Controls */
+/* 
+  Controls section: holds buttons like "Restart" and "Quit".
+  - Flexbox to center buttons with gap.
+  - Margin top for spacing from the grid above.
+*/
 .controls {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 1rem;
+  display: flex;          /* Flex layout for control buttons */
+  justify-content: center;/* Center controls horizontally */
+  gap: 1rem;              /* 1rem space between buttons */
+  margin-top: 1rem;       /* Space above controls */
 }
 
+/* 
+  Restart button styling.
+  - Padding for clickable area.
+  - Neon-blue background (#38bdf8) with white text.
+  - Rounded corners and cursor pointer.
+*/
 .restart-btn {
-  padding: 0.5rem 1rem;
-  background: #38bdf8;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  padding: 0.5rem 1rem;            /* Vertical/horizontal padding */
+  background: #38bdf8;             /* Neon-blue background */
+  color: white;                    /* White text */
+  border: none;                    /* No default border */
+  border-radius: 4px;              /* Slightly rounded corners */
+  cursor: pointer;                 /* Pointer cursor on hover */
 }
 
+/* 
+  Quit button styling.
+  - Padding for clickable area.
+  - Red background (#ef4444) to indicate destructive action.
+  - Rounded corners and cursor pointer.
+*/
 .quit-btn {
-  padding: 0.5rem 1rem;
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  padding: 0.5rem 1rem;            /* Vertical/horizontal padding */
+  background: #ef4444;             /* Red background */
+  color: white;                    /* White text */
+  border: none;                    /* No default border */
+  border-radius: 4px;              /* Slightly rounded corners */
+  cursor: pointer;                 /* Pointer cursor on hover */
 }
 
-/* Chat */
+/* 
+  Chat box container below the boards.
+  - Max width of 600px, centered horizontally.
+  - Dark background (#0f172a) to match theme.
+  - Padding inside and rounded corners.
+  - Light text color (#f1f5f9).
+*/
 .chatbox {
-  max-width: 600px;
-  margin: 1rem auto;
-  background: #0f172a;
-  padding: 1rem;
-  border-radius: 8px;
-  color: #f1f5f9;
+  max-width: 600px;        /* Limit chat box width */
+  margin: 1rem auto;       /* Center horizontally, 1rem margin top/bottom */
+  background: #0f172a;     /* Very dark background */
+  padding: 1rem;           /* Inner padding */
+  border-radius: 8px;      /* Rounded corners */
+  color: #f1f5f9;          /* Light text color */
 }
 
+/* 
+  Chat header (e.g., “Game Chat”).
+  - Removes top margin to fit nicely inside chat box.
+*/
 .chatbox h4 {
-  margin-top: 0;
+  margin-top: 0;           /* Remove default top margin */
 }
 
+/* 
+  Container for chat messages.
+  - Fixed max-height with vertical scroll if overflow.
+  - Bottom margin to separate from input area.
+*/
 .chat-messages {
-  max-height: 200px;
-  overflow-y: auto;
-  margin-bottom: 0.5rem;
+  max-height: 200px;       /* Limit chat messages height */
+  overflow-y: auto;        /* Vertical scroll on overflow */
+  margin-bottom: 0.5rem;   /* Space below messages */
 }
 
+/* 
+  Individual chat message paragraph styling.
+  - Small vertical margin between messages.
+  - Slightly smaller font size for readability.
+*/
 .chat-messages p {
-  margin: 0.25rem 0;
-  font-size: 0.9rem;
+  margin: 0.25rem 0;       /* 0.25rem vertical margin */
+  font-size: 0.9rem;       /* Slightly smaller text */
 }
 
+/* 
+  Chat input section: contains the text field and send button.
+  - Flexbox layout with gap.
+*/
 .chat-input {
-  display: flex;
-  gap: 0.5rem;
+  display: flex;           /* Flex layout for input and button */
+  gap: 0.5rem;             /* Space between input and button */
 }
 
+/* 
+  Chat input text field styling.
+  - Flex-grow: 1 to fill remaining space.
+  - Padding inside, dark background (#1e293b) to match theme.
+  - Light text color, border for contrast.
+  - Rounded corners.
+*/
 .chat-input input {
-  flex: 1;
-  padding: 0.5rem;
-  background: #1e293b;
-  color: #f1f5f9;
-  border: 1px solid #334155;
-  border-radius: 4px;
+  flex: 1;                 /* Fill available horizontal space */
+  padding: 0.5rem;         /* Inner padding */
+  background: #1e293b;     /* Dark navy background */
+  color: #f1f5f9;          /* Light text color */
+  border: 1px solid #334155; /* Dark gray border */
+  border-radius: 4px;      /* Slightly rounded corners */
 }
 
+/* 
+  Chat send button styling.
+  - Padding for clickable area.
+  - Neon-blue background (#38bdf8) with black text.
+  - No border and rounded corners.
+  - Cursor pointer to indicate clickability.
+*/
 .chat-input button {
-  padding: 0.5rem 1rem;
-  background: #38bdf8;
-  color: #000;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  padding: 0.5rem 1rem;    /* Vertical/horizontal padding */
+  background: #38bdf8;     /* Neon-blue background */
+  color: #000;             /* Black text for contrast */
+  border: none;            /* No default border */
+  border-radius: 4px;      /* Slightly rounded corners */
+  cursor: pointer;         /* Pointer cursor on hover */
 }
 
-/* Mobile responsiveness */
+/* 
+  Mobile responsiveness for screens ≤ 640px wide.
+  - Reduces paddings, grid cell sizes, and rearranges controls vertically.
+*/
 @media (max-width: 640px) {
+  /* Reduce container padding */
   .battleship-container {
-    padding: 0.5rem;
+    padding: 0.5rem;       /* Smaller padding on small screens */
   }
+
+  /* Resize each grid cell to 1.4rem × 1.4rem and gap to 1px */
   .battleship-grid {
-    grid-template-columns: repeat(10, 1.4rem);
-    grid-template-rows:    repeat(10, 1.4rem);
-    gap: 1px;
+    grid-template-columns: repeat(10, 1.4rem); /* 10 columns, each 1.4rem wide */
+    grid-template-rows:    repeat(10, 1.4rem); /* 10 rows, each 1.4rem tall */
+    gap: 1px;            /* Smaller gap between cells */
   }
+
+  /* Stack status-bar items vertically on narrow screens */
   .status-bar {
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: center;
+    flex-direction: column; /* Stack items rather than row */
+    gap: 0.5rem;            /* Smaller gap between items */
+    align-items: center;    /* Center items horizontally */
   }
+
+  /* Stack control buttons vertically */
   .controls {
-    flex-direction: column;
-    gap: 0.5rem;
+    flex-direction: column; /* Stack buttons rather than row */
+    gap: 0.5rem;            /* Space between buttons */
   }
+
+  /* Make each control button full width */
   .controls button {
-    width: 100%;
+    width: 100%;            /* Button spans full container width */
   }
+
+  /* Make chatbox fill full width and reduce padding */
   .chatbox {
-    width: 100%;
-    padding: 0.5rem;
+    width: 100%;            /* Take entire width of parent */
+    padding: 0.5rem;        /* Smaller padding on small screens */
   }
 }

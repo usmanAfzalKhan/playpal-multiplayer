@@ -1,69 +1,127 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  overflow-x: hidden;
-  background-color: #1e293b;
+/* 
+  Reset default margins and paddings on html and body.
+  Ensure the page occupies full viewport height and width.
+  Disable horizontal overflow to prevent unwanted scrolling.
+  Set a dark background color for the page.
+*/
+html,
+body {
+  margin: 0; /* Remove default margin */
+  padding: 0; /* Remove default padding */
+  height: 100%; /* Full viewport height */
+  width: 100%; /* Full viewport width */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  background-color: #1e293b; /* Dark navy background */
 }
 
+/* 
+  Root-level custom properties and base typography/appearance settings.
+  - Define a system font stack for consistent rendering.
+  - Set a comfortable line height.
+  - Establish a default font weight.
+  - Enable light/dark color scheme detection in supported browsers.
+  - Set default text and background colors.
+  - Improve font rendering and disable font synthesis.
+*/
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif; /* System font stack */
+  line-height: 1.5; /* Comfortable line height */
+  font-weight: 400; /* Normal font weight */
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light dark; /* Allow browser to choose light or dark */
+  color: rgba(255, 255, 255, 0.87); /* Default text color: off-white */
+  background-color: #242424; /* Default background: very dark gray */
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none; /* Prevent browser from synthesizing bold/italic */
+  text-rendering: optimizeLegibility; /* Improve text rendering for legibility */
+  -webkit-font-smoothing: antialiased; /* Smoother font rendering on WebKit */
+  -moz-osx-font-smoothing: grayscale; /* Smoother font rendering on macOS */
 }
 
+/* 
+  Anchor link (<a>) styling.
+  - Slightly bolder text for links.
+  - Bright blue color by default.
+  - Inherit text-decoration from parent (avoid underlines unless specified).
+*/
 a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+  font-weight: 500; /* Medium font weight for links */
+  color: #646cff; /* Bright blue color */
+  text-decoration: inherit; /* Inherit decoration (usually none) */
 }
+
+/* 
+  Hover state for anchor links.
+  - Darker blue for a subtle hover effect.
+*/
 a:hover {
-  color: #535bf2;
+  color: #535bf2; /* Darker blue on hover */
 }
 
+/* 
+  Heading level 1 (<h1>) styling.
+  - Large font size for primary headings.
+  - Tight line-height for a more impactful visual.
+*/
 h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+  font-size: 3.2em; /* Large heading text */
+  line-height: 1.1; /* Slightly tighter line-height */
 }
 
+/* 
+  Generic <button> styling for a modern, minimal look.
+  - Rounded corners.
+  - Transparent border (visible on hover only).
+  - Padding for clickable area.
+  - Inherit font-family and use medium weight.
+  - Dark background for contrast.
+  - Pointer cursor and transition for border color on hover.
+*/
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+  border-radius: 8px; /* Rounded corners */
+  border: 1px solid transparent; /* Invisible border, becomes visible on hover */
+  padding: 0.6em 1.2em; /* Vertical and horizontal padding */
+  font-size: 1em; /* Standard button text size */
+  font-weight: 500; /* Medium font weight */
+  font-family: inherit; /* Inherit parent font-family */
+  background-color: #1a1a1a; /* Dark background color */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: border-color 0.25s; /* Smooth transition for border-color */
 }
+
+/* 
+  Hover state for buttons.
+  - On hover, change border color to a bright blue for emphasis.
+*/
 button:hover {
-  border-color: #646cff;
+  border-color: #646cff; /* Bright blue border on hover */
 }
+
+/* 
+  Focus and focus-visible state for buttons.
+  - Outline using the browser’s focus-ring color for accessibility.
+*/
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 4px auto -webkit-focus-ring-color; /* Default focus outline */
 }
 
+/* 
+  Adjust base colors when the user has a preference for a light color scheme.
+  - Override root text and background colors for light mode.
+  - Slightly adjust hover colors for links and buttons in light mode.
+*/
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    color: #213547; /* Dark text color for light background */
+    background-color: #ffffff; /* White background */
   }
+
   a:hover {
-    color: #747bff;
+    color: #747bff; /* Softer blue hover in light mode */
   }
+
   button {
-    background-color: #f9f9f9;
+    background-color: #f9f9f9; /* Light gray background for buttons */
   }
 }

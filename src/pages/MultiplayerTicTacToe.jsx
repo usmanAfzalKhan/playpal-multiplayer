@@ -1,3 +1,4 @@
+// src/pages/MultiplayerTicTacToe.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { auth, db } from '../firebase-config';
@@ -82,11 +83,19 @@ export default function MultiplayerTicTacToe() {
   // 5) subscribe to gameDoc
   useEffect(() => {
     if (!gameId) return;
+
+    // Subscribe to the live game document
     const unsub = onSnapshot(doc(db,'tictactoe_games',gameId), snap => {
       if (!snap.exists()) setGameData(null);
       else setGameData({ id: snap.id, ...snap.data() });
     });
-    return unsub;
+
+    // Cleanup: unsubscribe and delete the game if user leaves without hitting “Quit”
+    return () => {
+      unsub();
+      deleteDoc(doc(db,'tictactoe_games',gameId))
+        .catch(() => {/* ignore if already deleted */});
+    };
   }, [gameId]);
 
   // 6) move logic
@@ -142,12 +151,6 @@ export default function MultiplayerTicTacToe() {
   const handleQuit = async () => {
     await deleteDoc(doc(db,'tictactoe_games',gameId));
     navigate('/dashboard');
-  };
-
-  // 9) accept from dashboard
-  const acceptInvite = async notif => {
-    await updateDoc(doc(db,'tictactoe_games',notif.gameId), { status: 'active' });
-    navigate(`/tictactoe/multiplayer/${notif.gameId}`);
   };
 
   // --- RENDER ---

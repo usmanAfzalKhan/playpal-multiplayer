@@ -1,110 +1,188 @@
 /* src/pages/AuthPage.css */
 
+/* 
+  The main container for the authentication page.
+  - Fills the entire viewport (100vh height, 100vw width).
+  - Dark background to match the app’s theme.
+  - Uses Flexbox to center its contents both vertically and horizontally.
+  - Padding ensures there's space around content on all devices.
+*/
 .auth-container {
-  height: 100vh;
-  width: 100vw;
-  background-color: #1e293b;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 2rem;
-  box-sizing: border-box;
+  height: 100vh;                  /* Full viewport height */
+  width: 100vw;                   /* Full viewport width */
+  background-color: #1e293b;      /* Dark navy-blue background */
+  display: flex;                  /* Flex layout */
+  flex-direction: column;         /* Stack children vertically */
+  justify-content: center;        /* Center children vertically */
+  align-items: center;            /* Center children horizontally */
+  padding: 2rem;                  /* Padding around the container */
+  box-sizing: border-box;         /* Include padding in width/height */
 }
 
+/* 
+  Wrapper around the logo/avatar image.
+  - Adds bottom margin to separate it from the form below.
+*/
 .auth-logo-wrapper {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.5rem;          /* Space below logo */
 }
 
+/* 
+  Styles for the logo/avatar at the top of the auth page.
+  - Fixed dimensions of 140×140 pixels, circular via border-radius.
+  - object-fit: cover ensures the image scales and crops to fill.
+  - Transition and hover styles create a slight “pop” effect when hovered.
+  - cursor: pointer indicates the logo could be clickable (e.g., to refresh or go home).
+*/
 .auth-logo {
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  object-fit: cover;
-  transition: transform 0.2s, box-shadow 0.3s ease;
-  cursor: pointer;
+  width: 140px;                   /* Fixed width */
+  height: 140px;                  /* Fixed height */
+  border-radius: 50%;             /* Makes the image circular */
+  object-fit: cover;              /* Scale & crop, maintain aspect ratio */
+  transition: transform 0.2s, box-shadow 0.3s ease; /* Smooth hover animation */
+  cursor: pointer;                /* Pointer cursor on hover */
 }
 
+/* 
+  Hover effect for the logo/avatar.
+  - Slightly scales up the image (1.05 × original size).
+  - Adds a glowing box-shadow around it (neon-blue effect).
+*/
 .auth-logo:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 20px 4px rgba(56, 189, 248, 0.5);
+  transform: scale(1.05);         /* Scale up by 5% */
+  box-shadow: 0 0 20px 4px rgba(56, 189, 248, 0.5); /* Neon-blue glow */
 }
 
+/* 
+  Container for the actual login/register form box.
+  - Darker background than the main container.
+  - Rounded corners, generous padding, and centered text.
+  - Max-width ensures it never grows too wide on large screens.
+  - Box-shadow adds depth, making it look “elevated” from the background.
+*/
 .auth-box {
-  background-color: #0f172a;
-  padding: 2rem;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
-  box-sizing: border-box;
-  text-align: center;
+  background-color: #0f172a;      /* Very dark background */
+  padding: 2rem;                  /* Inner padding */
+  border-radius: 12px;            /* Rounded corners */
+  width: 100%;                    /* Full width of parent (but max-width limits it) */
+  max-width: 400px;               /* Ensures form stays at a reasonable width */
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Subtle shadow behind the box */
+  box-sizing: border-box;         /* Include padding in width */
+  text-align: center;             /* Center text inside form */
 }
 
+/* 
+  Heading style inside the auth form (e.g., "Sign In" or "Register").
+  - White-ish color to stand out against dark background.
+  - Margin bottom creates space between heading and inputs.
+*/
 .auth-box h2 {
-  margin-bottom: 1rem;
-  color: #f1f5f9;
+  margin-bottom: 1rem;            /* Space below heading */
+  color: #f1f5f9;                 /* Light gray/white text */
 }
 
+/* 
+  Form layout inside the auth-box.
+  - Stacks input fields and buttons vertically.
+  - Gap between each field for spacing.
+*/
 .auth-box form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  display: flex;                  /* Flex layout */
+  flex-direction: column;         /* Stack children vertically */
+  gap: 0.75rem;                   /* Vertical space between form elements */
 }
 
+/* 
+  Styles for all <input> elements inside the auth form.
+  - Full width, padded, with no border for a clean look.
+  - Rounded corners and dark background to match theme.
+  - Text color light gray so it’s readable on dark background.
+*/
 .auth-box input {
-  width: 100%;
-  padding: 0.75rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  box-sizing: border-box;
-  background-color: #334155;
-  color: #f1f5f9;
+  width: 100%;                    /* Input fills container width */
+  padding: 0.75rem;               /* Inner padding */
+  border: none;                   /* Remove default border */
+  border-radius: 6px;             /* Rounded corners */
+  font-size: 1rem;                /* Standard font size */
+  box-sizing: border-box;         /* Include padding in width */
+  background-color: #334155;      /* Dark slate-gray background */
+  color: #f1f5f9;                 /* Light text */
 }
 
+/* 
+  Placeholder text color for input fields.
+  - Lighter gray to differentiate placeholder from user text.
+*/
 .auth-box input::placeholder {
-  color: #cbd5e1;
+  color: #cbd5e1;                 /* Pale gray placeholder */
 }
 
+/* 
+  Styles for the submit button inside the auth form.
+  - Full width, styled with neon-blue background.
+  - Bold text, rounded corners, and hover effect for interactivity.
+*/
 .auth-submit-button {
-  width: 100%;
-  padding: 0.75rem;
-  border: none;
-  border-radius: 6px;
-  background-color: #38bdf8;
-  color: black;
-  font-weight: bold;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  width: 100%;                    /* Button fills container width */
+  padding: 0.75rem;               /* Inner padding */
+  border: none;                   /* Remove default border */
+  border-radius: 6px;             /* Rounded corners */
+  background-color: #38bdf8;      /* Neon-blue button background */
+  color: black;                   /* Black text for contrast */
+  font-weight: bold;              /* Bold text */
+  font-size: 1rem;                /* Standard font size */
+  cursor: pointer;                /* Pointer cursor on hover */
+  transition: background-color 0.2s; /* Smooth hover effect */
 }
 
+/* 
+  Hover effect for the submit button.
+  - Slightly darker blue background on hover.
+*/
 .auth-submit-button:hover {
-  background-color: #0ea5e9;
+  background-color: #0ea5e9;      /* Darker blue on hover */
 }
 
+/* 
+  “Forgot password” link style.
+  - Placed below the form, lighter color to show it’s clickable.
+  - Smaller font size to differentiate from inputs.
+*/
 .forgot-password {
-  margin-top: 0.75rem;
-  color: #38bdf8;
-  cursor: pointer;
-  font-size: 0.9rem;
+  margin-top: 0.75rem;            /* Space above this link */
+  color: #38bdf8;                 /* Neon-blue text */
+  cursor: pointer;                /* Pointer cursor on hover */
+  font-size: 0.9rem;              /* Slightly smaller text */
 }
 
+/* 
+  Style for displaying authentication errors (e.g., “Incorrect password”).
+  - Bright red text to indicate error.
+  - Margin-top to separate it from the form.
+*/
 .auth-error {
-  color: #f87171;
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
+  color: #f87171;                 /* Pale red color for errors */
+  margin-top: 0.5rem;             /* Space above error text */
+  font-size: 0.9rem;              /* Slightly smaller font */
 }
 
+/* 
+  Bottom “switch mode” text for toggling between login & signup.
+  - Light gray text, smaller font.
+  - Contains a clickable link inside to toggle the form mode.
+*/
 .switch-mode {
-  margin-top: 1rem;
-  font-size: 0.9rem;
-  color: #cbd5e1;
+  margin-top: 1rem;               /* Space above switch text */
+  font-size: 0.9rem;              /* Slightly smaller text */
+  color: #cbd5e1;                 /* Light gray text */
 }
 
+/* 
+  “Toggle link” style inside .switch-mode.
+  - Neon-blue, underlined to indicate it’s clickable.
+*/
 .toggle-link {
-  color: #38bdf8;
-  cursor: pointer;
-  text-decoration: underline;
+  color: #38bdf8;                 /* Neon-blue text */
+  cursor: pointer;                /* Pointer cursor on hover */
+  text-decoration: underline;     /* Underline the link */
 }

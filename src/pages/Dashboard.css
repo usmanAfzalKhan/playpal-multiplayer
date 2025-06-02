@@ -1,195 +1,393 @@
 /* src/pages/Dashboard.css */
+
+/*
+  Dashboard Container
+  - Fills at least the full viewport height.
+  - Uses Flexbox to stack header, main content, and footer vertically.
+  - Applies dark background and white text color to match theme.
+*/
 .dashboard-container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #1e293b;
-  color: white;
+  min-height: 100vh; /* Minimum height equal to viewport height */
+  display: flex; /* Enable Flexbox layout */
+  flex-direction: column; /* Stack children vertically */
+  background-color: #1e293b; /* Dark navy-blue background */
+  color: white; /* White text color for readability */
 }
 
-/* Header */
+/* ----------------------------------------------- */
+/* Header Section                                 */
+/* ----------------------------------------------- */
+
+/*
+  Dashboard Header
+  - Flexbox layout to distribute space between logo and controls.
+  - Slightly lighter dark background than container.
+  - Box-shadow adds depth to separate header from content.
+*/
 .dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background-color: #0f172a;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  display: flex; /* Flex layout */
+  justify-content: space-between; /* Space between left and right items */
+  align-items: center; /* Vertically center items */
+  padding: 1rem; /* Padding around header content */
+  background-color: #0f172a; /* Darker background for header */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
 }
 
+/*
+  Header Logo
+  - Fixed height ensures consistent sizing.
+  - Pointer cursor indicates it is clickable (often for logout or navigation).
+  - Transition on transform and box-shadow for smooth hover effect.
+*/
 .header-logo {
-  height: 50px;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.3s ease;
+  height: 50px; /* Logo display height */
+  cursor: pointer; /* Show pointer cursor on hover */
+  transition: transform 0.2s, box-shadow 0.3s ease; /* Smooth hover transitions */
 }
+
+/*
+  Header Logo Hover Effect
+  - Scales logo up by 10% to give visual feedback.
+  - Adds a neon-blue glow using box-shadow.
+*/
 .header-logo:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 20px 4px #38bdf8aa;
+  transform: scale(1.1); /* Scale up by 10% */
+  box-shadow: 0 0 20px 4px #38bdf8aa; /* Neon-blue glow around logo */
 }
 
+/*
+  Header Controls Container
+  - Holds search icon, notification bell, and profile icon.
+  - Flexbox layout for horizontal alignment.
+  - Gap separates each icon by 1rem.
+*/
 .header-controls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+  display: flex; /* Flex row layout */
+  align-items: center; /* Vertically center icons */
+  gap: 1rem; /* 1rem space between icons */
 }
 
-/* Search & Notifications */
+/* ----------------------------------------------- */
+/* Search & Notification Icons                     */
+/* ----------------------------------------------- */
+
+/*
+  Shared Icon Styles
+  - Applies to search icon, profile icon, and notification bell.
+  - Font size increased for better visibility.
+  - Neon-blue color to stand out on dark background.
+  - Pointer cursor to indicate these icons are clickable.
+  - Smooth scale transform on hover for interactivity.
+*/
 .search-icon,
 .profile-icon,
 .notif-bell {
-  font-size: 1.3rem;
-  color: #38bdf8;
-  cursor: pointer;
-  transition: transform 0.2s ease;
+  font-size: 1.3rem; /* Icon size */
+  color: #38bdf8; /* Neon-blue color */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: transform 0.2s ease; /* Smooth hover scale */
 }
+
+/*
+  Icon Hover Effect
+  - Scales icons to 120% on hover for emphasis.
+*/
 .search-icon:hover,
 .profile-icon:hover,
 .notif-bell:hover {
-  transform: scale(1.2);
+  transform: scale(1.2); /* Scale up by 20% on hover */
 }
 
+/* ----------------------------------------------- */
+/* Search Box & Suggestions Dropdown               */
+/* ----------------------------------------------- */
+
+/*
+  Search Container
+  - Position relative to allow absolutely positioned suggestions dropdown.
+*/
 .search-container {
-  position: relative;
+  position: relative; /* Enables absolute positioning of suggestions */
 }
+
+/*
+  Search Box (Input Field)
+  - Padding for comfortable click/touch area.
+  - No border for clean design.
+  - Rounded corners for visual appeal.
+  - Fixed width to maintain consistent look.
+*/
 .search-box {
-  padding: 0.5rem;
-  border: none;
-  border-radius: 6px;
-  width: 200px;
-  font-size: 1rem;
+  padding: 0.5rem; /* Inner padding */
+  border: none; /* Remove default border */
+  border-radius: 6px; /* Slightly rounded corners */
+  width: 200px; /* Fixed width */
+  font-size: 1rem; /* Standard font size */
 }
+
+/*
+  Search Suggestions Dropdown
+  - Positioned absolutely below the search box (top: 110%).
+  - Dark background to match header.
+  - Padding and rounded corners for style.
+  - Box-shadow to create depth above other elements.
+  - z-index ensures it appears on top.
+  - Max-height with vertical scroll to handle overflow.
+*/
 .search-suggestions {
-  position: absolute;
-  top: 110%;
-  left: 0;
-  background: #0f172a;
-  padding: 0.5rem;
-  border-radius: 8px;
-  width: 100%;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  z-index: 10;
-  max-height: 200px;
-  overflow-y: auto;
+  position: absolute; /* Absolute position relative to .search-container */
+  top: 110%; /* Appear just below the search-box */
+  left: 0; /* Align left edge with search-box */
+  background: #0f172a; /* Dark background */
+  padding: 0.5rem; /* Inner padding for dropdown */
+  border-radius: 8px; /* Rounded corners */
+  width: 100%; /* Same width as search-box */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+  z-index: 10; /* Ensure dropdown stays on top */
+  max-height: 200px; /* Limit dropdown height */
+  overflow-y: auto; /* Scroll vertically if too many items */
 }
+
+/*
+  Suggestion Item
+  - Flexbox layout to position username on left and "Add" button on right.
+  - Vertical padding makes each item easier to click/tap.
+*/
 .suggestion-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.3rem 0;
+  display: flex; /* Flex layout for suggestion */
+  justify-content: space-between; /* Space between username and button */
+  padding: 0.3rem 0; /* Vertical padding */
 }
+
+/*
+  Suggestion "Add" Button
+  - Neon-blue background with black text for high contrast.
+  - Rounded corners and bold font for emphasis.
+  - Small padding makes button easy to click/tap.
+*/
 .suggestion-item button {
-  background: #38bdf8;
-  border: none;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  color: black;
-  font-weight: bold;
+  background: #38bdf8; /* Neon-blue button background */
+  border: none; /* Remove default border */
+  padding: 0.2rem 0.5rem; /* Inner padding for button */
+  border-radius: 4px; /* Rounded corners */
+  font-size: 0.8rem; /* Smaller font */
+  cursor: pointer; /* Pointer cursor on hover */
+  color: black; /* Black text for contrast */
+  font-weight: bold; /* Bold text */
 }
 
-/* Notification Dropdown */
+/* ----------------------------------------------- */
+/* Notification Dropdown                           */
+/* ----------------------------------------------- */
+
+/*
+  Notification Container
+  - Position relative so dropdown can be positioned absolutely.
+*/
 .notif-container {
-  position: relative;
+  position: relative; /* Enables absolute positioning of notif-dropdown */
 }
+
+/*
+  Notification Count Badge
+  - Absolutely positioned over the bell icon.
+  - Red background with white text for high visibility.
+  - Rounded circle via border-radius: 50%.
+  - Small font size to indicate number of notifications.
+*/
 .notif-count {
-  position: absolute;
-  top: -5px;
-  right: -10px;
-  background: red;
-  color: white;
-  font-size: 0.7rem;
-  border-radius: 50%;
-  padding: 2px 5px;
+  position: absolute; /* Absolute position relative to notif-container */
+  top: -5px; /* Slightly above the bell icon */
+  right: -10px; /* Slightly to the right of the bell icon */
+  background: red; /* Red background for count */
+  color: white; /* White text for contrast */
+  font-size: 0.7rem; /* Small font size */
+  border-radius: 50%; /* Fully rounded circle */
+  padding: 2px 5px; /* Padding to form the circle shape */
 }
+
+/*
+  Notification Dropdown Menu
+  - Positioned below the notification bell (top: 110%).
+  - Dark background with padding and rounded corners for style.
+  - Wide enough (250px) to display message text and buttons.
+  - Box-shadow for depth and high z-index to appear above other content.
+*/
 .notif-dropdown {
-  position: absolute;
-  top: 110%;
-  right: 0;
-  background: #0f172a;
-  padding: 0.5rem;
-  border-radius: 8px;
-  width: 250px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  z-index: 10;
+  position: absolute; /* Absolute positioning */
+  top: 110%; /* Appear just below the bell icon */
+  right: 0; /* Align right edge with bell icon */
+  background: #0f172a; /* Dark dropdown background */
+  padding: 0.5rem; /* Inner padding */
+  border-radius: 8px; /* Rounded corners */
+  width: 250px; /* Fixed dropdown width */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+  z-index: 10; /* Ensure dropdown stays on top */
 }
+
+/*
+  Individual Notification Item
+  - Bottom margin separates notifications vertically.
+*/
 .notif-item {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.5rem; /* Space below each notification */
 }
+
+/*
+  Notification Button (Join Game / Remove)
+  - Neon-blue background with black text for contrast.
+  - Rounded corners and small padding for a clickable area.
+  - Font size reduced to 0.8rem to fit within dropdown.
+*/
 .notif-item button {
-  background: #38bdf8;
-  border: none;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.8rem;
-  cursor: pointer;
-  color: black;
+  background: #38bdf8; /* Neon-blue button background */
+  border: none; /* Remove default border */
+  border-radius: 4px; /* Rounded corners */
+  padding: 0.2rem 0.5rem; /* Inner padding for button */
+  font-size: 0.8rem; /* Small font size */
+  cursor: pointer; /* Pointer cursor on hover */
+  color: black; /* Black text for contrast */
 }
 
-/* Action message */
+/* ----------------------------------------------- */
+/* Temporary Action Message                        */
+/* ----------------------------------------------- */
+
+/*
+  Action Message
+  - Displays messages like "Friend request sent".
+  - Centered text, neon-yellow color (#fde047) for visibility.
+  - Vertical padding for spacing.
+*/
 .action-msg {
-  text-align: center;
-  color: #fde047;
-  padding: 0.5rem 0;
+  text-align: center; /* Center the message */
+  color: #fde047; /* Neon-yellow text color */
+  padding: 0.5rem 0; /* Vertical padding */
 }
 
-/* Main content */
+/* ----------------------------------------------- */
+/* Main Content Area                               */
+/* ----------------------------------------------- */
+
+/*
+  Dashboard Main Section
+  - Flex: 1 allows it to grow and fill available vertical space between header and footer.
+  - Padding around main content.
+  - Centered text.
+*/
 .dashboard-main {
-  flex: 1;
-  padding: 2rem;
-  text-align: center;
+  flex: 1; /* Fill available vertical space */
+  padding: 2rem; /* Padding around main content */
+  text-align: center; /* Center text horizontally */
 }
+
+/*
+  Main Section Heading (e.g., "🎮 Games")
+  - Bottom margin for spacing from game grid below.
+*/
 .dashboard-main h2 {
-  margin-bottom: 1rem;
+  margin-bottom: 1rem; /* Space below heading */
 }
 
-/* TIGHT FLEX GRID FOR GAME CARDS */
+/* ----------------------------------------------- */
+/* Game Cards Grid                                 */
+/* ----------------------------------------------- */
+
+/*
+  Game Grid Container
+  - Flexbox layout to display game cards in a row.
+  - No gap between cards to fit as many as possible.
+  - Margin-top to separate from heading.
+  - Padding reset to zero.
+*/
 .game-grid {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 0;           /* no gap */
-  margin-top: 0.5rem;
-  padding: 0;
+  display: flex; /* Flex layout */
+  justify-content: center; /* Center cards horizontally */
+  align-items: flex-start; /* Align cards to top */
+  gap: 0; /* No gap between cards */
+  margin-top: 0.5rem; /* Space above game grid */
+  padding: 0; /* Remove default padding */
 }
 
+/*
+  Individual Game Card
+  - Fixed width of 160px.
+  - Padding inside for spacing.
+  - Dark background (#0f172a) with rounded corners.
+  - Slight scale-up on hover to indicate interactivity.
+*/
 .game-card {
-  flex: 0 0 auto;
-  width: 160px;
-  margin: 0;
-  padding: 0.5rem;
-  background: #0f172a;
-  border-radius: 12px;
-  text-align: center;
-  transition: transform 0.2s;
+  flex: 0 0 auto; /* Do not grow or shrink */
+  width: 160px; /* Fixed width */
+  margin: 0; /* No external margin */
+  padding: 0.5rem; /* Inner padding */
+  background: #0f172a; /* Dark background */
+  border-radius: 12px; /* Rounded corners */
+  text-align: center; /* Center content inside card */
+  transition: transform 0.2s; /* Smooth hover scale transition */
 }
+
+/*
+  Game Card Hover Effect
+  - Slightly scales the card by 3% on hover for feedback.
+*/
 .game-card:hover {
-  transform: scale(1.03);
+  transform: scale(1.03); /* Scale up by 3% */
 }
 
+/*
+  Image within Game Card
+  - Occupies full card width.
+  - Auto height to maintain aspect ratio.
+  - Display block removes any unwanted bottom whitespace.
+*/
 .game-card img {
-  width: 100%;
-  height: auto;
-  display: block;
+  width: 100%; /* Fill card width */
+  height: auto; /* Maintain aspect ratio */
+  display: block; /* Remove bottom whitespace */
 }
 
+/*
+  Optional Text Below Game Image
+  - Slightly smaller font size.
+  - Top margin for spacing from image.
+  - White text color for contrast.
+*/
 .game-card p {
-  font-size: 0.9rem;
-  margin: 0.25rem 0 0;
-  color: white;
+  font-size: 0.9rem; /* Smaller font size */
+  margin: 0.25rem 0 0; /* Small margin above text */
+  color: white; /* White text color */
 }
 
-/* Footer */
+/* ----------------------------------------------- */
+/* Footer                                         */
+/* ----------------------------------------------- */
+
+/*
+  Dashboard Footer
+  - Padding around text.
+  - Dark background (#0f172a) to match header.
+  - Slightly smaller font size for unobtrusive footer.
+  - Centered text alignment.
+*/
 .dashboard-footer {
-  padding: 1rem;
-  text-align: center;
-  background: #0f172a;
-  font-size: 0.9rem;
+  padding: 1rem; /* Padding around footer content */
+  text-align: center; /* Center text horizontally */
+  background: #0f172a; /* Dark background */
+  font-size: 0.9rem; /* Slightly smaller font size */
 }
+
+/*
+  Footer Link Styling (e.g., "Built by Usman Khan")
+  - Neon-blue color (#38bdf8) to stand out.
+  - Semi-bold font weight.
+  - No underline by default, underline on hover for affordance.
+*/
 .footer-link {
-  color: #38bdf8;
-  font-weight: 600;
-  text-decoration: none;
+  color: #38bdf8; /* Neon-blue link color */
+  font-weight: 600; /* Semi-bold text */
+  text-decoration: none; /* Remove default underline */
 }
 .footer-link:hover {
-  text-decoration: underline;
+  text-decoration: underline; /* Underline on hover */
 }

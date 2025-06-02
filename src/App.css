@@ -1,26 +1,55 @@
+/* App.css */
+
+/* 
+  Style for the root div (with id="root") where the entire React app is mounted.
+  - max-width: 1280px limits the page width so content doesn’t stretch too wide on large screens.
+  - margin: 0 auto centers the root container horizontally in the viewport.
+  - padding: 2rem adds space inside the root container on all sides.
+  - text-align: center centers child text and inline elements horizontally.
+*/
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  max-width: 1280px; /* Prevent content from exceeding 1280px width */
+  margin: 0 auto; /* Center root container horizontally */
+  padding: 2rem; /* Add 2rem padding on all sides */
+  text-align: center; /* Center-align text inside root */
 }
 
+/* 
+  Navbar styling:
+  - display: flex enables Flexbox for easy horizontal alignment of logo and text.
+  - align-items: center vertically centers items within the navbar.
+  - padding: 0.75rem 1rem adds vertical (0.75rem) and horizontal (1rem) padding.
+  - background-color: #0f172a sets a dark navy background for the navbar.
+  - color: white makes all text/icons inside the navbar white.
+  - gap: 1rem creates 1rem space between flex items (e.g., logo and site title).
+*/
 .navbar {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background-color: #0f172a;
-  color: white;
-  gap: 1rem;
+  display: flex; /* Enable Flexbox for children */
+  align-items: center; /* Vertically center items in navbar */
+  padding: 0.75rem 1rem; /* 0.75rem top/bottom, 1rem left/right padding */
+  background-color: #0f172a; /* Dark navy background color */
+  color: white; /* White text color for contrast */
+  gap: 1rem; /* Space of 1rem between flex items */
 }
 
+/* 
+  Logo image within the navbar:
+  - height: 40px fixes the logo height to 40px while maintaining aspect ratio.
+  - width: auto ensures the logo’s width adjusts proportionally.
+  - object-fit: contain ensures the logo image scales to fit within the given dimensions without cropping.
+*/
 .navbar-logo {
-  height: 40px;
-  width: auto;
-  object-fit: contain;
+  height: 40px; /* Fix logo height to 40px */
+  width: auto; /* Allow width to scale proportionally */
+  object-fit: contain; /* Ensure full logo is visible, no cropping */
 }
 
+/* 
+  Site title next to the logo in the navbar:
+  - font-size: 1.5rem increases the text size for prominence.
+  - font-weight: 600 gives a semibold weight for emphasis.
+*/
 .site-title {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.5rem; /* Increase font size for site title */
+  font-weight: 600; /* Semibold weight for emphasis */
 }

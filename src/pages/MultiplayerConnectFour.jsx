@@ -147,7 +147,13 @@ export default function MultiplayerConnectFour() {
         }
       }
     );
-    return unsub;
+
+    // Cleanup: unsubscribe and delete the game if user leaves without clicking Quit
+    return () => {
+      unsub();
+      deleteDoc(doc(db, 'connect4_games', gameId))
+        .catch(() => { /* ignore if already deleted */ });
+    };
   }, [gameId]);
 
   // make a move
