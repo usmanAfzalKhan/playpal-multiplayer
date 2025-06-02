@@ -9,6 +9,7 @@ import singleConnectFourImg   from '../assets/connectfoursingleplayer.png';
 import multiConnectFourImg    from '../assets/connectfourmultiplayer.png';
 import singleBattleshipImg    from '../assets/singleplayerbattleship.png';
 import multiBattleshipImg     from '../assets/multiplayerbattleship.png';
+import singleDuelImg          from '../assets/singleplayerduelshots.png';
 import { useEffect, useState } from 'react';
 import { auth, db }            from '../firebase-config';
 import {
@@ -245,10 +246,7 @@ export default function Dashboard() {
         {/* Duel Shots */}
         <div className="game-grid">
           <div className="game-card" onClick={() => navigate('/duel/single')}>
-            Single Player Duel Shots
-          </div>
-          <div className="game-card" onClick={() => navigate('/duel/multiplayer')}>
-            Multiplayer Duel Shots
+            <img src={singleDuelImg} alt="Single Player Duel Shots" />
           </div>
         </div>
       </main>
