@@ -1,5 +1,6 @@
 /* DuelGame.css */
 
+/* Container around the entire duel UI */
 .duel-container {
   position: relative;
   max-width: 360px;
@@ -22,6 +23,7 @@
   color: #cbd5e1;
 }
 
+/* Status bar showing health, ammo, timer */
 .status-bar-duel {
   margin-bottom: 0.8rem;
 }
@@ -32,6 +34,7 @@
   vertical-align: middle;
 }
 
+/* The actual canvas where the game is drawn */
 .duel-canvas {
   display: block;
   margin: 0 auto 1rem;
@@ -40,6 +43,7 @@
   border-radius: 4px;
 }
 
+/* Row of buttons (Shoot / Pause / Quit) */
 .controls-row {
   display: flex;
   justify-content: center;
@@ -48,6 +52,7 @@
   margin-bottom: 0.8rem;
 }
 
+/* Generic button styles */
 button {
   padding: 0.5rem 0.9rem;
   border: none;
@@ -56,6 +61,7 @@ button {
   cursor: pointer;
 }
 
+/* Specific button colors */
 .shoot-btn {
   background: #22c55e;
   color: #0f172a;
@@ -76,6 +82,7 @@ button {
   color: #fff;
 }
 
+/* Message text (e.g. “No Ammo” warning) */
 .action-msg {
   color: #facc15;
   margin-top: 0.4rem;
@@ -83,21 +90,24 @@ button {
 }
 
 /* ─── MOBILE JOYSTICK & SHOOT BUTTON ─────────────────────────────────── */
+/* The translucent circle behind the joystick knob */
 .joystick {
   position: absolute;
   width: 100px;
   height: 100px;
   background: rgba(71, 85, 105, 0.4);
   border-radius: 50%;
-  touch-action: none; /* prevent default scrolling */
+  touch-action: none; /* prevent default scrolling when you move your finger */
   z-index: 10;
 }
 
+/* Position the joystick at bottom-left */
 .joystick.left {
   left: 16px;
-  bottom: 200px; /* Raised above chat input */
+  bottom: 200px; /* raised above chat/input area */
 }
 
+/* The smaller “knob” inside the joystick */
 .joystick .knob {
   position: absolute;
   left: 25px;
@@ -106,12 +116,13 @@ button {
   height: 50px;
   background: rgba(100, 116, 139, 0.8);
   border-radius: 50%;
-  pointer-events: none;
+  pointer-events: none; /* so we don’t block touch events on the outer circle */
 }
 
+/* Mobile “Shoot” button: a round button at bottom-right */
 .shoot-btn-mobile {
   position: absolute;
-  bottom: 200px; /* Raised above chat input */
+  bottom: 200px; /* raised above chat/input */
   right: 16px;
   width: 56px;
   height: 56px;
@@ -123,7 +134,7 @@ button {
   z-index: 10;
 }
 
-/* Ensure joystick/shoot-button are hidden on desktop */
+/* Hide joystick & mobile shoot on desktop */
 @media (min-width: 768px) {
   .joystick,
   .shoot-btn-mobile {
@@ -131,7 +142,7 @@ button {
   }
 }
 
-/* Minor responsive tweak for container on small phones */
+/* Minor tweaks for very small viewports */
 @media (max-width: 360px) {
   .duel-container {
     margin: 1rem;

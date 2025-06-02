@@ -20,7 +20,6 @@ import SinglePlayerBattleship from './pages/SinglePlayerBattleship';
 import MultiplayerBattleship  from './pages/MultiplayerBattleship';
 
 import SinglePlayerDuel       from './pages/SinglePlayerDuel';
-import MultiplayerDuel        from './pages/MultiplayerDuel';
 
 function App() {
   return (
@@ -55,8 +54,6 @@ function App() {
 
         {/* Duel Shots */}
         <Route path="/duel/single"              element={<SinglePlayerDuel />} />
-        <Route path="/duel/multiplayer"         element={<MultiplayerDuel />} />
-        <Route path="/duel/multiplayer/:gameId" element={<MultiplayerDuel />} />
       </Routes>
     </Router>
   );
