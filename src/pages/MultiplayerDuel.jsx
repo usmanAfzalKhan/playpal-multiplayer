@@ -162,6 +162,7 @@ export default function MultiplayerDuel() {
     if (!gameId) return;
     if (!user) return navigate("/");
 
+    console.log("🏹 MultiplayerDuel mounted. gameId =", gameId, "user =", user.uid);
     const docRef = doc(db, "duelGames", gameId);
     setGameDocRef(docRef);
 
@@ -189,9 +190,14 @@ export default function MultiplayerDuel() {
   // ─── F) Listen for any Firestore changes to that game doc & handle “leaving” cleanup ───
   useEffect(() => {
     if (!gameDocRef) return;
+    console.log("— Subscribing to Firestore duelGames/", gameDocRef.id);
     const unsub = onSnapshot(gameDocRef, (snap) => {
       if (!snap.exists()) return navigate("/dashboard");
       const data = snap.data();
+
+      // DEBUG: log every time the state updates
+      console.log("🔄 onSnapshot for duelGames:", data.state);
+
       setSharedState(data.state);
     });
 
@@ -222,7 +228,6 @@ export default function MultiplayerDuel() {
   // ─── G) Initialize game once both players have joined, _only on Player A_ ───
   useEffect(() => {
     if (!sharedState || !gameDocRef) return;
-    // *** Only Player A (host) writes the “initial” state ***
     if (!sharedState.initted && user.uid === playerA) {
       const initObs  = generateObstacles();
       const initTime = Date.now() / 1000;
@@ -322,15 +327,12 @@ export default function MultiplayerDuel() {
       s.bulletsA = s.bulletsA.filter((b) => {
         b.x += b.dx * SHOT_SPEED * dt;
         b.y += b.dy * SHOT_SPEED * dt;
-        // remove bullet if out of bounds
         if (b.x < 0 || b.x > ARENA_W || b.y < 0 || b.y > ARENA_H) return false;
-        // remove bullet if hits obstacle
         for (const o of s.obstacles) {
           if (b.x > o.x && b.x < o.x + o.w && b.y > o.y && b.y < o.y + o.h) {
             return false;
           }
         }
-        // check if it hits Player B
         const hitDist = Math.hypot(b.x - s.pB.x, b.y - s.pB.y);
         if (hitDist < 12) {
           s.pB.health = Math.max(0, s.pB.health - 1);
@@ -410,10 +412,20 @@ export default function MultiplayerDuel() {
         else if (s.pB.health <= 0) s.winner = playerA;
       }
 
-      // 9) Throttle Firestore updates to once every 200ms
+      // 9) Throttle Firestore updates to once every 1000ms (1 second)
       const nowMs = performance.now();
-      if (nowMs - lastWrite > 200) {
-        updateDoc(gameDocRef, { state: s }).catch(() => {});
+      if (nowMs - lastWrite > 1000) {
+        updateDoc(gameDocRef, {
+          "state.pA": s.pA,
+          "state.pB": s.pB,
+          "state.bulletsA": s.bulletsA,
+          "state.bulletsB": s.bulletsB,
+          "state.pickups": s.pickups,
+          "state.timer": s.timer,
+          "state.winner": s.winner,
+        }).catch(err => {
+          console.warn("Firestore update failed:", err);
+        });
         lastWrite = nowMs;
         setSharedState(s);
       }
@@ -441,24 +453,28 @@ export default function MultiplayerDuel() {
         const m = Math.hypot(dx, dy) || 1;
         const newMove = { dx: dx / m, dy: dy / m };
         const field = (user.uid === playerA ? "moveA" : "moveB");
-        const updated = { ...sharedState, [field]: newMove };
-        updateDoc(gameDocRef, { state: updated }).catch(() => {});
-        setSharedState(updated);
+        updateDoc(gameDocRef, { [`state.${field}`]: newMove }).catch(err => {
+          console.warn("Firestore move update failed:", err);
+        });
+        setSharedState(prev => ({ ...prev, [field]: newMove }));
       }
 
       if (e.key === "p" || e.key === "P") {
-        const updated = { ...sharedState, paused: !sharedState.paused };
-        updateDoc(gameDocRef, { state: updated }).catch(() => {});
-        setSharedState(updated);
+        updateDoc(gameDocRef, { "state.paused": !sharedState.paused }).catch(err => {
+          console.warn("Firestore pause update failed:", err);
+        });
+        setSharedState(prev => ({ ...prev, paused: !prev.paused }));
       }
     };
 
     const onKeyUp = (e) => {
-      if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","w","a","s","d","W","A","S","D"].includes(e.key)) {
+      const keys = ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","w","a","s","d","W","A","S","D"];
+      if (keys.includes(e.key)) {
         const field = (user.uid === playerA ? "moveA" : "moveB");
-        const updated = { ...sharedState, [field]: { dx: 0, dy: 0 } };
-        updateDoc(gameDocRef, { state: updated }).catch(() => {});
-        setSharedState(updated);
+        updateDoc(gameDocRef, { [`state.${field}`]: { dx: 0, dy: 0 } }).catch(err => {
+          console.warn("Firestore move reset failed:", err);
+        });
+        setSharedState(prev => ({ ...prev, [field]: { dx: 0, dy: 0 } }));
       }
     };
 
@@ -483,9 +499,10 @@ export default function MultiplayerDuel() {
 
     if (sharedState) {
       const field = (user.uid === playerA ? "moveA" : "moveB");
-      const updated = { ...sharedState, [field]: newMove };
-      updateDoc(gameDocRef, { state: updated }).catch(() => {});
-      setSharedState(updated);
+      updateDoc(gameDocRef, { [`state.${field}`]: newMove }).catch(err => {
+        console.warn("Firestore joystick update failed:", err);
+      });
+      setSharedState(prev => ({ ...prev, [field]: newMove }));
     }
   };
 
@@ -493,9 +510,10 @@ export default function MultiplayerDuel() {
     moveVecRef.current = { dx: 0, dy: 0 };
     if (sharedState) {
       const field = (user.uid === playerA ? "moveA" : "moveB");
-      const updated = { ...sharedState, [field]: { dx: 0, dy: 0 } };
-      updateDoc(gameDocRef, { state: updated }).catch(() => {});
-      setSharedState(updated);
+      updateDoc(gameDocRef, { [`state.${field}`]: { dx: 0, dy: 0 } }).catch(err => {
+        console.warn("Firestore joystick reset failed:", err);
+      });
+      setSharedState(prev => ({ ...prev, [field]: { dx: 0, dy: 0 } }));
     }
   };
 
@@ -526,7 +544,15 @@ export default function MultiplayerDuel() {
     if (amA) s.bulletsA.push(bullet);
     else     s.bulletsB.push(bullet);
 
-    updateDoc(gameDocRef, { state: s }).catch(() => {});
+    // Only write bullets array and ammo change
+    const fieldPrefix = amA ? "state.bulletsA" : "state.bulletsB";
+    const stateUpdate = {
+      [`${fieldPrefix}`]: amA ? s.bulletsA : s.bulletsB,
+      [`state.${amA ? "pA" : "pB"}.ammo`]: me.ammo,
+    };
+    updateDoc(gameDocRef, stateUpdate).catch(err => {
+      console.warn("Firestore shoot update failed:", err);
+    });
     setSharedState(s);
   };
 
@@ -534,14 +560,15 @@ export default function MultiplayerDuel() {
   const sendChat = async () => {
     if (!chatInput.trim() || !sharedState) return;
 
-    // Push actual username, not “PlayerA”/“PlayerB”
     const msgObj = {
       sender: username,
       message: chatInput,
       timestamp: Timestamp.now(),
     };
     const updated = { ...sharedState, chat: [...sharedState.chat, msgObj] };
-    await updateDoc(gameDocRef, { state: updated }).catch(() => {});
+    await updateDoc(gameDocRef, { "state.chat": updated.chat }).catch(err => {
+      console.warn("Firestore chat update failed:", err);
+    });
     setSharedState(updated);
     setChatInput("");
   };
@@ -565,7 +592,9 @@ export default function MultiplayerDuel() {
       await deleteDoc(gameDocRef);
     } else {
       const updated = { ...data.state, leaving };
-      await updateDoc(gameDocRef, { state: updated }).catch(() => {});
+      await updateDoc(gameDocRef, { "state.leaving": updated.leaving }).catch(err => {
+        console.warn("Firestore leave update failed:", err);
+      });
     }
     navigate("/dashboard");
   };
@@ -760,7 +789,9 @@ export default function MultiplayerDuel() {
           <button
             onClick={() => {
               const toggled = { ...s, paused: !s.paused };
-              updateDoc(gameDocRef, { state: toggled }).catch(() => {});
+              updateDoc(gameDocRef, { "state.paused": toggled.paused }).catch(err => {
+                console.warn("Firestore pause toggle failed:", err);
+              });
             }}
             className="pause-btn"
           >
