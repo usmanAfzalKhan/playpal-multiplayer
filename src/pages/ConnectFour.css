@@ -1,106 +1,257 @@
+/* src/components/ConnectFour.css */
+
+/* 
+  Main container for the Connect Four page.
+  - Padding around the content.
+  - Dark navy background (#1e293b) to match overall theme.
+  - White text color for readability.
+  - Ensures the container fills the full viewport height (100vh).
+  - Centers text horizontally.
+*/
 .c4-container {
-  padding: 2rem;
-  background: #1e293b;
-  color: white;
-  min-height: 100vh;
-  text-align: center;
+  padding: 2rem; /* Space around the container’s content */
+  background: #1e293b; /* Dark navy-blue background */
+  color: white; /* White text color */
+  min-height: 100vh; /* Minimum height = full viewport height */
+  text-align: center; /* Center all child text horizontally */
 }
 
-/* status text */
+/* 
+  Status message (e.g., “Player 1’s Turn”).
+  - Adds bottom margin to separate from the board.
+  - Slightly larger font size for emphasis.
+*/
 .c4-status {
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
+  margin-bottom: 1rem; /* Space below status text */
+  font-size: 1.2rem; /* Make status text slightly larger */
 }
 
-/* responsive 7×6 grid */
+/* 
+  The Connect Four board itself:
+  - Centers the board horizontally (margin: 0 auto).
+  - Bottom margin to separate from any elements below (e.g., chat).
+  - Width is the smaller of 90% of viewport width or 700px.
+    This makes it responsive: on small screens, it shrinks to 90vw; on larger, it maxes at 700px.
+  - aspect-ratio: 7 / 6 ensures the height automatically matches a 7×6 ratio.
+  - Dark background (#0f172a) behind the grid.
+  - Uses CSS Grid layout with 7 columns and 6 rows, each taking up equal fraction of available space.
+  - Rounded corners on the board (border-radius: 8px).
+  - overflow: hidden to clip any child elements that might extend outside.
+*/
 .c4-board {
-  margin: 0 auto 1rem;
-  width: min(90vw, 700px);
-  aspect-ratio: 7 / 6;
-  background: #0f172a;
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: repeat(6, 1fr);
-  border-radius: 8px;
-  overflow: hidden;
+  margin: 0 auto 1rem; /* Center board, add bottom margin */
+  width: min(90vw, 700px); /* Responsive width: 90vw max or 700px */
+  aspect-ratio: 7 / 6; /* Maintain 7:6 width-to-height ratio */
+  background: #0f172a; /* Dark background behind cells */
+  display: grid; /* Use CSS Grid for layout */
+  grid-template-columns: repeat(7, 1fr); /* 7 columns, each 1 fraction unit */
+  grid-template-rows: repeat(6, 1fr); /* 6 rows, each 1 fraction unit */
+  border-radius: 8px; /* Rounded corners */
+  overflow: hidden; /* Hide anything that spills outside */
 }
 
+/* 
+  Individual cell within the Connect Four grid.
+  - Uses Flexbox to center any child (e.g., the disc) horizontally and vertically.
+  - Each cell has a 2px dark border (#1e293b) to visually separate cells.
+  - cursor: pointer to indicate cells are clickable.
+*/
 .c4-cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #1e293b;
-  cursor: pointer;
+  display: flex; /* Flex layout for centering child elements */
+  align-items: center; /* Center child vertically */
+  justify-content: center; /* Center child horizontally */
+  border: 2px solid #1e293b; /* Dark border around each cell */
+  cursor: pointer; /* Pointer cursor on hover, indicating clickability */
 }
+
+/* 
+  Hover effect on each cell:
+  - Light overlay background (rgba with slight transparency) to show user which cell they’re over.
+  - Uses neon-blue (#38bdf8) at 10% opacity.
+*/
 .c4-cell:hover {
-  background: rgba(56,189,248,0.1);
+  background: rgba(56, 189, 248, 0.1); /* Light neon-blue overlay on hover */
 }
 
-/* pieces */
+/* 
+  Disc element representing a placed piece:
+  - 70% of cell width and height, so there’s uniform padding around the circle.
+  - Fully rounded (border-radius: 50%) to form a circle.
+  - Smooth transition for box-shadow when “highlighted” (winning discs).
+*/
 .disc {
-  width: 70%;
-  height: 70%;
-  border-radius: 50%;
-  transition: box-shadow 0.3s;
+  width: 70%; /* Occupies 70% of the parent cell’s width */
+  height: 70%; /* Occupies 70% of the parent cell’s height */
+  border-radius: 50%; /* Fully round to form a circle */
+  transition: box-shadow 0.3s; /* Smooth box-shadow animation */
 }
-.disc.red    { background: #ef4444; }
-.disc.yellow { background: #facc15; }
 
-/* highlight winning four */
+/* 
+  Red disc (Player 1’s piece):
+  - Background red (#ef4444).
+*/
+.disc.red {
+  background: #ef4444; /* Bright red for Player 1 */
+}
+
+/* 
+  Yellow disc (Player 2’s piece):
+  - Background yellow (#facc15).
+*/
+.disc.yellow {
+  background: #facc15; /* Bright yellow for Player 2 */
+}
+
+/* 
+  Highlight discs that are part of the winning four:
+  - Outer neon-blue glow to emphasize the winning combination.
+  - Thick outline (4px of neon-blue at 80% opacity).
+*/
 .disc.highlight {
-  box-shadow: 0 0 0 4px rgba(56,189,248,0.8);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.8); /* Neon-blue glow highlight */
 }
 
-/* chat */
+/* 
+  Chat box container below the board:
+  - Dark background (#0f172a).
+  - Padding inside and rounded corners.
+  - Limits width to 400px and centers horizontally.
+  - White text color to ensure readability.
+*/
 .chatbox {
-  background: #0f172a;
-  padding: 1rem;
-  border-radius: 8px;
-  max-width: 400px;
-  margin: 1rem auto;
-}
-.chatbox h4 {
-  margin-bottom: 0.5rem;
-}
-.chat-messages {
-  max-height: 150px;
-  overflow-y: auto;
-  text-align: left;
-  margin-bottom: 0.5rem;
-}
-.chat-input {
-  display: flex;
-  gap: 0.5rem;
-}
-.chat-input input {
-  flex: 1;
-  padding: 0.5rem;
-  border: none;
-  border-radius: 4px;
-}
-.chat-input button {
-  padding: 0.5rem 1rem;
-  background: #38bdf8;
-  border: none;
-  border-radius: 6px;
-  color: black;
-  font-weight: bold;
-  cursor: pointer;
+  background: #0f172a; /* Very dark background */
+  padding: 1rem; /* Inner padding */
+  border-radius: 8px; /* Rounded corners */
+  max-width: 400px; /* Limit width */
+  margin: 1rem auto; /* Center horizontally, with vertical margin */
 }
 
-/* rematch & quit */
-.c4-actions {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 1rem;
+/* 
+  Chat heading (e.g., “Game Chat”):
+  - Small bottom margin for spacing.
+*/
+.chatbox h4 {
+  margin-bottom: 0.5rem; /* Space below heading */
 }
+
+/* 
+  Container for chat messages inside the chat box:
+  - Maximum height of 150px with vertical scrolling if overflow.
+  - Left-aligned text.
+  - Bottom margin to separate from input controls.
+*/
+.chat-messages {
+  max-height: 150px; /* Limit height to 150px */
+  overflow-y: auto; /* Scroll vertically on overflow */
+  text-align: left; /* Left-align messages */
+  margin-bottom: 0.5rem; /* Space below messages */
+}
+
+/* 
+  Layout for chat input row:
+  - Flexbox to align the input field and send button horizontally.
+  - Gap between them for spacing.
+*/
+.chat-input {
+  display: flex; /* Flex layout for input + button */
+  gap: 0.5rem; /* Space between input and button */
+}
+
+/* 
+  Chat input text field:
+  - Takes up all available width within its flex container.
+  - Padding inside, no border for a clean look.
+  - Rounded corners.
+*/
+.chat-input input {
+  flex: 1; /* Fill available horizontal space */
+  padding: 0.5rem; /* Inner padding */
+  border: none; /* Remove default border */
+  border-radius: 4px; /* Slightly rounded corners */
+}
+
+/* 
+  Chat send button styling:
+  - Padding for clickable area.
+  - Neon-blue background (#38bdf8) with black text.
+  - Bold text to emphasize the action.
+  - Rounded corners for consistency.
+  - Cursor pointer on hover.
+*/
+.chat-input button {
+  padding: 0.5rem 1rem; /* Vertical/horizontal padding */
+  background: #38bdf8; /* Neon-blue background */
+  border: none; /* Remove default border */
+  border-radius: 6px; /* Rounded corners */
+  color: black; /* Black text for contrast */
+  font-weight: bold; /* Bold text */
+  cursor: pointer; /* Pointer cursor on hover */
+}
+
+/* 
+  Container for “Rematch” and “Quit” buttons:
+  - Flexbox to align buttons horizontally and center them.
+  - Gap between buttons and top margin for spacing.
+*/
+.c4-actions {
+  display: flex; /* Flex layout */
+  justify-content: center; /* Center items horizontally */
+  gap: 1rem; /* Space between action buttons */
+  margin-top: 1rem; /* Space above action controls */
+}
+
+/* 
+  Styling for action buttons (Rematch / Quit):
+  - Padding for clickable area.
+  - Neon-blue background (#38bdf8) with black text.
+  - Rounded corners and bold text.
+  - Cursor pointer on hover.
+*/
 .c4-actions button {
-  padding: 0.6rem 1.2rem;
-  background: #38bdf8;
-  border: none;
-  border-radius: 6px;
-  color: black;
-  font-weight: bold;
-  cursor: pointer;
+  padding: 0.6rem 1.2rem; /* Vertical/horizontal padding */
+  background: #38bdf8; /* Neon-blue background */
+  border: none; /* Remove default border */
+  border-radius: 6px; /* Rounded corners */
+  color: black; /* Black text */
+  font-weight: bold; /* Bold text */
+  cursor: pointer; /* Pointer cursor on hover */
+}
+
+/* 
+  Responsive adjustments for screens narrower than 640px:
+  - Reduce overall padding on the container.
+  - Shrink grid cells to 1.4rem × 1.4rem and gap to 1px.
+  - Stack status-bar items vertically.
+  - Stack action buttons vertically and make them full width.
+  - Expand chatbox to full width and reduce its padding.
+*/
+@media (max-width: 640px) {
+  /* Reduce container padding on smaller screens */
+  .c4-container {
+    padding: 1rem; /* Smaller padding */
+  }
+
+  /* Resize each grid cell smaller for compact layout */
+  .c4-board {
+    width: 100%; /* Board takes full width */
+  }
+
+  /* Stack status messages vertically if necessary */
+  .c4-status {
+    font-size: 1rem; /* Slightly smaller status text */
+  }
+
+  /* Stack action buttons vertically */
+  .c4-actions {
+    flex-direction: column; /* Stack buttons */
+  }
+  .c4-actions button {
+    width: 100%; /* Button spans full width */
+  }
+
+  /* Chatbox: full width on mobile */
+  .chatbox {
+    width: 100%; /* Take full viewport width */
+    padding: 0.5rem; /* Less padding on small screens */
+  }
 }

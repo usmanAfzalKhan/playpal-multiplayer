@@ -1,69 +1,69 @@
 // src/pages/Dashboard.jsx
 
 // Import CSS for styling this component
-import './Dashboard.css';
+import "./Dashboard.css";
 
 // Import logo and game thumbnail images
-import logo                   from '../assets/logo.png';
-import singleHangmanImg       from '../assets/singlehangman.png';
-import multiHangmanImg        from '../assets/multiplayerhangman.png';
-import singleTicTacToeImg     from '../assets/singleplayertictactoe.png';
-import multiTicTacToeImg      from '../assets/multiplayertictactoe.png';
-import singleConnectFourImg   from '../assets/connectfoursingleplayer.png';
-import multiConnectFourImg    from '../assets/connectfourmultiplayer.png';
-import singleBattleshipImg    from '../assets/singleplayerbattleship.png';
-import multiBattleshipImg     from '../assets/multiplayerbattleship.png';
-import singleDuelImg          from '../assets/singleplayerduelshots.png';
+import logo from "../assets/logo.png";
+import singleHangmanImg from "../assets/singlehangman.png";
+import multiHangmanImg from "../assets/multiplayerhangman.png";
+import singleTicTacToeImg from "../assets/singleplayertictactoe.png";
+import multiTicTacToeImg from "../assets/multiplayertictactoe.png";
+import singleConnectFourImg from "../assets/connectfoursingleplayer.png";
+import multiConnectFourImg from "../assets/connectfourmultiplayer.png";
+import singleBattleshipImg from "../assets/singleplayerbattleship.png";
+import multiBattleshipImg from "../assets/multiplayerbattleship.png";
+import singleDuelImg from "../assets/singleplayerduelshots.png";
 
 // Import React hooks for managing state and lifecycle
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 // Import Firebase auth and Firestore instances
-import { auth, db }            from '../firebase-config';
+import { auth, db } from "../firebase-config";
 
 // Import Firestore methods for document operations
 import {
-  doc,           // to reference a specific document
-  getDoc,        // to fetch a single document
-  getDocs,       // to fetch multiple documents
-  collection,    // to reference a collection
-  query,         // to build a query
-  where,         // to add "where" clauses in queries
-  onSnapshot,    // to listen in real-time to document or collection changes
-  updateDoc,     // to update fields in a document
-  deleteDoc,     // to delete a document
-  setDoc,        // to create or overwrite a document
-} from 'firebase/firestore';
+  doc, // to reference a specific document
+  getDoc, // to fetch a single document
+  getDocs, // to fetch multiple documents
+  collection, // to reference a collection
+  query, // to build a query
+  where, // to add "where" clauses in queries
+  onSnapshot, // to listen in real-time to document or collection changes
+  updateDoc, // to update fields in a document
+  deleteDoc, // to delete a document
+  setDoc, // to create or overwrite a document
+} from "firebase/firestore";
 
 // Import React Router hook for navigation
-import { useNavigate }         from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
 // Import icons for search and notifications
-import { FaSearch, FaBell }    from 'react-icons/fa';
+import { FaSearch, FaBell } from "react-icons/fa";
 
 export default function Dashboard() {
   // ------------------------ State variables ------------------------
 
   // Store the current user's username
-  const [username, setUsername]                   = useState('');
+  const [username, setUsername] = useState("");
 
   // Store the current search text when looking up friends
-  const [searchQuery, setSearchQuery]             = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Boolean: whether to show the search input dropdown
-  const [showSearch, setShowSearch]               = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   // List of user objects matching the search query
-  const [suggestions, setSuggestions]             = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
 
   // List of UIDs for the current user's friends
-  const [friendsList, setFriendsList]             = useState([]);
+  const [friendsList, setFriendsList] = useState([]);
 
   // Temporary feedback message shown to the user (e.g., "Friend request sent")
-  const [actionMessage, setActionMessage]         = useState('');
+  const [actionMessage, setActionMessage] = useState("");
 
   // List of notification objects for the current user
-  const [notifications, setNotifications]         = useState([]);
+  const [notifications, setNotifications] = useState([]);
 
   // Boolean: whether the notifications dropdown is visible
   const [showNotifications, setShowNotifications] = useState(false);
@@ -77,12 +77,12 @@ export default function Dashboard() {
     // Get the currently authenticated user
     const user = auth.currentUser;
     // If no user is logged in, redirect to login page
-    if (!user) return navigate('/');
+    if (!user) return navigate("/");
 
     // Fetch user document from Firestore to get username and friends list
     (async () => {
       // Reference users/{uid}
-      const uSnap = await getDoc(doc(db, 'users', user.uid));
+      const uSnap = await getDoc(doc(db, "users", user.uid));
       if (uSnap.exists()) {
         // Set the username state from Firestore data
         setUsername(uSnap.data().username);
@@ -91,7 +91,7 @@ export default function Dashboard() {
       // Fetch the list of friends under users/{uid}/friends
       const fSnap = await getDocs(collection(db, `users/${user.uid}/friends`));
       // friendsList is an array of UIDs
-      setFriendsList(fSnap.docs.map(d => d.id));
+      setFriendsList(fSnap.docs.map((d) => d.id));
     })();
 
     // Subscribe to real-time updates on users/{uid}/notifications
@@ -99,7 +99,7 @@ export default function Dashboard() {
       collection(db, `users/${auth.currentUser.uid}/notifications`),
       (snap) => {
         // Map each notification document to its data + id
-        setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setNotifications(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       }
     );
 
@@ -112,17 +112,17 @@ export default function Dashboard() {
   const handleSearchChange = async (e) => {
     const q = e.target.value;
     setSearchQuery(q);
-    setSuggestions([]);       // Clear previous suggestions
-    setActionMessage('');     // Clear any action messages
+    setSuggestions([]); // Clear previous suggestions
+    setActionMessage(""); // Clear any action messages
 
     // If query is empty or only whitespace, do nothing further
     if (!q.trim()) return;
 
     // Build a Firestore query to find usernames starting with 'q'
     const userQ = query(
-      collection(db, 'users'),
-      where('username', '>=', q),
-      where('username', '<=', q + '\uf8ff')
+      collection(db, "users"),
+      where("username", ">=", q),
+      where("username", "<=", q + "\uf8ff")
     );
 
     // Execute the query
@@ -146,31 +146,28 @@ export default function Dashboard() {
 
       // Write a friend request document under users/{recipientUID}/requests/{myUID}
       await setDoc(doc(db, `users/${u.uid}/requests/${me}`), {
-        username,             // current user's username
+        username, // current user's username
         requestedAt: new Date(), // timestamp of request
       });
 
       // Also create a notification under users/{recipientUID}/notifications/{id}
-      await setDoc(
-        doc(db, `users/${u.uid}/notifications/${me}-request`),
-        {
-          type: 'friend_request',
-          message: `📬 @${username} sent you a friend request!`,
-          timestamp: new Date(),
-        }
-      );
+      await setDoc(doc(db, `users/${u.uid}/notifications/${me}-request`), {
+        type: "friend_request",
+        message: `📬 @${username} sent you a friend request!`,
+        timestamp: new Date(),
+      });
 
       // Show feedback message temporarily
       setActionMessage(`✅ Friend request sent to @${u.username}`);
-      setTimeout(() => setActionMessage(''), 3000);
+      setTimeout(() => setActionMessage(""), 3000);
 
       // Clear search field and suggestions
-      setSearchQuery('');
+      setSearchQuery("");
       setSuggestions([]);
     } catch {
       // If any error, show error message briefly
-      setActionMessage('❌ Error sending friend request.');
-      setTimeout(() => setActionMessage(''), 3000);
+      setActionMessage("❌ Error sending friend request.");
+      setTimeout(() => setActionMessage(""), 3000);
     }
   };
 
@@ -178,14 +175,18 @@ export default function Dashboard() {
 
   // Remove (mark as read) a notification by its ID
   const removeNotification = async (notifId) => {
-    await deleteDoc(doc(db, `users/${auth.currentUser.uid}/notifications/${notifId}`));
+    await deleteDoc(
+      doc(db, `users/${auth.currentUser.uid}/notifications/${notifId}`)
+    );
   };
 
   // Handlers to accept different game invites; update game status to 'active' and navigate
 
   const acceptHangmanInvite = async (notif) => {
     // Update the hangman game document to set status 'active'
-    await updateDoc(doc(db, `hangman_games/${notif.gameId}`), { status: 'active' });
+    await updateDoc(doc(db, `hangman_games/${notif.gameId}`), {
+      status: "active",
+    });
     // Remove the notification
     removeNotification(notif.id);
     // Navigate to the multiplayer hangman game
@@ -193,25 +194,31 @@ export default function Dashboard() {
   };
 
   const acceptTicTacToeInvite = async (notif) => {
-    await updateDoc(doc(db, `tictactoe_games/${notif.gameId}`), { status: 'active' });
+    await updateDoc(doc(db, `tictactoe_games/${notif.gameId}`), {
+      status: "active",
+    });
     removeNotification(notif.id);
     navigate(`/tictactoe/multiplayer/${notif.gameId}`);
   };
 
   const acceptConnectFourInvite = async (notif) => {
-    await updateDoc(doc(db, `connect4_games/${notif.gameId}`), { status: 'active' });
+    await updateDoc(doc(db, `connect4_games/${notif.gameId}`), {
+      status: "active",
+    });
     removeNotification(notif.id);
     navigate(`/connect4/multiplayer/${notif.gameId}`);
   };
 
   const acceptBattleshipInvite = async (notif) => {
-    await updateDoc(doc(db, `battleship_games/${notif.gameId}`), { status: 'active' });
+    await updateDoc(doc(db, `battleship_games/${notif.gameId}`), {
+      status: "active",
+    });
     removeNotification(notif.id);
     navigate(`/battleship/multiplayer/${notif.gameId}`);
   };
 
   const acceptDuelInvite = async (notif) => {
-    await updateDoc(doc(db, `duelGames/${notif.gameId}`), { status: 'active' });
+    await updateDoc(doc(db, `duelGames/${notif.gameId}`), { status: "active" });
     removeNotification(notif.id);
     navigate(`/duel/multiplayer/${notif.gameId}`);
   };
@@ -229,7 +236,7 @@ export default function Dashboard() {
           className="header-logo"
           onClick={() => {
             auth.signOut();
-            navigate('/');
+            navigate("/");
           }}
         />
 
@@ -258,7 +265,9 @@ export default function Dashboard() {
                       @{u.username}
                       {!friendsList.includes(u.uid) ? (
                         // If not already friends, show "Add" button
-                        <button onClick={() => handleSendRequest(u)}>Add</button>
+                        <button onClick={() => handleSendRequest(u)}>
+                          Add
+                        </button>
                       ) : (
                         <span>Already a friend</span>
                       )}
@@ -289,18 +298,18 @@ export default function Dashboard() {
                       key={notif.id}
                       className="notif-item"
                       style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.4rem',
-                        marginBottom: '1rem',
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.4rem",
+                        marginBottom: "1rem",
                       }}
                     >
                       {/* Notification text */}
                       <p style={{ margin: 0 }}>{notif.message}</p>
 
                       {/* If this notification is a new message */}
-                      {notif.type === 'message' && (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {notif.type === "message" && (
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
                           <button
                             onClick={() => {
                               // Navigate to the messaging page for that sender
@@ -318,8 +327,8 @@ export default function Dashboard() {
                       )}
 
                       {/* If this notification is a Hangman game invite */}
-                      {notif.type === 'hangman_invite' && (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {notif.type === "hangman_invite" && (
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
                           <button onClick={() => acceptHangmanInvite(notif)}>
                             Join Hangman
                           </button>
@@ -330,8 +339,8 @@ export default function Dashboard() {
                       )}
 
                       {/* If this notification is a Tic-Tac-Toe invite */}
-                      {notif.type === 'tictactoe_invite' && (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {notif.type === "tictactoe_invite" && (
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
                           <button onClick={() => acceptTicTacToeInvite(notif)}>
                             Join Tic-Tac-Toe
                           </button>
@@ -342,9 +351,11 @@ export default function Dashboard() {
                       )}
 
                       {/* If this notification is a Connect Four invite */}
-                      {notif.type === 'connect4_invite' && (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button onClick={() => acceptConnectFourInvite(notif)}>
+                      {notif.type === "connect4_invite" && (
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                          <button
+                            onClick={() => acceptConnectFourInvite(notif)}
+                          >
                             Join Connect Four
                           </button>
                           <button onClick={() => removeNotification(notif.id)}>
@@ -354,8 +365,8 @@ export default function Dashboard() {
                       )}
 
                       {/* If this notification is a Battleship invite */}
-                      {notif.type === 'battleship_invite' && (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {notif.type === "battleship_invite" && (
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
                           <button onClick={() => acceptBattleshipInvite(notif)}>
                             Join Battleship
                           </button>
@@ -366,8 +377,8 @@ export default function Dashboard() {
                       )}
 
                       {/* If this notification is a Duel Shots invite */}
-                      {notif.type === 'duel_invite' && (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {notif.type === "duel_invite" && (
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
                           <button onClick={() => acceptDuelInvite(notif)}>
                             Join Duel Shots
                           </button>
@@ -384,7 +395,7 @@ export default function Dashboard() {
           </div>
 
           {/* Profile icon: navigates to Profile page */}
-          <span className="profile-icon" onClick={() => navigate('/profile')}>
+          <span className="profile-icon" onClick={() => navigate("/profile")}>
             👤
           </span>
         </div>
@@ -399,22 +410,31 @@ export default function Dashboard() {
 
         {/* Hangman game cards */}
         <div className="game-grid">
-          <div className="game-card" onClick={() => navigate('/hangman/single')}>
+          <div
+            className="game-card"
+            onClick={() => navigate("/hangman/single")}
+          >
             <img src={singleHangmanImg} alt="Single Player Hangman" />
           </div>
-          <div className="game-card" onClick={() => navigate('/hangman/multiplayer')}>
+          <div
+            className="game-card"
+            onClick={() => navigate("/hangman/multiplayer")}
+          >
             <img src={multiHangmanImg} alt="Multiplayer Hangman" />
           </div>
         </div>
 
         {/* Tic-Tac-Toe game cards */}
         <div className="game-grid">
-          <div className="game-card" onClick={() => navigate('/tictactoe/single')}>
+          <div
+            className="game-card"
+            onClick={() => navigate("/tictactoe/single")}
+          >
             <img src={singleTicTacToeImg} alt="Single Player Tic-Tac-Toe" />
           </div>
           <div
             className="game-card"
-            onClick={() => navigate('/tictactoe/multiplayer')}
+            onClick={() => navigate("/tictactoe/multiplayer")}
           >
             <img src={multiTicTacToeImg} alt="Multiplayer Tic-Tac-Toe" />
           </div>
@@ -422,17 +442,17 @@ export default function Dashboard() {
 
         {/* Connect Four game cards */}
         <div className="game-grid">
-          <div className="game-card" onClick={() => navigate('/connect4/single')}>
+          <div
+            className="game-card"
+            onClick={() => navigate("/connect4/single")}
+          >
             <img src={singleConnectFourImg} alt="Single Player Connect Four" />
           </div>
           <div
             className="game-card"
-            onClick={() => navigate('/connect4/multiplayer')}
+            onClick={() => navigate("/connect4/multiplayer")}
           >
-            <img
-              src={multiConnectFourImg}
-              alt="Multiplayer Connect Four"
-            />
+            <img src={multiConnectFourImg} alt="Multiplayer Connect Four" />
           </div>
         </div>
 
@@ -440,24 +460,21 @@ export default function Dashboard() {
         <div className="game-grid">
           <div
             className="game-card"
-            onClick={() => navigate('/battleship/single')}
+            onClick={() => navigate("/battleship/single")}
           >
             <img src={singleBattleshipImg} alt="Single Player Battleship" />
           </div>
           <div
             className="game-card"
-            onClick={() => navigate('/battleship/multiplayer')}
+            onClick={() => navigate("/battleship/multiplayer")}
           >
-            <img
-              src={multiBattleshipImg}
-              alt="Multiplayer Battleship"
-            />
+            <img src={multiBattleshipImg} alt="Multiplayer Battleship" />
           </div>
         </div>
 
         {/* Duel Shots (Single Player) card */}
         <div className="game-grid">
-          <div className="game-card" onClick={() => navigate('/duel/single')}>
+          <div className="game-card" onClick={() => navigate("/duel/single")}>
             <img src={singleDuelImg} alt="Single Player Duel Shots" />
           </div>
         </div>
@@ -465,7 +482,7 @@ export default function Dashboard() {
 
       {/* Footer section with copyright */}
       <footer className="dashboard-footer">
-        © {new Date().getFullYear()} PlayPal. Built with ❤️ by{' '}
+        © {new Date().getFullYear()} PlayPal. Built with ❤️ by{" "}
         <a
           href="https://github.com/usmanAfzalKhan"
           target="_blank"
@@ -473,7 +490,8 @@ export default function Dashboard() {
           className="footer-link"
         >
           Usman Khan
-        </a>.
+        </a>
+        .
       </footer>
     </div>
   );
