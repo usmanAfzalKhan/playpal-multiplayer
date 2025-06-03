@@ -24,7 +24,6 @@ PlayPal Multiplayer is a full-stack React gaming platform designed to bring clas
     - **Multiplayer**: Place your fleet, then fire torpedoes at your friend’s grid. Hits, misses, and ship status sync in real time alongside in-game chat.  
   - **Duel Shots (Arena Shooter)**  
     - **Single-Player (Current Release)**: A top-down arena with randomized obstacles, ammo crates, and health pickups. AI dodges intelligently and auto-aims while you maneuver with virtual joysticks on mobile or WASD/arrow keys on desktop.  
-    - **Multiplayer (Coming Soon)**: Face off against friends in chaotic head-to-head shootouts. All movement, shots, and pickups will synchronize through Firestore for ultra-low latency.  
 
 - **Practice & Perfect Your Skills**  
   - Each game’s AI opponent adapts to provide a challenging experience.  
