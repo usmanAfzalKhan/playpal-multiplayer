@@ -191,19 +191,19 @@ PlayPal Multiplayer is a full-stack React gaming platform designed to bring clas
     ![Tic Tac Toe Challenge](src/assets/screenshots/TicTacToeChallenge.jpeg)
     
 11. **Tic Tac Toe Multiplayer**  
-    ![Tic Tac Toe Multiplayer](src/assets/screenshots/TicTacToeMultiplayer,jpeg)
+    ![Tic Tac Toe Multiplayer](src/assets/screenshots/TicTacToeMultiplayer.jpeg)
 
 12. **Connect Four Single Player**  
-    ![Connect Four Single Player](src/assets/acreenshots/ConnectDourSingle.jpeg)
+    ![Connect Four Single Player](src/assets/acreenshots/ConnectFourSingle.jpeg)
 
 13. **Connect Four Challenge**  
     ![Connect Four Challenge](src/assets/screenshots/ConnectFourChallenge.jpeg)
 
 14. **Connect Four Multiplayer**  
-    ![Connect Four Multiplayer](src/assets/screenshots/ConnectFourMultiplayer,jpeg)
+    ![Connect Four Multiplayer](src/assets/screenshots/ConnectFourMultiplayer.jpeg)
 
 15. **Battleship Single Player**  
-    ![Battleship Single Player](src/assets/screenshots/BattleshipSingle,jpeg)
+    ![Battleship Single Player](src/assets/screenshots/BattleshipSingle.jpeg)
 
 16. **Battleship Challenge**  
     ![Battleship Challenge](src/assets/screenshots/BattleshipChallenge.jpeg)
