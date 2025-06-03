@@ -5,27 +5,6 @@
 PlayPal Multiplayer is a full-stack React gaming platform designed to bring classic tabletop and arcade-style games to the browser—anywhere, anytime. With PlayPal, you can sharpen your skills against intelligent AI opponents or challenge friends in real time. Built on React, Firebase, and Firestore, PlayPal delivers fast, secure, and responsive gameplay across desktop and mobile devices. Whether you’re decoding a word in Hangman, lining up four in Connect Four, lining up shots in Battleship, or dodging bullets in Duel Shots, PlayPal ensures an immersive, social experience complete with user profiles, friend requests, in-game chat, and push notifications.
 
 ---
-
-## 📋 Table of Contents
-
-1. [🚀 Key Features](#🚀-key-features)  
-   1. [Universal Multiplayer & Single-Player Modes](#universal-multiplayer--single-player-modes)  
-   2. [Social & Messaging Layer](#social--messaging-layer)  
-   3. [Responsive, Accessible UI](#responsive-accessible-ui)  
-   4. [Firebase Integration & Data Flows](#firebase-integration--data-flows)  
-2. [📷 Screenshots](#📷-screenshots)  
-3. [🎯 Getting Started](#🎯-getting-started)  
-   1. [Prerequisites](#prerequisites)  
-   2. [Installation](#installation)  
-   3. [Firebase Configuration](#firebase-configuration)  
-   4. [Running Locally](#running-locally)  
-4. [🛠️ Deployment](#🛠️-deployment)  
-5. [🔭 Future Roadmap](#🔭-future-roadmap)  
-6. [🤝 Contributing](#🤝-contributing)  
-7. [📄 License](#📄-license)  
-
----
-
 ## 🚀 Key Features
 
 ### 🎲 Universal Multiplayer & Single-Player Modes
@@ -211,28 +190,28 @@ PlayPal Multiplayer is a full-stack React gaming platform designed to bring clas
 10. **Tic Tac Toe Challenge**  
     ![Tic Tac Toe Challenge](src/assets/screenshots/TicTacToeChallenge.jpeg)
     
-18. **Tic Tac Toe Multiplayer**  
+11. **Tic Tac Toe Multiplayer**  
     ![Tic Tac Toe Multiplayer](src/assets/screenshots/TicTacToeMultiplayer,jpeg)
 
-11. **Connect Four Single Player**  
+12. **Connect Four Single Player**  
     ![Connect Four Single Player](src/assets/acreenshots/ConnectDourSingle.jpeg)
 
-12. **Connect Four Challenge**  
+13. **Connect Four Challenge**  
     ![Connect Four Challenge](src/assets/screenshots/ConnectFourChallenge.jpeg)
 
-13. **Connect Four Multiplayer**  
+14. **Connect Four Multiplayer**  
     ![Connect Four Multiplayer](src/assets/screenshots/ConnectFourMultiplayer,jpeg)
 
-14. **Battleship Single Player**  
+15. **Battleship Single Player**  
     ![Battleship Single Player](src/assets/screenshots/BattleshipSingle,jpeg)
 
-15. **Battleship Challenge**  
+16. **Battleship Challenge**  
     ![Battleship Challenge](src/assets/screenshots/BattleshipChallenge.jpeg)
 
-16. **Battleship Multiplayer**  
+17. **Battleship Multiplayer**  
     ![Battleship Multiplayer](src/assets/screenshots/BattleshipMultiplayer.jpeg)
 
-17. **Duel Shots Singe Player**  
+18. **Duel Shots Singe Player**  
     ![Duel Shots Singe Player](src/assets/screenshots/DuelShotsSingle.jpeg)
 
 📄 License
